@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 tokio = "1.15.0"
 twilight-model = "0"
+serde = "1.0.134"
 
 [dependencies.mongodb]
 version = "2.1.0"
