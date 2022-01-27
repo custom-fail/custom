@@ -5,11 +5,13 @@ use mongodb::bson::doc;
 use tokio::sync::Mutex;
 use twilight_model::guild::Guild;
 use twilight_model::id::Id;
+use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 
 pub struct MongoDBConnection {
     pub client: Client,
     pub database: Database,
+    pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
     pub configs_cache: Arc<Mutex<HashMap<Id<Guild>, GuildConfig>>>
 }
@@ -21,10 +23,12 @@ impl MongoDBConnection {
         let client = Client::with_uri_str(url).await?;
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
+        let cases = db.collection::<Case>("cases");
 
         Ok(Self {
             configs_cache: Arc::new(Mutex::new(HashMap::new())),
             database: db,
+            cases,
             client,
             configs
         })
@@ -46,5 +50,6 @@ impl MongoDBConnection {
             },
             Err(error) => return Err(format!("{:?}", error))
         }
+
     }
 }
