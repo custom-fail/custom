@@ -9,6 +9,7 @@ edition = "2021"
 tokio = "1.15.0"
 twilight-model = "0"
 serde = "1.0.134"
+redis = "0.21.5"
 
 [dependencies.mongodb]
 version = "2.1.0"
