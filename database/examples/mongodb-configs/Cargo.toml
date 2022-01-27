@@ -10,3 +10,4 @@ database = { path = "../../" }
 tokio = "1.15.0"
 dotenv = "0.15.0"
 twilight-model = "0"
+mongodb = "2.1.0"
