@@ -14,7 +14,7 @@ async fn main() {
     let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB_URL from .env");
 
     let connection = MongoDBConnection::connect(mongodb_url).await.unwrap();
-    println!("Connected to mongodb-configs database");
+    println!("Connected to mongodb database");
 
     let guild_id = Id::<Guild>::from_str("898986393177567242").unwrap();
     let user_id = Id::<User>::from_str("494386855974928386").unwrap();
