@@ -11,7 +11,7 @@ async fn main() {
 
     dotenv().ok();
 
-    let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB from .env");
+    let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB_URL from .env");
 
     let connection = MongoDBConnection::connect(mongodb_url).await.unwrap();
     println!("Connected to mongodb-configs database");
