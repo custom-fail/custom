@@ -23,4 +23,9 @@ impl RedisConnection {
         Ok((score, position))
     }
 
+    pub fn get_all(&self, path: String, limit: isize) -> Result<Vec<(String, u32)>, RedisError> {
+        let mut connection = self.client.get_connection()?;
+        Ok(connection.zrevrange_withscores(path, 0, limit - 1)?)
+    }
+
 }
