@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.15.0", features = ["full"]  }
+database = { path = "../database" }
+dotenv = "0.15.0"
