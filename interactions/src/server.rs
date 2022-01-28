@@ -22,20 +22,27 @@ fn string_from_headers_option(header: Option<&HeaderValue>) -> Option<String> {
     })
 }
 
+const METHOD_NOT_ALLOWED: Result<Response<Body>, Infallible> = Ok(response("Method not allowed", StatusCode::METHOD_NOT_ALLOWED));
+const MISSING_HEADERS: Result<Response<Body>, Infallible> = Ok(response("Missing headers", StatusCode::BAD_REQUEST));
+
 async fn route(request: Request<Body>, _mongodb: MongoDBConnection, _redis: RedisConnection) -> Result<Response<Body>, Infallible> {
 
-    let method_not_allowed = Ok(response("Method not allowed", StatusCode::METHOD_NOT_ALLOWED));
-    let missing_headers = Ok(response("Missing headers", StatusCode::BAD_REQUEST));
-
     if request.method() != &Method::POST {
-        return method_not_allowed;
+        return METHOD_NOT_ALLOWED;
     };
 
     let timestamp = request.headers().get("X-Signature-Timestamp");
     let signature = request.headers().get("X-Signature-Ed25519");
 
-    let timestamp = string_from_headers_option(timestamp).ok_or(missing_headers.clone())?;
-    let signature = string_from_headers_option(signature).ok_or(missing_headers.clone())?;
+    let timestamp = match string_from_headers_option(timestamp) {
+        Some(timestamp) => timestamp,
+        None => return MISSING_HEADERS
+    };
+
+    let signature = match string_from_headers_option(signature) {
+        Some(signature) => signature,
+        None => return MISSING_HEADERS
+    };
 
     println!("{}, {}", timestamp, signature);
 
