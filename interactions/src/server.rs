@@ -5,13 +5,6 @@ use hyper::service::{make_service_fn, service_fn};
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 
-fn response(text: &'static str, status: StatusCode) -> Response<Body> {
-    let mut not_found = Response::default();
-    *not_found.status_mut() = status;
-    *not_found.body_mut() = Body::from(text);
-    not_found
-}
-
 fn string_from_headers_option(header: Option<&HeaderValue>) -> Option<String> {
     Some(match header {
         Some(header) => match header.to_str() {
@@ -22,13 +15,27 @@ fn string_from_headers_option(header: Option<&HeaderValue>) -> Option<String> {
     })
 }
 
-const METHOD_NOT_ALLOWED: Result<Response<Body>, Infallible> = Ok(response("Method not allowed", StatusCode::METHOD_NOT_ALLOWED));
-const MISSING_HEADERS: Result<Response<Body>, Infallible> = Ok(response("Missing headers", StatusCode::BAD_REQUEST));
+struct HttpResponse {
+    status: StatusCode,
+    body: &'static str
+}
+
+impl HttpResponse {
+    pub fn into_response(&self) -> Result<Response<Body>, Infallible> {
+        let mut response = Response::default();
+        *response.status_mut() = self.status;
+        *response.body_mut() = Body::from(self.body.clone());
+        Ok(response)
+    }
+}
+
+const METHOD_NOT_ALLOWED: HttpResponse = HttpResponse { body: "Method not allowed", status: StatusCode::METHOD_NOT_ALLOWED };
+const MISSING_HEADERS: HttpResponse = HttpResponse { body: "Missing headers", status: StatusCode::BAD_REQUEST };
 
 async fn route(request: Request<Body>, _mongodb: MongoDBConnection, _redis: RedisConnection) -> Result<Response<Body>, Infallible> {
 
     if request.method() != &Method::POST {
-        return METHOD_NOT_ALLOWED;
+        return METHOD_NOT_ALLOWED.into_response();
     };
 
     let timestamp = request.headers().get("X-Signature-Timestamp");
@@ -36,12 +43,12 @@ async fn route(request: Request<Body>, _mongodb: MongoDBConnection, _redis: Redi
 
     let timestamp = match string_from_headers_option(timestamp) {
         Some(timestamp) => timestamp,
-        None => return MISSING_HEADERS
+        None => return MISSING_HEADERS.into_response()
     };
 
     let signature = match string_from_headers_option(signature) {
         Some(signature) => signature,
-        None => return MISSING_HEADERS
+        None => return MISSING_HEADERS.into_response()
     };
 
     println!("{}, {}", timestamp, signature);
