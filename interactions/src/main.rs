@@ -1,4 +1,5 @@
 mod server;
+mod authorize;
 
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
