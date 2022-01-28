@@ -53,3 +53,15 @@ impl MongoDBConnection {
 
     }
 }
+
+impl Clone for MongoDBConnection {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            database: self.database.clone(),
+            configs: self.configs.clone_with_type(),
+            configs_cache: self.configs_cache.clone(),
+            cases: self.cases.clone_with_type()
+        }
+    }
+}

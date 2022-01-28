@@ -29,3 +29,11 @@ impl RedisConnection {
     }
 
 }
+
+impl Clone for RedisConnection {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone()
+        }
+    }
+}
