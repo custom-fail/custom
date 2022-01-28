@@ -1,3 +1,5 @@
+mod server;
+
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
@@ -12,5 +14,7 @@ async fn main() {
 
     let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
     let redis = RedisConnection::connect(redis_url).unwrap();
+
+    server::listen(80, mongodb, redis).await;
 
 }
