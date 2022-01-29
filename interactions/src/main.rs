@@ -4,11 +4,16 @@ mod authorize;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
+use ed25519_dalek::PublicKey;
 
 #[tokio::main]
 async fn main() {
 
     dotenv().ok();
+
+    let public_key_env = std::env::var("PUBLIC_KEY").expect("Cannot load PUBLIC_KEY from .env");
+    let pbk_bytes = hex::decode(public_key_env.as_str()).expect("Invalid public value");
+    let public_key = PublicKey::from_bytes(&pbk_bytes.as_ref()).expect("Unknown public key");
 
     let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB_URL from .env");
     let redis_url = std::env::var("REDIS_URL").expect("Cannot load REDIS_URL from .env");
@@ -16,6 +21,6 @@ async fn main() {
     let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
     let redis = RedisConnection::connect(redis_url).unwrap();
 
-    server::listen(80, mongodb, redis).await;
+    server::listen(80, public_key, mongodb, redis).await;
 
 }
