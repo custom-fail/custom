@@ -1,13 +1,16 @@
 mod server;
 mod authorize;
 mod interaction;
-mod commands;
 mod application;
+
+#[macro_use]
+mod commands;
 
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
 use ed25519_dalek::PublicKey;
+use futures::FutureExt;
 use crate::application::Application;
 
 #[tokio::main]
@@ -26,7 +29,9 @@ async fn main() {
     let redis = RedisConnection::connect(redis_url).unwrap();
 
     let mut application = Application::new();
-    application.add_command(Vec::new());
+    application.add_command(vec![
+        // example command!("top week all", "top", crate::commands::top::all::run)
+    ]).await;
 
     server::listen(80, public_key, application, mongodb, redis).await;
 
