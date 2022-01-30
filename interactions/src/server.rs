@@ -7,6 +7,7 @@ use serde_json::json;
 use twilight_model::application::interaction::Interaction;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
+use crate::Application;
 use crate::authorize::verify_signature;
 use crate::interaction::handle_interaction;
 
@@ -40,7 +41,7 @@ const MISSING_HEADERS: HttpResponse = HttpResponse { body:"Missing headers", sta
 const UNAUTHORIZED: HttpResponse = HttpResponse { body: "Unauthorized", status: StatusCode::UNAUTHORIZED };
 const INVALID_BODY: HttpResponse = HttpResponse { body: "Invalid/Missing body", status: StatusCode::BAD_REQUEST };
 
-async fn route(request: Request<Body>, public_key: PublicKey, mongodb: MongoDBConnection, redis: RedisConnection) -> Result<Response<Body>, Infallible> {
+async fn route(request: Request<Body>, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection) -> Result<Response<Body>, Infallible> {
 
     if request.method() != &Method::POST {
         return METHOD_NOT_ALLOWED.into_response();
@@ -81,7 +82,7 @@ async fn route(request: Request<Body>, public_key: PublicKey, mongodb: MongoDBCo
         Err(_) => return INVALID_BODY.into_response()
     };
 
-    let content = handle_interaction(interaction, mongodb, redis).await;
+    let content = handle_interaction(interaction, application, mongodb, redis).await;
     let content = json!(content).to_string();
 
     let response = Response::builder()
@@ -95,15 +96,16 @@ async fn route(request: Request<Body>, public_key: PublicKey, mongodb: MongoDBCo
 
 }
 
-pub async fn listen(port: u8, public_key: PublicKey, mongodb: MongoDBConnection, redis: RedisConnection) -> () {
+pub async fn listen(port: u8, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection) -> () {
 
     let service = make_service_fn(move |_| {
         let public_key = public_key.clone();
+        let application = application.clone();
         let mongodb = mongodb.clone();
         let redis = redis.clone();
         async move {
             Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                route(req, public_key.clone(), mongodb.clone(), redis.clone())
+                route(req, public_key.clone(), application.clone(), mongodb.clone(), redis.clone())
             }))
         }
     });

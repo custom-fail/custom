@@ -8,6 +8,7 @@ use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
 use ed25519_dalek::PublicKey;
+use crate::application::Application;
 
 #[tokio::main]
 async fn main() {
@@ -24,6 +25,9 @@ async fn main() {
     let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
     let redis = RedisConnection::connect(redis_url).unwrap();
 
-    server::listen(80, public_key, mongodb, redis).await;
+    let mut application = Application::new();
+    application.add_command(Vec::new());
+
+    server::listen(80, public_key, application, mongodb, redis).await;
 
 }

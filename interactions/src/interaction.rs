@@ -4,6 +4,7 @@ use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use serde::{Serialize, Deserialize};
+use crate::Application;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InteractionResponse {
@@ -11,7 +12,7 @@ pub struct InteractionResponse {
     data: Option<CallbackData>
 }
 
-pub async fn handle_interaction(interaction: Interaction, _mongodb: MongoDBConnection, _redis: RedisConnection) -> InteractionResponse {
+pub async fn handle_interaction(interaction: Interaction, _application: Application, _mongodb: MongoDBConnection, _redis: RedisConnection) -> InteractionResponse {
     match interaction {
         Interaction::Ping(_) => InteractionResponse {
             r#type: 1,
