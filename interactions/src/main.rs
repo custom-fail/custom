@@ -1,5 +1,8 @@
 mod server;
 mod authorize;
+mod interaction;
+mod commands;
+mod application;
 
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;

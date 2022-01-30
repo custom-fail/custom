@@ -3,10 +3,12 @@ use ed25519_dalek::PublicKey;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use hyper::http::HeaderValue;
 use hyper::service::{make_service_fn, service_fn};
+use serde_json::json;
 use twilight_model::application::interaction::Interaction;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::authorize::verify_signature;
+use crate::interaction::handle_interaction;
 
 fn string_from_headers_option(header: Option<&HeaderValue>) -> Option<String> {
     Some(match header {
@@ -32,12 +34,13 @@ impl HttpResponse {
     }
 }
 
+const INTERNAL_SERVER_ERROR: HttpResponse = HttpResponse { body: "Internal server error", status: StatusCode::INTERNAL_SERVER_ERROR };
 const METHOD_NOT_ALLOWED: HttpResponse = HttpResponse { body: "Method not allowed", status: StatusCode::METHOD_NOT_ALLOWED };
 const MISSING_HEADERS: HttpResponse = HttpResponse { body:"Missing headers", status: StatusCode::BAD_REQUEST };
 const UNAUTHORIZED: HttpResponse = HttpResponse { body: "Unauthorized", status: StatusCode::UNAUTHORIZED };
 const INVALID_BODY: HttpResponse = HttpResponse { body: "Invalid/Missing body", status: StatusCode::BAD_REQUEST };
 
-async fn route(request: Request<Body>, public_key: PublicKey, _mongodb: MongoDBConnection, _redis: RedisConnection) -> Result<Response<Body>, Infallible> {
+async fn route(request: Request<Body>, public_key: PublicKey, mongodb: MongoDBConnection, redis: RedisConnection) -> Result<Response<Body>, Infallible> {
 
     if request.method() != &Method::POST {
         return METHOD_NOT_ALLOWED.into_response();
@@ -78,7 +81,17 @@ async fn route(request: Request<Body>, public_key: PublicKey, _mongodb: MongoDBC
         Err(_) => return INVALID_BODY.into_response()
     };
 
-    Ok(Response::new(Body::from(format!("{:?}", body))))
+    let content = handle_interaction(interaction, mongodb, redis).await;
+    let content = json!(content).to_string();
+
+    let response = Response::builder()
+        .header("Content-Type", "application/json")
+        .body(Body::from(content));
+
+    match response {
+        Ok(response) => Ok(response),
+        Err(_) => INTERNAL_SERVER_ERROR.into_response()
+    }
 
 }
 
