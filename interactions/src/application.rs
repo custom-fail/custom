@@ -21,7 +21,7 @@ impl Application {
         }
     }
 
-    async fn find_command(&self, name: String) -> Option<Command> {
+    pub async fn find_command(&self, name: String) -> Option<Command> {
         let commands = self.commands.lock().await;
         commands.get(&name).cloned()
     }
