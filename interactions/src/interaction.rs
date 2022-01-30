@@ -18,10 +18,26 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
             r#type: 1,
             data: None
         },
-        Interaction::ApplicationCommand(interaction) => InteractionResponse {
-            r#type: 4,
-            data: Some(commands_handler(interaction, application, mongodb, redis).await)
-        },
+        Interaction::ApplicationCommand(interaction) => {
+            let response = commands_handler(interaction,application, mongodb, redis).await;
+            match response {
+                Ok(response) => InteractionResponse {
+                    r#type: 4,
+                    data: Some(response)
+                },
+                Err(error) => InteractionResponse {
+                    r#type: 0,
+                    data: Some(CallbackData {
+                        allowed_mentions: None,
+                        components: None,
+                        content: Some(error),
+                        embeds: None,
+                        flags: None,
+                        tts: None
+                    })
+                }
+            }
+        }
         _ => InteractionResponse {
             r#type: 4,
             data: Some(CallbackData {
@@ -36,13 +52,13 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
     }
 }
 
-async fn commands_handler(_interaction: Box<ApplicationCommand>, _application: Application, _mongodb: MongoDBConnection, _redis: RedisConnection) -> CallbackData {
-    CallbackData {
+async fn commands_handler(interaction: Box<ApplicationCommand>, _application: Application, mongodb: MongoDBConnection, _redis: RedisConnection) -> Result<CallbackData, String> {
+    Ok(CallbackData {
         allowed_mentions: None,
         components: None,
         content: Some("test???".to_string()),
         embeds: None,
         flags: None,
         tts: None
-    }
+    })
 }
