@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
+use twilight_model::id::Id;
+use twilight_model::id::marker::GuildMarker;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Moderation {
@@ -52,7 +54,7 @@ impl Clone for Top {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GuildConfig {
-    pub guild_id: String,
+    pub guild_id: Id<GuildMarker>,
     pub enabled: HashMap<String, bool>,
     pub moderation: Moderation,
     pub premium: bool,

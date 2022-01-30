@@ -3,8 +3,8 @@ use std::sync::Arc;
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::doc;
 use tokio::sync::Mutex;
-use twilight_model::guild::Guild;
 use twilight_model::id::Id;
+use twilight_model::id::marker::GuildMarker;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 
@@ -13,7 +13,7 @@ pub struct MongoDBConnection {
     pub database: Database,
     pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
-    pub configs_cache: Arc<Mutex<HashMap<Id<Guild>, GuildConfig>>>
+    pub configs_cache: Arc<Mutex<HashMap<Id<GuildMarker>, GuildConfig>>>
 }
 
 impl MongoDBConnection {
@@ -34,7 +34,7 @@ impl MongoDBConnection {
         })
     }
 
-    pub async fn get_config(&self, guild_id: Id<Guild>) -> Result<GuildConfig, String> {
+    pub async fn get_config(&self, guild_id: Id<GuildMarker>) -> Result<GuildConfig, String> {
 
         let configs_cache = self.configs_cache.lock().await;
         let config = configs_cache.get(&guild_id);

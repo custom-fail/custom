@@ -1,10 +1,9 @@
 use std::str::FromStr;
 use dotenv::dotenv;
-use twilight_model::guild::Guild;
 use twilight_model::id::Id;
-use twilight_model::user::User;
 use database::mongodb::MongoDBConnection;
 use mongodb::bson::doc;
+use twilight_model::id::marker::{GuildMarker, UserMarker};
 
 #[tokio::main]
 async fn main() {
@@ -16,8 +15,8 @@ async fn main() {
     let connection = MongoDBConnection::connect(mongodb_url).await.unwrap();
     println!("Connected to mongodb database");
 
-    let guild_id = Id::<Guild>::from_str("898986393177567242").unwrap();
-    let user_id = Id::<User>::from_str("494386855974928386").unwrap();
+    let guild_id = Id::<GuildMarker>::from_str("898986393177567242").unwrap();
+    let user_id = Id::<UserMarker>::from_str("494386855974928386").unwrap();
 
     for _ in 0..10 {
         println!("{:?}", connection.get_config(guild_id.clone()).await.unwrap());
