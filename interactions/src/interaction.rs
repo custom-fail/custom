@@ -5,6 +5,7 @@ use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use serde::{Serialize, Deserialize};
 use crate::Application;
+use crate::commands::parse_slash_command_to_text;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InteractionResponse {
@@ -26,7 +27,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
                     data: Some(response)
                 },
                 Err(error) => InteractionResponse {
-                    r#type: 0,
+                    r#type: 4,
                     data: Some(CallbackData {
                         allowed_mentions: None,
                         components: None,
@@ -52,13 +53,16 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
     }
 }
 
-async fn commands_handler(interaction: Box<ApplicationCommand>, _application: Application, mongodb: MongoDBConnection, _redis: RedisConnection) -> Result<CallbackData, String> {
-    Ok(CallbackData {
-        allowed_mentions: None,
-        components: None,
-        content: Some("test???".to_string()),
-        embeds: None,
-        flags: None,
-        tts: None
-    })
+async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection) -> Result<CallbackData, String> {
+
+    let command_text = parse_slash_command_to_text(interaction.data.clone());
+    let command = application.find_command(command_text).await.ok_or("Cannot find command")?;
+
+    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
+    let config = mongodb.get_config(guild_id).await.map_err(|_| "Cannot find guild config".to_string())?;
+
+    config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
+
+    (command.run)(interaction, mongodb, redis).await
+
 }

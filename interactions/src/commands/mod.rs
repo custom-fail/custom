@@ -1,4 +1,8 @@
+pub mod top;
+
 use std::future::Future;
+use std::pin::Pin;
+use futures::future;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
 use twilight_model::application::interaction::application_command::{CommandData, CommandOptionValue};
@@ -6,8 +10,15 @@ use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 
-pub type CommandResult = Box<dyn Future<Output = Result<CallbackData, &'static str>> + Unpin>;
-pub type Callback = fn(Box<ApplicationCommand>, MongoDBConnection, RedisConnection) -> CommandResult;
+pub type Response = Pin<Box<dyn Future<Output = Result<CallbackData, String>> + Send + 'static>>;
+type Callback = fn(Box<ApplicationCommand>, MongoDBConnection, RedisConnection) -> Response;
+
+pub fn boxed_future_response(value: Result<CallbackData, String>) -> Response {
+    match value {
+        Ok(value) => Box::pin(future::ok(value)),
+        Err(value) => Box::pin(future::err(value))
+    }
+}
 
 pub struct Command {
     pub name: String,
