@@ -15,6 +15,12 @@ impl RedisConnection {
         })
     }
 
+    pub fn get_by_position(&self, path: String, position: usize) -> Result<Option<u32>, RedisError> {
+        let mut connection = self.client.get_connection()?;
+        let result: Vec<u32> = connection.zrevrange_withscores(path, (position - 1) as isize, (position - 1) as isize)?
+        Ok(result.first().cloned())
+    }
+
     pub fn get_by_user(&self, path: String, user_id: Id<UserMarker>) -> Result<(u32, u32), RedisError> {
         let mut connection = self.client.get_connection()?;
         let user_id = user_id.to_string();
