@@ -30,4 +30,5 @@ pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, red
         .join("\n");
 
     Ok(text_to_response_embed(format!("Top {} users", week_or_day), leaderboard_string))
+
 }
