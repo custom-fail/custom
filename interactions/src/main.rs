@@ -2,6 +2,7 @@ mod server;
 mod authorize;
 mod interaction;
 mod application;
+mod utilities;
 
 #[macro_use]
 mod commands;
@@ -12,6 +13,8 @@ use dotenv::dotenv;
 use ed25519_dalek::PublicKey;
 use futures::FutureExt;
 use crate::application::Application;
+use crate::commands::Command;
+use twilight_model::application::interaction::ApplicationCommand;
 
 #[tokio::main]
 async fn main() {
@@ -30,7 +33,8 @@ async fn main() {
 
     let mut application = Application::new();
     application.add_command(vec![
-        // example command!("top week all", "top", crate::commands::top::all::run)
+        command!("top week all", "top", crate::commands::top::all::run),
+        command!("top day all", "top", crate::commands::top::all::run)
     ]).await;
 
     server::listen(80, public_key, application, mongodb, redis).await;
