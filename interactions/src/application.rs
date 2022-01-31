@@ -14,7 +14,7 @@ impl Application {
         }
     }
 
-    pub async fn add_command(&mut self, commands: Vec<Command>) {
+    pub async fn add_command(&self, commands: Vec<Command>) {
         let mut cmds = self.commands.lock().await;
         for command in commands.iter() {
             cmds.insert(command.name.clone(), command.to_owned());

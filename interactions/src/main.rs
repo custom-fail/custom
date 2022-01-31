@@ -31,7 +31,7 @@ async fn main() {
     let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
     let redis = RedisConnection::connect(redis_url).unwrap();
 
-    let mut application = Application::new();
+    let application = Application::new();
     application.add_command(vec![
         command!("top week all", "top", crate::commands::top::all::run),
         command!("top day all", "top", crate::commands::top::all::run)
