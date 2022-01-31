@@ -33,7 +33,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
                         components: None,
                         content: Some(error),
                         embeds: None,
-                        flags: None,
+                        flags: Some(MessageFlags::EPHEMERAL),
                         tts: None
                     })
                 }
