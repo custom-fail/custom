@@ -6,14 +6,13 @@ use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
+use crate::commands::case::get_member_from_command_data;
 use crate::utilities::embed::embed_to_response;
 
 pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
-
-    let (member_id, _) = Vec::from_iter(interaction.data.resolved.ok_or("No member specified".to_string())?
-        .members.into_iter()).first().cloned().ok_or("Cannot find member information")?;
+    let (member_id, _) = get_member_from_command_data(interaction)?;
 
     let case = mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "member_id": member_id.to_string(), "removed": false },
