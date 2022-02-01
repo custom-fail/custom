@@ -69,10 +69,17 @@ impl Case {
             }
         };
 
+        let description = format!("**Member:** <@{}>\n**Action:** {}\n**Reason:** {}",self.member_id, action_type_to_string(self.action),
+            match &self.reason {
+                Some(reason) => reason.clone().clone(),
+                None => "None".to_string()
+            }
+        );
+
         Ok(Embed {
             author: Some(embed_author),
             color: None,
-            description: None,
+            description: Some(description),
             fields: vec![],
             footer: None,
             image: None,
