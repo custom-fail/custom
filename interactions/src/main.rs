@@ -38,6 +38,7 @@ async fn main() {
 
     let application = Application::new();
     application.add_command(vec![
+        command!("case details", "moderation", crate::commands::case::details::run),
         command!("case last", "moderation", crate::commands::case::last::run),
 
         command!("top week all", "top", crate::commands::top::all::run),
