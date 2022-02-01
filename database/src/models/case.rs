@@ -22,10 +22,9 @@ pub struct Case {
 }
 
 fn get_avatar_from_member(member: Member) -> String {
-    match member.avatar {
+    match member.user.avatar {
         Some(avatar) => {
             let file_format = if avatar.is_animated() { "gif" } else { "png" };
-            println!("{}", file_format);
             format!("https://cdn.discordapp.com/avatars/{}/{}.{}", member.user.id, avatar, file_format)
         }
         None =>  "https://cdn.discordapp.com/embed/avatars/0.png".to_string()
