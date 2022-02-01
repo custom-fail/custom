@@ -29,3 +29,14 @@ pub fn text_to_response_embed(title: String, description: String) -> CallbackDat
         tts: None
     }
 }
+
+pub fn embed_to_response(embed: Embed) -> CallbackData {
+    CallbackData {
+        allowed_mentions: None,
+        components: None,
+        content: None,
+        embeds: Some(vec![embed]),
+        flags: None,
+        tts: None
+    }
+}
