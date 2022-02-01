@@ -32,6 +32,19 @@ fn get_avatar_from_member(member: Member) -> String {
     }
 }
 
+fn action_type_to_string(action: u8) -> String {
+    match action {
+        1 => "Warn",
+        2 => "Mute",
+        3 => "Unmute",
+        4 => "Ban",
+        5 => "Unban",
+        6 => "Kick",
+        7 => "Timeout",
+        _ => "Unknown"
+    }.to_string()
+}
+
 impl Case {
     pub fn to_embed(&self, discord_http: Arc<Client>) -> Result<Embed, String> {
 
