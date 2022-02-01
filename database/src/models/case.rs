@@ -3,7 +3,7 @@ use mongodb::bson::DateTime;
 use twilight_model::datetime::Timestamp;
 use serde::{Serialize, Deserialize};
 use twilight_http::Client;
-use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedFooter};
+use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedField, EmbedFooter};
 use twilight_model::guild::Member;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
@@ -98,6 +98,23 @@ impl Case {
             url: None,
             video: None
         })
+
+    }
+
+    pub fn to_embed_field(&self) -> EmbedField {
+
+        let action = action_type_to_string(self.action);
+
+        let reason = match self.reason.to_owned() {
+            Some(reason) => reason.clone(),
+            None => "None".to_string()
+        };
+
+        EmbedField {
+            inline: false,
+            name: format ! ("**Case #{} - {}**", self.index, action.to_string()),
+            value: reason
+        }
 
     }
 }
