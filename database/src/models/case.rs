@@ -1,5 +1,7 @@
+use std::sync::Arc;
 use twilight_model::datetime::Timestamp;
 use serde::{Serialize, Deserialize};
+use twilight_http::Client;
 use twilight_http::response::marker::MemberBody;
 use twilight_model::channel::embed::{Embed, EmbedAuthor};
 use twilight_model::guild::Member;
@@ -27,5 +29,47 @@ fn get_avatar_from_member(member: Member) -> String {
             format!("https://cdn.discordapp.com/avatars/{}/{}.{}", member.user.id, avatar, file_format)
         }
         None =>  "https://cdn.discordapp.com/embed/avatars/0.png".to_string()
+    }
+}
+
+impl Case {
+    pub fn to_embed(&self, discord_http: Arc<Client>) -> Result<Embed, String> {
+
+        let moderator_member = discord_http.guild_member(self.guild_id, self.moderator_id)
+            .exec().await.map_err(|err| err.to_string())?.model().await.ok();
+
+        let embed_author = match moderator_member {
+            Some(moderator) => {
+                let avatar = get_avatar_from_member(moderator);
+                EmbedAuthor {
+                    icon_url: Some(avatar.clone()),
+                    name: format!("{}#{}", moderator.user.name, moderator.user.discriminator),
+                    proxy_icon_url: Some(avatar),
+                    url: None
+                }
+            },
+            None => EmbedAuthor {
+                icon_url: Some("https://cdn.discordapp.com/embed/avatars/0.png".to_string()),
+                name: "Unknown#0000".to_string(),
+                proxy_icon_url: Some("https://cdn.discordapp.com/embed/avatars/0.png".to_string()),
+                url: None
+            }
+        };
+
+        Ok(Embed {
+            author: Some(embed_author),
+            color: None,
+            description: None,
+            fields: vec![],
+            footer: None,
+            image: None,
+            kind: "".to_string(),
+            provider: None,
+            thumbnail: None,
+            timestamp: None,
+            title: None,
+            url: None,
+            video: None
+        })
     }
 }
