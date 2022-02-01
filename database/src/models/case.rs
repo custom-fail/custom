@@ -101,7 +101,7 @@ impl Case {
 
     }
 
-    pub fn to_embed_field(&self) -> EmbedField {
+    pub fn to_field(&self) -> EmbedField {
 
         let action = action_type_to_string(self.action);
 
