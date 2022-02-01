@@ -7,6 +7,7 @@ mod utilities;
 #[macro_use]
 mod commands;
 
+use std::sync::Arc;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
@@ -15,6 +16,7 @@ use futures::FutureExt;
 use crate::application::Application;
 use crate::commands::Command;
 use twilight_model::application::interaction::ApplicationCommand;
+use twilight_http::Client;
 
 #[tokio::main]
 async fn main() {
@@ -31,6 +33,9 @@ async fn main() {
     let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
     let redis = RedisConnection::connect(redis_url).unwrap();
 
+    let discord_token = std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
+    let discord_http = Arc::new(twilight_http::Client::new(discord_token));
+
     let application = Application::new();
     application.add_command(vec![
         command!("top week all", "top", crate::commands::top::all::run),
@@ -39,6 +44,6 @@ async fn main() {
         command!("top day me", "top", crate::commands::top::me::run),
     ]).await;
 
-    server::listen(80, public_key, application, mongodb, redis).await;
+    server::listen(80, public_key, application, mongodb, redis, discord_http).await;
 
 }

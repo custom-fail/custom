@@ -1,3 +1,5 @@
+use std::sync::Arc;
+use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
@@ -6,7 +8,7 @@ use crate::utilities::embed::text_to_response_embed;
 
 const PLACES_EMOTES: [&str; 3] = [":first_place:", ":second_place:", ":third_place:"];
 
-pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, redis: RedisConnection) -> Result<CallbackData, String> {
+pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
 

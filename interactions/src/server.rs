@@ -1,9 +1,11 @@
 use std::convert::Infallible;
+use std::sync::Arc;
 use ed25519_dalek::PublicKey;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use hyper::http::HeaderValue;
 use hyper::service::{make_service_fn, service_fn};
 use serde_json::json;
+use twilight_http::Client;
 use twilight_model::application::interaction::Interaction;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
@@ -41,7 +43,7 @@ const MISSING_HEADERS: HttpResponse = HttpResponse { body:"Missing headers", sta
 const UNAUTHORIZED: HttpResponse = HttpResponse { body: "Unauthorized", status: StatusCode::UNAUTHORIZED };
 const INVALID_BODY: HttpResponse = HttpResponse { body: "Invalid/Missing body", status: StatusCode::BAD_REQUEST };
 
-async fn route(request: Request<Body>, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection) -> Result<Response<Body>, Infallible> {
+async fn route(request: Request<Body>, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<Response<Body>, Infallible> {
 
     if request.method() != &Method::POST {
         return METHOD_NOT_ALLOWED.into_response();
@@ -82,7 +84,7 @@ async fn route(request: Request<Body>, public_key: PublicKey, application: Appli
         Err(_) => return INVALID_BODY.into_response()
     };
 
-    let content = handle_interaction(interaction, application, mongodb, redis).await;
+    let content = handle_interaction(interaction, application, mongodb, redis, discord_http).await;
     let content = json!(content).to_string();
 
     let response = Response::builder()
@@ -96,16 +98,17 @@ async fn route(request: Request<Body>, public_key: PublicKey, application: Appli
 
 }
 
-pub async fn listen(port: u8, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection) -> () {
+pub async fn listen(port: u8, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> () {
 
     let service = make_service_fn(move |_| {
         let public_key = public_key.clone();
         let application = application.clone();
         let mongodb = mongodb.clone();
         let redis = redis.clone();
+        let discord_http = discord_http.clone();
         async move {
             Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                route(req, public_key.clone(), application.clone(), mongodb.clone(), redis.clone())
+                route(req, public_key.clone(), application.clone(), mongodb.clone(), redis.clone(), discord_http.clone())
             }))
         }
     });

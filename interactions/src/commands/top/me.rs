@@ -1,10 +1,12 @@
+use std::sync::Arc;
+use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::utilities::embed::text_to_response_embed;
 
-pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, redis: RedisConnection) -> Result<CallbackData, String> {
+pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
     let user = interaction.member.ok_or("Cannot find member")?.user.ok_or("Unknown user")?;

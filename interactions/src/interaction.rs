@@ -1,9 +1,11 @@
+use std::sync::Arc;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::{ApplicationCommand, Interaction};
 use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use serde::{Serialize, Deserialize};
+use twilight_http::Client;
 use crate::Application;
 use crate::commands::parse_slash_command_to_text;
 
@@ -13,14 +15,14 @@ pub struct InteractionResponse {
     data: Option<CallbackData>
 }
 
-pub async fn handle_interaction(interaction: Interaction, application: Application, mongodb: MongoDBConnection, redis: RedisConnection) -> InteractionResponse {
+pub async fn handle_interaction(interaction: Interaction, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> InteractionResponse {
     match interaction {
         Interaction::Ping(_) => InteractionResponse {
             r#type: 1,
             data: None
         },
         Interaction::ApplicationCommand(interaction) => {
-            let response = commands_handler(interaction,application, mongodb, redis).await;
+            let response = commands_handler(interaction,application, mongodb, redis, discord_http).await;
             match response {
                 Ok(response) => InteractionResponse {
                     r#type: 4,
@@ -53,7 +55,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
     }
 }
 
-async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection) -> Result<CallbackData, String> {
+async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
     let command_text = parse_slash_command_to_text(interaction.data.clone());
     let command = application.find_command(command_text).await.ok_or("Cannot find command")?;
@@ -63,6 +65,6 @@ async fn commands_handler(interaction: Box<ApplicationCommand>, application: App
 
     config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
 
-    (command.run)(interaction, mongodb, redis).await
+    (command.run)(interaction, mongodb, redis, discord_http).await
 
 }
