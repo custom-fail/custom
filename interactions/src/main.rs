@@ -38,13 +38,16 @@ async fn main() {
 
     let application = Application::new();
     application.add_command(vec![
+
         command!("case details", "moderation", crate::commands::case::details::run),
+        command!("case remove", "moderation", crate::commands::case::remove::run),
         command!("case last", "moderation", crate::commands::case::last::run),
 
         command!("top week all", "top", crate::commands::top::all::run),
         command!("top day all", "top", crate::commands::top::all::run),
         command!("top week me", "top", crate::commands::top::me::run),
         command!("top day me", "top", crate::commands::top::me::run)
+            
     ]).await;
 
     server::listen(80, public_key, application, mongodb, redis, discord_http).await;
