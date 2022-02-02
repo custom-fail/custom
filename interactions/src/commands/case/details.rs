@@ -19,7 +19,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnectio
     }.first().ok_or("There is no `option_value.value`")?.clone();
 
     let case_id = match option_value.value {
-        CommandOptionValue::Number(value) => value.0,
+        CommandOptionValue::Integer(value) => value,
         _ => return Err("Invalid case_id type".to_string())
     };
 
