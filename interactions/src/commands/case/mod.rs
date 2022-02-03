@@ -7,6 +7,7 @@ pub mod last;
 pub mod details;
 pub mod list;
 pub mod remove;
+pub mod edit;
 
 pub fn get_member_from_command_data(interaction: Box<ApplicationCommand>) -> Result<(Id<UserMarker>, InteractionMember), String> {
     Ok(Vec::from_iter(interaction.data.resolved.ok_or("No member specified".to_string())?
