@@ -1,3 +1,7 @@
+mod events;
+mod modules;
+
+use crate::events::on_event;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
@@ -27,6 +31,11 @@ async fn main() {
     println!("Created shard");
 
     while let Some(event) = events.next().await {
-        println!("Event: {:?}", event);
+        tokio::spawn(on_event(
+            event,
+            mongodb.clone(),
+            redis.clone(),
+            discord_http.clone(),
+        ));
     }
 }
