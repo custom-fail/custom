@@ -10,6 +10,10 @@ pub async fn run(
     redis: RedisConnection,
     _: Arc<Client>,
 ) -> Result<(), ()> {
+    if message.author.bot {
+        return Err(());
+    }
+
     let guild_id = message.guild_id.ok_or(())?;
     let config = mongodb.get_config(guild_id).await.map_err(|_| ())?;
     let author_id = message.author.id;
