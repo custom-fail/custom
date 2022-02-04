@@ -41,8 +41,8 @@ pub fn embed_to_response(embed: Embed) -> CallbackData {
     }
 }
 
-pub fn response_from_embed_fields(fields: Vec<EmbedField>) -> CallbackData {
-    embed_to_response(Embed {
+pub fn embed_from_fields(fields: Vec<EmbedField>) -> Embed {
+    Embed {
         author: None,
         color: None,
         description: None,
@@ -56,5 +56,5 @@ pub fn response_from_embed_fields(fields: Vec<EmbedField>) -> CallbackData {
         title: None,
         url: None,
         video: None
-    })
+    }
 }
