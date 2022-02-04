@@ -43,6 +43,7 @@ async fn main() {
         command!("case remove", "moderation", crate::commands::case::remove::run),
         command!("case edit", "moderation", crate::commands::case::edit::run),
         command!("case last", "moderation", crate::commands::case::last::run),
+        command!("case list", "moderation", crate::commands::case::list::run),
 
         command!("top week all", "top", crate::commands::top::all::run),
         command!("top day all", "top", crate::commands::top::all::run),
