@@ -1,6 +1,7 @@
 mod events;
 mod modules;
 
+use std::path::Iter;
 use crate::events::on_event;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
@@ -24,7 +25,7 @@ async fn main() {
         std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
     let discord_http = Arc::new(twilight_http::Client::new(discord_token.clone()));
 
-    let intents = Intents::GUILD_MESSAGES | Intents::GUILDS;
+    let intents = Intents::GUILD_MESSAGES | Intents::GUILDS | Intents::GUILD_BANS | Intents::GUILD_MEMBERS;
     let (shard, mut events) = Shard::new(discord_token, intents);
 
     shard.start().await.expect("Failed to start shard");
