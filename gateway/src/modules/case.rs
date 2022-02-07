@@ -1,13 +1,55 @@
+use std::sync::Arc;
+use chrono::Utc;
+use mongodb::bson::doc;
+use twilight_http::Client;
+use twilight_model::guild::audit_log::AuditLogEventType;
+use twilight_model::id::Id;
+use twilight_model::id::marker::{GuildMarker, UserMarker};
+use twilight_util::snowflake::Snowflake;
+use database::mongodb::MongoDBConnection;
+
+pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id: Id<GuildMarker>, target_id: Id<UserMarker>, action_type: (AuditLogEventType, u8)) -> Result<(), ()> {
+
+    let event_at = Utc::now().timestamp();
+
+    let guild_config = mongodb.get_config(guild_id.clone()).await.map_err(|_| ())?;
+    if !guild_config.moderation.native_support {
+        return Err(())
+    }
+
+    let audit_log = discord_http
+        .audit_log(guild_id)
+        .action_type(action_type.0)
+        .limit(1).map_err(|_| ())?
+        .exec().await.map_err(|_| ())?.model().await.map_err(|_| ())?;
+
+    let action = audit_log.entries.first().ok_or(())?;
+    let action_target_id = action.target_id.ok_or(())?;
+    if action_target_id.to_string() != target_id.to_string() {
+        return Err(())
+    }
+
+    let moderator = action.user_id.ok_or(())?.clone();
+
+    let created_at = action.id.timestamp();
+    let ping = created_at - event_at * 1000;
+
+    if ping > 2000 {
+        return Err(());
+    }
+
+    println!("{:?}", action);
+
+    Ok(())
+
+}
+
 pub mod on_kick {
-    use database::mongodb::MongoDBConnection;
     use std::sync::Arc;
-    use chrono::Utc;
     use twilight_http::Client;
     use twilight_model::gateway::payload::incoming::MemberRemove;
     use twilight_model::guild::audit_log::AuditLogEventType;
-    use twilight_model::id::Id;
-    use twilight_model::id::marker::{GenericMarker, GuildMarker};
-    use twilight_util::snowflake::Snowflake;
+    use database::mongodb::MongoDBConnection;
 
     pub async fn run(
         event: MemberRemove,
@@ -15,33 +57,8 @@ pub mod on_kick {
         discord_http: Arc<Client>,
     ) -> Result<(), ()> {
 
-        let event_target_id = event.user.id;
-        let event_at = Utc::now().timestamp();
+        crate::modules::case::run(mongodb, discord_http, event.guild_id, event.user.id, (AuditLogEventType::MemberKick, 6)).await
 
-        let audit_log = discord_http
-            .audit_log(event.guild_id)
-            .action_type(AuditLogEventType::MemberKick)
-            .limit(1).map_err(|_| ())?
-            .exec().await.map_err(|_| ())?.model().await.map_err(|_| ())?;
-
-        println!("{:?}", audit_log);
-
-        let kick = audit_log.entries.first().ok_or(())?;
-        let target_id = kick.target_id.ok_or(())?;
-        if target_id.to_string() != event_target_id.to_string() {
-            return Err(())
-        }
-
-        let created_at = kick.id.timestamp();
-        let ping = created_at - event_at * 1000;
-
-        if ping > 2000 {
-            return Err(());
-        }
-
-        Ok(())
-
-        // rust fmt sucks
     }
 }
 
