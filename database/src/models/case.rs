@@ -17,7 +17,7 @@ pub struct Case {
     pub action: u8,
     pub reason: Option<String>,
     pub removed: bool,
-    pub duration: Option<String>,
+    pub duration: Option<u64>,
     pub index: u16
 }
 

@@ -32,7 +32,17 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
     if action_target_id.to_string() != target_id.to_string() {
         return Err(());
     };
-    
+
+    let change = action.changes.last().ok_or(())?;
+
+    let duration = if action_type.1 == 7 {
+        if let AuditLogChange::AfkTimeout { old, new } = change {
+            Some(new.clone())
+        } else {
+            return Err(())
+        }
+    } else { None };
+
     let moderator = action.user_id.ok_or(())?.clone();
 
     let created_at = action.id.timestamp();
@@ -52,7 +62,7 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
         action: action_type.1,
         reason: action.reason.clone(),
         removed: false,
-        duration: None,
+        duration,
         index: (count + 1) as u16
     };
 
