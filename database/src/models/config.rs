@@ -7,7 +7,8 @@ use twilight_model::id::marker::{ChannelMarker, GuildMarker};
 pub struct Moderation {
     pub mute_type: u8,
     pub native_support: bool,
-    pub logs_channel: Option<Id<ChannelMarker>>
+    pub logs_channel: Option<Id<ChannelMarker>>,
+    pub dm_case: bool
 }
 
 impl Moderation {
@@ -15,7 +16,8 @@ impl Moderation {
         Self {
             mute_type: self.mute_type.clone(),
             native_support: self.native_support.clone(),
-            logs_channel: self.logs_channel.clone()
+            logs_channel: self.logs_channel.clone(),
+            dm_case: self.dm_case.clone()
         }
     }
 }

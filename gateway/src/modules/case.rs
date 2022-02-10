@@ -4,6 +4,8 @@ use futures_util::future::err;
 use mongodb::bson::{DateTime, doc};
 use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
+use twilight_model::application::component::{ActionRow, Button, Component};
+use twilight_model::application::component::button::ButtonStyle;
 use twilight_model::channel::embed::Embed;
 use twilight_model::datetime::Timestamp;
 use twilight_model::guild::audit_log::{AuditLogChange, AuditLogEventType};
@@ -34,9 +36,8 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
         return Err(());
     };
 
-    let change = action.changes.last().ok_or(())?;
-
     let duration = if action_type.1 == 7 {
+        let change = action.changes.last().ok_or(())?;
         if let AuditLogChange::CommunicationDisabledUntil { old: _, new } = change {
             match new {
                 Some(ends_on) => Some(ends_on.as_secs() - event_at),
@@ -70,31 +71,32 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
         index: (count + 1) as u16
     };
 
-    let result = mongodb.cases.insert_one(case.clone(), None).await;
+    mongodb.cases.insert_one(case.clone(), None).await.map_err(|_| ())?;
 
-    let logs_channel = guild_config.moderation.logs_channel.ok_or(())?;
+    let embed = case.to_embed(discord_http.clone()).await.map_err(|_| ())?;
 
-    discord_http.clone().create_message(logs_channel).embeds(&[
-        if let Err(error) = result {
-            Embed {
-                author: None,
-                color: None,
-                description: Some(format!("{:?}", error)),
-                fields: vec![],
-                footer: None,
-                image: None,
-                kind: "article".to_string(),
-                provider: None,
-                thumbnail: None,
-                timestamp: None,
-                title: Some("Error while creating case".to_string()),
-                url: None,
-                video: None
-            }
-        } else {
-            case.to_embed(discord_http).await.map_err(|_| ())?
-        }
-    ]).map_err(|_| ())?.exec().await.map_err(|_| ())?;
+    let logs_channel = guild_config.moderation.logs_channel;
+
+    if let Some(channel) = logs_channel {
+        discord_http.create_message(channel).embeds(&[embed.clone()]).map_err(|_| ())?.exec().await.map_err(|_| ())?;
+    }
+
+    if guild_config.moderation.dm_case {
+        let guild = discord_http.guild(guild_id).exec().await.map_err(|_| ())?.model().await.map_err(|_| ())?;
+        let channel = discord_http.create_private_channel(target_id).exec().await.map_err(|_| ())?.model().await.map_err(|_| ())?.id;
+        discord_http.create_message(channel).embeds(&[embed]).map_err(|_| ())?.components(&[
+            Component::ActionRow(ActionRow {
+                components: vec![Component::Button(Button {
+                    custom_id: Some(guild_id.to_string()),
+                    disabled: true,
+                    emoji: None,
+                    label: Some(guild.name),
+                    style: ButtonStyle::Secondary,
+                    url: None
+                })]
+            })
+        ]).map_err(|_| ())?.exec().await.map_err(|_| ())?;
+    }
 
     Ok(())
 
@@ -112,9 +114,7 @@ pub mod on_kick {
         mongodb: MongoDBConnection,
         discord_http: Arc<Client>,
     ) -> Result<(), ()> {
-
         crate::modules::case::run(mongodb, discord_http, event.guild_id, event.user.id, (AuditLogEventType::MemberKick, 6)).await
-
     }
 }
 
