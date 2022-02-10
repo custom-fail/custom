@@ -1,8 +1,11 @@
 use std::sync::Arc;
 use chrono::Utc;
+use futures_util::future::err;
 use mongodb::bson::{DateTime, doc};
 use twilight_http::Client;
-use twilight_model::guild::audit_log::AuditLogEventType;
+use twilight_model::application::callback::CallbackData;
+use twilight_model::channel::embed::Embed;
+use twilight_model::guild::audit_log::{AuditLogChange, AuditLogEventType};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
 use twilight_util::snowflake::Snowflake;
@@ -29,7 +32,7 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
     if action_target_id.to_string() != target_id.to_string() {
         return Err(());
     };
-
+    
     let moderator = action.user_id.ok_or(())?.clone();
 
     let created_at = action.id.timestamp();
@@ -41,7 +44,7 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
 
     let count = mongodb.cases.count_documents(doc! {}, None).await.map_err(|_| ())?;
 
-    let ok = mongodb.cases.insert_one(Case {
+    let case = Case {
         moderator_id: moderator,
         created_at: DateTime::now(),
         guild_id,
@@ -51,7 +54,33 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
         removed: false,
         duration: None,
         index: (count + 1) as u16
-    }, None).await;
+    };
+
+    let result = mongodb.cases.insert_one(case.clone(), None).await;
+
+    let logs_channel = guild_config.moderation.logs_channel.ok_or(())?;
+
+    discord_http.clone().create_message(logs_channel).embeds(&[
+        if let Err(error) = result {
+            Embed {
+                author: None,
+                color: None,
+                description: Some(format!("{:?}", error)),
+                fields: vec![],
+                footer: None,
+                image: None,
+                kind: "article".to_string(),
+                provider: None,
+                thumbnail: None,
+                timestamp: None,
+                title: Some("Error while creating case".to_string()),
+                url: None,
+                video: None
+            }
+        } else {
+            case.to_embed(discord_http).await.map_err(|_| ())?
+        }
+    ]).map_err(|_| ())?.exec().await.map_err(|_| ())?;
 
     Ok(())
 
@@ -94,7 +123,7 @@ pub mod on_timeout {
     use twilight_model::gateway::payload::incoming::MemberUpdate;
     use twilight_model::guild::audit_log::AuditLogEventType;
 
-    pub async fn run(event: Box<MemberUpdate>, mongodb: MongoDBConnection, discord_http: Arc<Client>) -> Result<(), ()> {
+    pub async fn run(_event: Box<MemberUpdate>, _mongodb: MongoDBConnection, _discord_http: Arc<Client>) -> Result<(), ()> {
         Ok(())
     }
 }
