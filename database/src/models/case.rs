@@ -1,4 +1,6 @@
 use std::sync::Arc;
+use std::time::Duration;
+use duration_string::DurationString;
 use mongodb::bson::DateTime;
 use twilight_model::datetime::Timestamp;
 use serde::{Serialize, Deserialize};
@@ -70,7 +72,15 @@ impl Case {
 
         let timestamp = Timestamp::from_secs(self.created_at.timestamp_millis() / 1000).map_err(|err| err.to_string())?;
 
-        let description = format!("**Member:** <@{}>\n**Action:** {}\n**Reason:** {}",self.member_id, action_type_to_string(self.action),
+        let description = format!(
+            "**Member:** <@{}>\n**Action:** {}{}\n**Reason:** {}",
+            self.member_id,
+            action_type_to_string(self.action),
+            if let Some(duration) = self.duration {
+                format!("\n**Duration:** `{}`", DurationString::from(
+                    Duration::from_secs(duration as u64)
+                ).to_string())
+            } else { "".to_string() },
             match &self.reason {
                 Some(reason) => reason.clone().clone(),
                 None => "None".to_string()
