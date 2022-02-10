@@ -57,7 +57,7 @@ impl Case {
                 let avatar = get_avatar_from_member(moderator.clone());
                 EmbedAuthor {
                     icon_url: Some(avatar.clone()),
-                    name: format!("{}#{}", moderator.user.name, moderator.user.discriminator),
+                    name: format!("{}#{} {}", moderator.user.name, moderator.user.discriminator, moderator.user.id),
                     proxy_icon_url: Some(avatar),
                     url: None
                 }
