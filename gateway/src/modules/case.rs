@@ -5,6 +5,7 @@ use mongodb::bson::{DateTime, doc};
 use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::channel::embed::Embed;
+use twilight_model::datetime::Timestamp;
 use twilight_model::guild::audit_log::{AuditLogChange, AuditLogEventType};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
@@ -36,8 +37,11 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
     let change = action.changes.last().ok_or(())?;
 
     let duration = if action_type.1 == 7 {
-        if let AuditLogChange::AfkTimeout { old, new } = change {
-            Some(new.clone())
+        if let AuditLogChange::CommunicationDisabledUntil { old, new } = change {
+            match new {
+                Some(ends_on) => Some(ends_on.as_secs() - event_at),
+                None => None
+            }
         } else {
             return Err(())
         }
@@ -133,7 +137,7 @@ pub mod on_timeout {
     use twilight_model::gateway::payload::incoming::MemberUpdate;
     use twilight_model::guild::audit_log::AuditLogEventType;
 
-    pub async fn run(_event: Box<MemberUpdate>, _mongodb: MongoDBConnection, _discord_http: Arc<Client>) -> Result<(), ()> {
-        Ok(())
+    pub async fn run(event: Box<MemberUpdate>, mongodb: MongoDBConnection, discord_http: Arc<Client>) -> Result<(), ()> {
+        crate::modules::case::run(mongodb, discord_http, event.guild_id, event.user.id, (AuditLogEventType::MemberUpdate, 7)).await
     }
 }
