@@ -1,19 +1,21 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
-use twilight_model::id::marker::GuildMarker;
+use twilight_model::id::marker::{ChannelMarker, GuildMarker};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Moderation {
     pub mute_type: u8,
-    pub native_support: bool
+    pub native_support: bool,
+    pub logs_channel: Option<Id<ChannelMarker>>
 }
 
 impl Moderation {
     fn clone(&self) -> Self {
         Self {
             mute_type: self.mute_type.clone(),
-            native_support: self.native_support.clone()
+            native_support: self.native_support.clone(),
+            logs_channel: self.logs_channel.clone()
         }
     }
 }
