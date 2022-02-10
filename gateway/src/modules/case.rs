@@ -1,13 +1,9 @@
 use std::sync::Arc;
 use chrono::Utc;
-use futures_util::future::err;
 use mongodb::bson::{DateTime, doc};
 use twilight_http::Client;
-use twilight_model::application::callback::CallbackData;
 use twilight_model::application::component::{ActionRow, Button, Component};
 use twilight_model::application::component::button::ButtonStyle;
-use twilight_model::channel::embed::Embed;
-use twilight_model::datetime::Timestamp;
 use twilight_model::guild::audit_log::{AuditLogChange, AuditLogEventType};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
@@ -39,10 +35,8 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
     let duration = if action_type.1 == 7 {
         let change = action.changes.last().ok_or(())?;
         if let AuditLogChange::CommunicationDisabledUntil { old: _, new } = change {
-            match new {
-                Some(ends_on) => Some(ends_on.as_secs() - event_at),
-                None => None
-            }
+            let ends_on = new.ok_or(())?;
+            Some(ends_on.as_secs() - event_at)
         } else {
             return Err(())
         }
