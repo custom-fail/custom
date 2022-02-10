@@ -118,3 +118,19 @@ impl Case {
 
     }
 }
+
+impl Clone for Case {
+    fn clone(&self) -> Self {
+        Self {
+            moderator_id: self.moderator_id.clone(),
+            created_at: self.created_at.clone(),
+            guild_id: self.guild_id.clone(),
+            member_id: self.member_id.clone(),
+            action: self.action.clone(),
+            reason: self.reason.clone(),
+            removed: self.removed.clone(),
+            duration: self.duration.clone(),
+            index: self.index.clone()
+        }
+    }
+}
