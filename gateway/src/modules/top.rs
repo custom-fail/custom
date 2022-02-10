@@ -7,8 +7,7 @@ use twilight_model::gateway::payload::incoming::MessageCreate;
 pub async fn run(
     message: Box<MessageCreate>,
     mongodb: MongoDBConnection,
-    redis: RedisConnection,
-    _: Arc<Client>,
+    redis: RedisConnection
 ) -> Result<(), ()> {
     if message.author.bot {
         return Err(());

@@ -37,7 +37,7 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
     let change = action.changes.last().ok_or(())?;
 
     let duration = if action_type.1 == 7 {
-        if let AuditLogChange::CommunicationDisabledUntil { old, new } = change {
+        if let AuditLogChange::CommunicationDisabledUntil { old: _, new } = change {
             match new {
                 Some(ends_on) => Some(ends_on.as_secs() - event_at),
                 None => None

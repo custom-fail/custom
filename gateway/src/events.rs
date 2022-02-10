@@ -12,7 +12,7 @@ pub async fn on_event(
 ) -> Result<(), ()> {
     match event {
         Event::MessageCreate(event) => {
-            crate::modules::top::run(event, mongodb, redis, discord_http).await;
+            crate::modules::top::run(event, mongodb, redis).await;
         }
         Event::BanAdd(event) => { crate::modules::case::on_ban::run(event, mongodb, discord_http).await; },
         Event::MemberRemove(event) => { crate::modules::case::on_kick::run(event, mongodb, discord_http).await; },

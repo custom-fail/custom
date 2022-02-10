@@ -1,7 +1,6 @@
 mod events;
 mod modules;
 
-use std::path::Iter;
 use crate::events::on_event;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
