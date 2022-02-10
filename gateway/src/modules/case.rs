@@ -1,11 +1,12 @@
 use std::sync::Arc;
 use chrono::Utc;
-use mongodb::bson::doc;
+use mongodb::bson::{DateTime, doc};
 use twilight_http::Client;
 use twilight_model::guild::audit_log::AuditLogEventType;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
 use twilight_util::snowflake::Snowflake;
+use database::models::case::Case;
 use database::mongodb::MongoDBConnection;
 
 pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id: Id<GuildMarker>, target_id: Id<UserMarker>, action_type: (AuditLogEventType, u8)) -> Result<(), ()> {
@@ -26,8 +27,8 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
     let action = audit_log.entries.first().ok_or(())?;
     let action_target_id = action.target_id.ok_or(())?;
     if action_target_id.to_string() != target_id.to_string() {
-        return Err(())
-    }
+        return Err(());
+    };
 
     let moderator = action.user_id.ok_or(())?.clone();
 
@@ -38,7 +39,19 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
         return Err(());
     }
 
-    println!("{:?}", action);
+    let count = mongodb.cases.count_documents(doc! {}, None).await.map_err(|_| ())?;
+
+    let ok = mongodb.cases.insert_one(Case {
+        moderator_id: moderator,
+        created_at: DateTime::now(),
+        guild_id,
+        member_id: target_id,
+        action: action_type.1,
+        reason: action.reason.clone(),
+        removed: false,
+        duration: None,
+        index: (count + 1) as u16
+    }, None).await;
 
     Ok(())
 
@@ -67,8 +80,11 @@ pub mod on_ban {
     use std::sync::Arc;
     use twilight_http::Client;
     use twilight_model::gateway::payload::incoming::BanAdd;
+    use twilight_model::guild::audit_log::AuditLogEventType;
 
-    pub async fn run(event: BanAdd, mongodb: MongoDBConnection, discord_http: Arc<Client>) {}
+    pub async fn run(event: BanAdd, mongodb: MongoDBConnection, discord_http: Arc<Client>) -> Result<(), ()> {
+        crate::modules::case::run(mongodb, discord_http, event.guild_id, event.user.id, (AuditLogEventType::MemberBanAdd, 4)).await
+    }
 }
 
 pub mod on_timeout {
@@ -76,6 +92,9 @@ pub mod on_timeout {
     use std::sync::Arc;
     use twilight_http::Client;
     use twilight_model::gateway::payload::incoming::MemberUpdate;
+    use twilight_model::guild::audit_log::AuditLogEventType;
 
-    pub async fn run(event: Box<MemberUpdate>, mongodb: MongoDBConnection, discord_http: Arc<Client>) {}
+    pub async fn run(event: Box<MemberUpdate>, mongodb: MongoDBConnection, discord_http: Arc<Client>) -> Result<(), ()> {
+        Ok(())
+    }
 }
