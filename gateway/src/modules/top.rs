@@ -1,7 +1,5 @@
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use std::sync::Arc;
-use twilight_http::Client;
 use twilight_model::gateway::payload::incoming::MessageCreate;
 
 pub async fn run(
