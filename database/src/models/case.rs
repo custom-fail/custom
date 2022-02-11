@@ -77,7 +77,7 @@ impl Case {
             self.member_id,
             action_type_to_string(self.action),
             if let Some(duration) = self.duration {
-                format!("\n**Duration:** `{}`", DurationString::from(
+                format!("\n**Duration:** {}", DurationString::from(
                     Duration::from_secs(duration as u64)
                 ).to_string())
             } else { "".to_string() },
