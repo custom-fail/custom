@@ -17,19 +17,30 @@ pub async fn run(message: Box<MessageCreate>, mongodb: MongoDBConnection, discor
     let guild_id = message.guild_id.ok_or(())?;
     let guild_config = mongodb.get_config(guild_id).await.map_err(|_| ())?;
 
+    if message.content.len() == 0 {
+        return Ok(())
+    }
+
     for automod_config in guild_config.moderation.automod {
         match automod_config {
             AutoModerator::MessageLength(config) => {
-                let lines = message.content.len() / config.line_len as usize + message.content.find("\n").unwrap_or(1);
-                if lines < config.max_lines as usize { continue }
+
+                let enters = message.content.lines().count();
+                let split = message.content.len() / usize::from(config.line_len);
+                let lines = enters + split;
+
+                if lines < usize::from(config.max_lines) { continue }
+
                 execute_action(
                     discord_http.clone(),
                     guild_config.moderation.automod_actions.get(config.first_action.as_str()).ok_or(())?.clone(),
                     message.clone(),
                     "Sending too long messages"
                 ).await?;
+
+                return Ok(())
+
             }
-            AutoModerator::AntiCapsLock(_) => {}
         }
     }
 
