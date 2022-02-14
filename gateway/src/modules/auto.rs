@@ -59,6 +59,9 @@ pub async fn run(message: Box<MessageCreate>, mongodb: MongoDBConnection, discor
                     "Turn off your CAPSLOCK"
                 ).await?;
 
+            },
+            AutoModerator::AntiInvites(config) => {
+
             }
         }
     }

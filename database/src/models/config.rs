@@ -11,12 +11,6 @@ pub struct Action {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum AutoModeratorType {
-    MessageLength = 1,
-    AntiCapsLock = 2
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MessageLength {
     pub max_lines: u16,
     pub line_len: u8,
@@ -34,10 +28,18 @@ pub struct AntiCapsLock {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AntiInvites {
+    pub allowed_invites: Vec<String>,
+    pub first_action: String,
+    pub repeat_action: Option<String>
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum AutoModerator {
     MessageLength(MessageLength),
-    AntiCapsLock(AntiCapsLock)
+    AntiCapsLock(AntiCapsLock),
+    AntiInvites(AntiInvites)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
