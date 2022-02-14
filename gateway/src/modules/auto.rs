@@ -17,7 +17,7 @@ pub async fn run(message: Box<MessageCreate>, mongodb: MongoDBConnection, discor
     let guild_id = message.guild_id.ok_or(())?;
     let guild_config = mongodb.get_config(guild_id).await.map_err(|_| ())?;
 
-    if message.content.len() == 0 {
+    if message.content.len() == 0 || message.author.bot {
         return Ok(())
     }
 
