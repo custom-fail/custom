@@ -41,6 +41,25 @@ pub async fn run(message: Box<MessageCreate>, mongodb: MongoDBConnection, discor
                 return Ok(())
 
             }
+            AutoModerator::AntiCapsLock(config) => {
+
+                if usize::from(config.min_msg_len) < message.content.len() || usize::from(config.max_msg_len) < message.content.len() {
+                    continue
+                }
+
+                let uppercase = message.content.chars().filter(|c| char::is_uppercase(c.clone())).count();
+                let uppercase_part = uppercase * 100 / message.content.len();
+
+                if uppercase_part < usize::from(config.max_uppercase) { continue }
+
+                execute_action(
+                    discord_http.clone(),
+                    guild_config.moderation.automod_actions.get(config.first_action.as_str()).ok_or(())?.clone(),
+                    message.clone(),
+                    "Turn off your CAPSLOCK"
+                ).await?;
+
+            }
         }
     }
 
