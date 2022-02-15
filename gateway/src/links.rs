@@ -18,4 +18,18 @@ impl ScamLinks {
         })
 
     }
+
+    pub async fn contains(&self, domains: Vec<String>) -> bool {
+
+        let scam_domains = self.discord_scam_domains.lock().await;
+
+        for domain in domains {
+            if scam_domains.contains(&domain) {
+                return false
+            }
+        }
+
+        false
+
+    }
 }
