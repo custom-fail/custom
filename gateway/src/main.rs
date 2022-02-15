@@ -1,5 +1,6 @@
 mod events;
 mod modules;
+mod links;
 
 use crate::events::on_event;
 use database::mongodb::MongoDBConnection;
@@ -9,9 +10,11 @@ use futures_util::StreamExt;
 use std::sync::Arc;
 use twilight_gateway::Shard;
 use twilight_model::gateway::Intents;
+use crate::links::ScamLinks;
 
 #[tokio::main]
 async fn main() {
+
     dotenv().ok();
 
     let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB_URL from .env");
@@ -19,6 +22,8 @@ async fn main() {
 
     let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
     let redis = RedisConnection::connect(redis_url).unwrap();
+
+    let scam_domains = ScamLinks::new().await.expect("Cannot load scam links manager");
 
     let discord_token =
         std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
