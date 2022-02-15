@@ -48,10 +48,11 @@ impl MongoDBConnection {
                 Some(config_db) => Ok(config_db),
                 None => return Err("stop".to_string())
             },
-            Err(error) => return Err(format!("{:?}", error))
+            Err(error) => return Err(format!("{error}"))
         }
 
     }
+
 }
 
 impl Clone for MongoDBConnection {

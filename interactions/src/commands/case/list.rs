@@ -35,9 +35,9 @@ pub async fn run(
 
     let count = mongodb.cases.count_documents(
         doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false }, None
-    ).await.map_err(|e| format!("{:?}", e))?;
+    ).await.map_err(|err| format!("{err}"))?;
 
-    let case_list: Vec<Case> = case_list.try_collect().await.map_err(|e| format!("{:?}", e))?;
+    let case_list: Vec<Case> = case_list.try_collect().await.map_err(|err| format!("{err}"))?;
 
     if case_list.len() < 1 {
         return Err("This user has no cases".to_string())
@@ -54,7 +54,7 @@ pub async fn run(
             default: false,
             description: None,
             emoji: None,
-            label: format!("Page {}", page),
+            label: format!("Page {page}"),
             value: page.to_string()
         });
     }
@@ -65,7 +65,7 @@ pub async fn run(
             Component::ActionRow(ActionRow {
                 components: vec![
                     Component::SelectMenu(SelectMenu {
-                        custom_id: format!("{}:{}:case", user_id.to_string() ,member_id.to_string()),
+                        custom_id: format!("{user_id}:{member_id}:case"),
                         disabled: false,
                         max_values: Some(1),
                         min_values: Some(1),

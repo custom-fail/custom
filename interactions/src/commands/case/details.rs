@@ -25,7 +25,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnectio
 
     let case = mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, None
-    ).await.map_err(|err| format!("{:?}", err))?.ok_or("Cannot find case with selected id".to_string())?;
+    ).await.map_err(|err| format!("{err}"))?.ok_or("Cannot find case with selected id".to_string())?;
 
     Ok(embed_to_response(case.to_embed(discord_http).await?))
 

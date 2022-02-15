@@ -116,7 +116,7 @@ pub async fn listen(port: u8, public_key: PublicKey, application: Application, m
     let address = ([127, 0, 0, 1], port.into()).into();
     let server = hyper::Server::bind(&address).serve(service);
 
-    println!("Listening on {}", address);
+    println!("Listening on {address}");
 
     server.await.unwrap()
 

@@ -23,7 +23,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnectio
 
     let removed_case = mongodb.cases.find_one_and_update(
         doc! { "index": case_id, "removed": false }, doc! { "$set": {"removed": true } }, None
-    ).await.map_err(|err| format!("{:?}", err))?.ok_or("Cannot find case with selected id")?;
+    ).await.map_err(|err| format!("{err}"))?.ok_or("Cannot find case with selected id")?;
 
     Ok(CallbackData {
         allowed_mentions: None,

@@ -24,7 +24,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnectio
 
     let mut case = mongodb.cases.find_one(
         doc! { "index": case_id, "removed": false }, None
-    ).await.map_err(|err| format!("{:?}", err))?.ok_or("There is no case with selected id".to_string())?;
+    ).await.map_err(|err| format!("{err}"))?.ok_or("There is no case with selected id".to_string())?;
 
     let member_id = interaction.member.ok_or("Cannot get member data".to_string())?
         .user.ok_or("Cannot get user data".to_string())?.id;
@@ -41,7 +41,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnectio
 
     mongodb.cases.update_one(
         doc! { "index": case_id, "removed": false }, doc! { "$set": {"reason": reason.clone() } }, None
-    ).await.map_err(|err| format!("{:?}", err))?;
+    ).await.map_err(|err| format!("{err}"))?;
 
     case.reason = Some(reason);
 

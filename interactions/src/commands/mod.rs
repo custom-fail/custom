@@ -66,11 +66,11 @@ pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> String {
 fn handle_value(before: String, name: String, slash_command_value: CommandOptionValue) -> String {
     match slash_command_value {
         SubCommandGroup(value) => handle_value(
-            format!("{} {}", before, name),
+            format!("{before} {name}"),
             value[0].name.to_owned(),
             value[0].value.to_owned(),
         ),
-        SubCommand(_) => format!("{} {}", before, name),
+        SubCommand(_) => format!("{before} {name}"),
         _ => before,
     }
 }

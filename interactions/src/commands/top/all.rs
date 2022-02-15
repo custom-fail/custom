@@ -17,7 +17,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, red
         return Err("Invalid command".to_string())
     }
 
-    let leaderboard = redis.get_all(format!("top_{}.{}", week_or_day, guild_id), 3).map_err(|err| format!("{:?}", err))?;
+    let leaderboard = redis.get_all(format!("top_{week_or_day}.{guild_id}"), 3).map_err(|err| format!("{err}"))?;
 
     let leaderboard_string = leaderboard
         .clone()
@@ -31,6 +31,6 @@ pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, red
         .collect::<Vec<String>>()
         .join("\n");
 
-    Ok(text_to_response_embed(format!("Top {} users", week_or_day), leaderboard_string))
+    Ok(text_to_response_embed(format!("Top {week_or_day} users"), leaderboard_string))
 
 }

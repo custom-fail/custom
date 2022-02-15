@@ -17,7 +17,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnectio
     let case = mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "member_id": member_id.to_string(), "removed": false },
         FindOneOptions::builder().sort(doc! { "created_at": -1 }).build()
-    ).await.map_err(|err| format!("{:?}", err))?.ok_or("This user has no cases".to_string())?;
+    ).await.map_err(|err| format!("{err}"))?.ok_or("This user has no cases".to_string())?;
 
     Ok(embed_to_response(case.to_embed(discord_http).await?))
 

@@ -17,14 +17,14 @@ pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, red
     }
 
     let (user_score, user_position) = redis.get_by_user(
-        format!("top_{}.{}", week_or_day, guild_id), user.id
-    ).map_err(|err| format!("{}", err))?;
+        format!("top_{week_or_day}.{guild_id}"), user.id
+    ).map_err(|err| format!("{err}"))?;
 
-    let mut result = format!("You are **{}** with **{}** messages", user_position + 1, user_score);
+    let mut result = format!("You are **{}** with **{user_score}** messages", user_position + 1);
 
     let leaderboard = redis.get_all(
-        format!("top_{}.{}", week_or_day, guild_id), 3
-    ).map_err(|err| format!("{}", err))?;
+        format!("top_{week_or_day}.{guild_id}"), 3
+    ).map_err(|err| format!("{err}"))?;
 
     let leaderboard_string = leaderboard.iter().enumerate()
         .map(|(index, top)|
@@ -34,22 +34,22 @@ pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, red
         )
         .collect::<Vec<String>>().join("\n");
 
-    result = format!("{}\n\n{}\n\n", result, leaderboard_string);
+    result = format!("{result}\n\n{leaderboard_string}\n\n");
 
     if user_position > 0 {
         let user_after = redis.get_by_position(
-            format!("top_{}.{}", week_or_day, guild_id), (user_position - 1) as usize
-        ).map_err(|err| format!("{}", err))?.ok_or("There is no `user_after`")?;
-        result = format!("{}**{}** messages to beat next user\n", result, user_after);
+            format!("top_{week_or_day}.{guild_id}"), (user_position - 1) as usize
+        ).map_err(|err| format!("{err}"))?.ok_or("There is no `user_after`")?;
+        result = format!("{result}**{user_after}** messages to beat next user\n");
     }
 
     let user_before = redis.get_by_position(
-        format!("top_{}.{}", week_or_day, guild_id), (user_position + 1) as usize
-    ).map_err(|err| format!("{}", err))?.ok_or("There is no `user_before`")?;
-    result = format!("{}**{}** messages for user before (to you)", result, user_before);
+        format!("top_{week_or_day}.{guild_id}"), (user_position + 1) as usize
+    ).map_err(|err| format!("{err}"))?.ok_or("There is no `user_before`")?;
+    result = format!("{result}**{user_before}** messages for user before (to you)");
 
     Ok(text_to_response_embed(
-        format!("Top of the {} for {}#{}", week_or_day, user.name, user.discriminator),
+        format!("Top of the {week_or_day} for {}#{}", user.name, user.discriminator),
         result
     ))
 
