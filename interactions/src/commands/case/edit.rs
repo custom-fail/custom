@@ -10,6 +10,8 @@ use database::redis::RedisConnection;
 
 pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
+    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
+
     let option_value = interaction.data.options.first().ok_or("Cannot find `data.options.first`")?.clone().value;
     let option_value = match option_value {
         CommandOptionValue::SubCommand(value) => value,
@@ -40,7 +42,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, mongodb: MongoDBConnectio
     };
 
     mongodb.cases.update_one(
-        doc! { "index": case_id, "removed": false }, doc! { "$set": {"reason": reason.clone() } }, None
+        doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, doc! { "$set": {"reason": reason.clone() } }, None
     ).await.map_err(|err| format!("{err}"))?;
 
     case.reason = Some(reason);
