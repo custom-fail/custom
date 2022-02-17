@@ -58,7 +58,8 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
 
 async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
-    let command_text = parse_slash_command_to_text(interaction.data.clone());
+    let command_vec = parse_slash_command_to_text(interaction.data.clone());
+    let command_text = command_vec.join(" ");
     let command = application.find_command(command_text.clone()).await.ok_or("Cannot find command")?;
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;

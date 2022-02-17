@@ -11,6 +11,7 @@ use twilight_model::user::User;
 #[derive(Debug)]
 pub struct CommandContext {
     pub options: HashMap<String, CommandOptionValue>,
+    pub command_vec: Vec<String>,
     pub command_text: String,
     pub custom_id: Option<String>,
     pub member: Option<PartialMember>,
@@ -31,7 +32,7 @@ macro_rules! check_type {
 }
 
 impl CommandContext {
-    pub fn from_command_data(command: Box<ApplicationCommand>, command_text: String) -> Self {
+    pub fn from_command_data(command: Box<ApplicationCommand>, subcommands: (Vec<String>, String)) -> Self {
         let command_data = command.data.clone();
         let mut command_options = HashMap::new();
         for (name, value) in parse_options_to_value(command_data.options) {
@@ -46,7 +47,8 @@ impl CommandContext {
         };
         Self {
             options: command_options,
-            command_text,
+            command_vec: subcommands.0,
+            command_text: subcommands.1,
             custom_id: None,
             member: command.member.clone(),
             user,

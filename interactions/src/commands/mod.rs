@@ -53,10 +53,10 @@ impl Clone for Command {
     }
 }
 
-pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> String {
+pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> Vec<String> {
     if slash_command_data.options.len() != 0 {
         handle_value(
-            slash_command_data.name,
+            vec![name],
             slash_command_data.options[0].name.to_owned(),
             slash_command_data.options[0].value.to_owned(),
         )
@@ -65,14 +65,14 @@ pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> String {
     }
 }
 
-fn handle_value(before: String, name: String, slash_command_value: CommandOptionValue) -> String {
+fn handle_value(mut before: Vec<String>, name: String, slash_command_value: CommandOptionValue) -> Vec<String> {
     match slash_command_value {
         SubCommandGroup(value) => handle_value(
-            format!("{before} {name}"),
+            { before.push(name); before },
             value[0].name.to_owned(),
             value[0].value.to_owned(),
         ),
-        SubCommand(_) => format!("{before} {name}"),
+        SubCommand(_) => { before.push(name); before },
         _ => before,
     }
 }
