@@ -16,6 +16,7 @@ use crate::commands::context::InteractionContext;
 pub type Response = Pin<Box<dyn Future<Output = Result<CallbackData, String>> + Send + 'static>>;
 type Callback = fn(InteractionContext, MongoDBConnection, RedisConnection, Arc<Client>) -> Response;
 
+#[macro_export]
 macro_rules! command {
     ($name: expr, $module: expr, $function: expr) => {
         Command::new(

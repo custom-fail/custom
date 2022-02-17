@@ -1,11 +1,9 @@
 mod server;
 mod authorize;
+mod commands;
 mod interaction;
 mod application;
 mod utilities;
-
-#[macro_use]
-mod commands;
 
 use std::sync::Arc;
 use database::mongodb::MongoDBConnection;
