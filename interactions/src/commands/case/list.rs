@@ -10,23 +10,28 @@ use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::component::{ActionRow, Component, SelectMenu};
 use twilight_model::application::component::select_menu::SelectMenuOption;
+use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::application::interaction::ApplicationCommand;
+use twilight_model::id::Id;
+use twilight_model::id::marker::UserMarker;
 use database::models::case::Case;
+use crate::check_type;
+use crate::commands::context::CommandContext;
 
 pub async fn run(
-    interaction: Box<ApplicationCommand>,
+    interaction: CommandContext,
     mongodb: MongoDBConnection,
     _: RedisConnection,
     _: Arc<Client>,
 ) -> Result<CallbackData, String> {
 
-    let user_id = interaction.clone().member.ok_or("Unknown member (DM invoked command)".to_string())?
-        .user.ok_or("Unknown user".to_string())?.id;
+    let user_id = interaction.user.ok_or("There is no user information")?.id;
+    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
 
-    let guild_id = interaction
-        .guild_id
-        .ok_or("Cannot find guild_id".to_string())?;
-    let (member_id, _) = get_member_from_command_data(interaction)?;
+    let member_id = check_type!(
+        interaction.options.get("member").ok_or("There is no member id".to_string())?,
+        CommandOptionValue::User
+    ).ok_or("Member id type not match".to_string())?.clone();
 
     let case_list = mongodb.cases.find(
         doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false },
