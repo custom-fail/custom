@@ -4,14 +4,16 @@ use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
+use crate::commands::context::CommandContext;
 use crate::utilities::embed::text_to_response_embed;
 
-pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
+pub async fn run(interaction: CommandContext, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
-    let user = interaction.member.ok_or("Cannot find member")?.user.ok_or("Unknown user")?;
+    let user = interaction.user.ok_or("Unknown user")?;
 
-    let week_or_day = interaction.data.options.first().cloned().ok_or("Invalid command".to_string())?.name;
+    let week_or_day = interaction.command_vec.get(1).cloned()
+        .ok_or("Invalid command".to_string())?;
     if !["week", "day"].contains(&week_or_day.clone().as_str()) {
         return Err("Invalid command".to_string())
     }
@@ -39,7 +41,7 @@ pub async fn run(interaction: Box<ApplicationCommand>, _: MongoDBConnection, red
     if user_position > 0 {
         let user_after = redis.get_by_position(
             format!("top_{week_or_day}.{guild_id}"), (user_position - 1) as usize
-        ).map_err(|err| format!("{err}"))?.ok_or("There is no `user_after`")?;
+        ).map_err(|err| format!("{err}"))?.ok_or("There is no user_after")?;
         result = format!("{result}**{user_after}** messages to beat next user\n");
     }
 
