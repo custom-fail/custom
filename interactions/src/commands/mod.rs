@@ -1,5 +1,6 @@
 pub mod top;
 pub mod case;
+pub mod context;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -7,20 +8,21 @@ use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
-use twilight_model::application::interaction::application_command::{CommandData, CommandOptionValue};
+use twilight_model::application::interaction::application_command::{CommandData, CommandDataOption, CommandOptionValue};
 use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
+use crate::commands::context::CommandContext;
 
 pub type Response = Pin<Box<dyn Future<Output = Result<CallbackData, String>> + Send + 'static>>;
-type Callback = fn(Box<ApplicationCommand>, MongoDBConnection, RedisConnection, Arc<Client>) -> Response;
+type Callback = fn(CommandContext, MongoDBConnection, RedisConnection, Arc<Client>) -> Response;
 
 macro_rules! command {
     ($name: expr, $module: expr, $function: expr) => {
         Command::new(
             $name,
             $module,
-            |interaction: Box<ApplicationCommand>, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>| ($function)(interaction, mongodb, redis, discord_http).boxed()
+            |interaction: CommandContext, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>| ($function)(interaction, mongodb, redis, discord_http).boxed()
         )
     }
 }

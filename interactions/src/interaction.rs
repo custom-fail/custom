@@ -7,6 +7,7 @@ use database::redis::RedisConnection;
 use serde::{Serialize, Deserialize};
 use twilight_http::Client;
 use crate::Application;
+use crate::commands::context::CommandContext;
 use crate::commands::parse_slash_command_to_text;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -58,13 +59,15 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
 async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
     let command_text = parse_slash_command_to_text(interaction.data.clone());
-    let command = application.find_command(command_text).await.ok_or("Cannot find command")?;
+    let command = application.find_command(command_text.clone()).await.ok_or("Cannot find command")?;
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
     let config = mongodb.get_config(guild_id).await.map_err(|_| "Cannot find guild config".to_string())?;
 
+    let context = CommandContext::from_command_data(interaction.clone(), command_text);
+
     config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
 
-    (command.run)(interaction, mongodb, redis, discord_http).await
+    (command.run)(context, mongodb, redis, discord_http).await
 
 }
