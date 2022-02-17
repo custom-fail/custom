@@ -8,9 +8,9 @@ use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
-use crate::commands::context::CommandContext;
+use crate::commands::context::InteractionContext;
 
-pub async fn run(interaction: CommandContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
     let case_id = check_type!(
         interaction.options.get("id").ok_or("There is no case id".to_string())?,

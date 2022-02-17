@@ -12,17 +12,17 @@ use twilight_model::application::interaction::application_command::{CommandData,
 use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use crate::commands::context::CommandContext;
+use crate::commands::context::InteractionContext;
 
 pub type Response = Pin<Box<dyn Future<Output = Result<CallbackData, String>> + Send + 'static>>;
-type Callback = fn(CommandContext, MongoDBConnection, RedisConnection, Arc<Client>) -> Response;
+type Callback = fn(InteractionContext, MongoDBConnection, RedisConnection, Arc<Client>) -> Response;
 
 macro_rules! command {
     ($name: expr, $module: expr, $function: expr) => {
         Command::new(
             $name,
             $module,
-            |interaction: CommandContext, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>| ($function)(interaction, mongodb, redis, discord_http).boxed()
+            |interaction: InteractionContext, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>| ($function)(interaction, mongodb, redis, discord_http).boxed()
         )
     }
 }

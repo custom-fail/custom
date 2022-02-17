@@ -16,10 +16,10 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::UserMarker;
 use database::models::case::Case;
 use crate::check_type;
-use crate::commands::context::CommandContext;
+use crate::commands::context::InteractionContext;
 
 pub async fn run(
-    interaction: CommandContext,
+    interaction: InteractionContext,
     mongodb: MongoDBConnection,
     _: RedisConnection,
     _: Arc<Client>,

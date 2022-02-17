@@ -9,7 +9,7 @@ use twilight_model::id::marker::{GenericMarker, GuildMarker, UserMarker};
 use twilight_model::user::User;
 
 #[derive(Debug)]
-pub struct CommandContext {
+pub struct InteractionContext {
     pub options: HashMap<String, CommandOptionValue>,
     pub command_vec: Vec<String>,
     pub command_text: String,
@@ -31,7 +31,7 @@ macro_rules! check_type {
     }
 }
 
-impl CommandContext {
+impl InteractionContext {
     pub fn from_command_data(command: Box<ApplicationCommand>, subcommands: (Vec<String>, String)) -> Self {
         let command_data = command.data.clone();
         let mut command_options = HashMap::new();

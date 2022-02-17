@@ -17,7 +17,7 @@ use crate::application::Application;
 use crate::commands::Command;
 use twilight_model::application::interaction::ApplicationCommand;
 use twilight_http::Client;
-use crate::commands::context::CommandContext;
+use crate::commands::context::InteractionContext;
 
 #[tokio::main]
 async fn main() {

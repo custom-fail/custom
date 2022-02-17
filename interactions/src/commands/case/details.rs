@@ -6,10 +6,10 @@ use twilight_model::application::interaction::application_command::CommandOption
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
-use crate::commands::context::CommandContext;
+use crate::commands::context::InteractionContext;
 use crate::utilities::embed::embed_to_response;
 
-pub async fn run(interaction: CommandContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
     let case_id = check_type!(
