@@ -56,12 +56,12 @@ impl Clone for Command {
 pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> Vec<String> {
     if slash_command_data.options.len() != 0 {
         handle_value(
-            vec![name],
+            vec![slash_command_data.name],
             slash_command_data.options[0].name.to_owned(),
             slash_command_data.options[0].value.to_owned(),
         )
     } else {
-        slash_command_data.name
+        vec![slash_command_data.name]
     }
 }
 
