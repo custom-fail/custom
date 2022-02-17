@@ -20,6 +20,16 @@ pub struct CommandContext {
     pub guild_id: Option<Id<GuildMarker>>
 }
 
+#[macro_export]
+macro_rules! check_type {
+    ($value: expr, $type: path) => {
+        match $value {
+            $type(v) => Some(v),
+            _ => None
+        }
+    }
+}
+
 impl CommandContext {
     pub fn from_command_data(command: Box<ApplicationCommand>, command_text: String) -> Self {
         let command_data = command.data.clone();
