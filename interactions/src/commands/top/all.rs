@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
-use twilight_model::application::interaction::ApplicationCommand;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::commands::context::InteractionContext;

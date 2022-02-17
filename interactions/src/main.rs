@@ -15,7 +15,6 @@ use ed25519_dalek::PublicKey;
 use futures::FutureExt;
 use crate::application::Application;
 use crate::commands::Command;
-use twilight_model::application::interaction::ApplicationCommand;
 use twilight_http::Client;
 use crate::commands::context::InteractionContext;
 

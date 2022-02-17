@@ -4,13 +4,9 @@ use mongodb::options::FindOneOptions;
 use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
-use twilight_model::application::interaction::ApplicationCommand;
-use twilight_model::id::Id;
-use twilight_model::id::marker::UserMarker;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
-use crate::commands::case::get_member_from_command_data;
 use crate::commands::context::InteractionContext;
 use crate::utilities::embed::embed_to_response;
 

@@ -3,7 +3,6 @@ use mongodb::bson::doc;
 use twilight_http::Client;
 use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
-use twilight_model::application::interaction::ApplicationCommand;
 use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;

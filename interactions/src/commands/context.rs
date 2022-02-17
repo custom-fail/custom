@@ -1,11 +1,10 @@
-use std::any::TypeId;
 use std::collections::HashMap;
-use twilight_model::application::interaction::application_command::{CommandData, CommandDataOption, CommandInteractionDataResolved, CommandOptionValue};
+use twilight_model::application::interaction::application_command::{CommandDataOption, CommandInteractionDataResolved, CommandOptionValue};
 use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
 use twilight_model::application::interaction::ApplicationCommand;
 use twilight_model::guild::PartialMember;
 use twilight_model::id::Id;
-use twilight_model::id::marker::{GenericMarker, GuildMarker, UserMarker};
+use twilight_model::id::marker::{GenericMarker, GuildMarker};
 use twilight_model::user::User;
 
 #[derive(Debug)]
