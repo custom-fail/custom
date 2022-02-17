@@ -59,13 +59,13 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
 async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
 
     let command_vec = parse_slash_command_to_text(interaction.data.clone());
-    let command_text = command_vec.join(" ");
+    let command_text = command_vec.clone().join(" ");
     let command = application.find_command(command_text.clone()).await.ok_or("Cannot find command")?;
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
     let config = mongodb.get_config(guild_id).await.map_err(|_| "Cannot find guild config".to_string())?;
 
-    let context = CommandContext::from_command_data(interaction.clone(), command_text);
+    let context = CommandContext::from_command_data(interaction.clone(), (command_vec.clone(), command_text.clone()));
 
     config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
 
