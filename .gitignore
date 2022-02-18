@@ -3,3 +3,6 @@
 */.env
 */.idea/
 */Cargo.lock
+*/*/node_modules/
+*/*/package-lock.json
+*/*/.env
