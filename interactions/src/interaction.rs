@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use twilight_model::application::callback::CallbackData;
-use twilight_model::application::interaction::{ApplicationCommand, Interaction};
+use twilight_model::application::interaction::{ApplicationCommand, Interaction, MessageComponentInteraction};
 use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
@@ -22,8 +22,17 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
             r#type: 1,
             data: None
         },
-        Interaction::ApplicationCommand(interaction) => {
-            let response = commands_handler(interaction,application, mongodb, redis, discord_http).await;
+        _ => {
+            let response = match interaction {
+                Interaction::ApplicationCommand(interaction) => {
+                    commands_handler(interaction, application, mongodb, redis, discord_http).await
+                }
+                Interaction::MessageComponent(interaction) => {
+                    component_handler(interaction, application, mongodb, redis, discord_http).await
+                },
+                _ => Err("Not supported interaction type".to_string())
+            };
+
             match response {
                 Ok(response) => InteractionResponse {
                     r#type: 4,
@@ -42,18 +51,12 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
                 }
             }
         }
-        _ => InteractionResponse {
-            r#type: 4,
-            data: Some(CallbackData {
-                allowed_mentions: None,
-                components: None,
-                content: Some("Not supported interaction type".to_string()),
-                embeds: None,
-                flags: Some(MessageFlags::EPHEMERAL),
-                tts: None
-            })
-        }
     }
+}
+
+async fn component_handler(interaction: Box<MessageComponentInteraction>, _: Application, _: MongoDBConnection, _: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
+    let context = InteractionContext::from_message_component_interaction(interaction)?;
+    Err("This interaction type is not supported".to_string())
 }
 
 async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
