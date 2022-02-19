@@ -36,4 +36,16 @@ impl Application {
         commands.get(&name).cloned()
     }
 
+    pub async fn add_components(&self, components: Vec<Component>) {
+        let mut cmds = self.components.lock().await;
+        for component in components.iter() {
+            cmds.insert(component.id.clone(), component.to_owned());
+        }
+    }
+
+    pub async fn find_component(&self, id: String) -> Option<Component> {
+        let components = self.components.lock().await;
+        components.get(&id).cloned()
+    }
+
 }
