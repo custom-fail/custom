@@ -35,7 +35,7 @@ async fn main() {
     let discord_http = Arc::new(twilight_http::Client::new(discord_token));
 
     let application = Application::new();
-    application.add_command(vec![
+    application.add_commands(vec![
 
         command!("case details", "moderation", crate::commands::case::details::run),
         command!("case remove", "moderation", crate::commands::case::remove::run),
