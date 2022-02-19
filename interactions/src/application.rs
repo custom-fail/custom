@@ -3,14 +3,24 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use crate::commands::Command;
 
+#[derive(Clone)]
+pub struct Component {
+    pub options: Vec<String>,
+    pub command: String,
+    pub id: String
+}
+
+#[derive(Clone)]
 pub struct Application {
     commands: Arc<Mutex<HashMap<String, Command>>>,
+    components: Arc<Mutex<HashMap<String, Component>>>
 }
 
 impl Application {
     pub fn new() -> Self {
         Self {
             commands: Arc::new(Mutex::new(HashMap::new())),
+            components: Arc::new(Mutex::new(HashMap::new()))
         }
     }
 
@@ -26,12 +36,4 @@ impl Application {
         commands.get(&name).cloned()
     }
 
-}
-
-impl Clone for Application {
-    fn clone(&self) -> Self {
-        Self {
-            commands: self.commands.clone()
-        }
-    }
 }
