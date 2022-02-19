@@ -5,7 +5,8 @@ use crate::commands::Command;
 
 #[derive(Clone)]
 pub struct Component {
-    pub options: Vec<String>,
+    pub options: Vec<(String, String)>,
+    pub values: Vec<(String, String)>,
     pub command: String,
     pub id: String
 }
