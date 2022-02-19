@@ -54,8 +54,8 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
     }
 }
 
-async fn component_handler(interaction: Box<MessageComponentInteraction>, _: Application, _: MongoDBConnection, _: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
-    let context = InteractionContext::from_message_component_interaction(interaction)?;
+async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, _: MongoDBConnection, _: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
+    let context = InteractionContext::from_message_component_interaction(interaction, application).await?;
     Err("This interaction type is not supported".to_string())
 }
 

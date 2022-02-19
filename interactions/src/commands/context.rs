@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 use twilight_model::application::interaction::application_command::{CommandDataOption, CommandInteractionDataResolved, CommandOptionValue};
 use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
 use twilight_model::application::interaction::{ApplicationCommand, MessageComponentInteraction};
@@ -6,6 +7,7 @@ use twilight_model::guild::PartialMember;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GenericMarker, GuildMarker};
 use twilight_model::user::User;
+use crate::Application;
 
 #[derive(Debug)]
 pub struct InteractionContext {
@@ -17,8 +19,7 @@ pub struct InteractionContext {
     pub user: Option<User>,
     pub resolved: CommandInteractionDataResolved,
     pub target_id: Option<Id<GenericMarker>>,
-    pub guild_id: Option<Id<GuildMarker>>,
-    pub value: Option<String>
+    pub guild_id: Option<Id<GuildMarker>>
 }
 
 #[macro_export]
@@ -63,25 +64,36 @@ impl InteractionContext {
                 users: HashMap::new()
             }),
             target_id: command.data.target_id,
-            guild_id: command.guild_id,
-            value: None
+            guild_id: command.guild_id
         }
 
     }
 
-    pub fn from_message_component_interaction(interaction: Box<MessageComponentInteraction>) -> Result<Self, String> {
+    pub async fn from_message_component_interaction(interaction: Box<MessageComponentInteraction>, application: Application) -> Result<Self, String> {
 
-        let id_vec = interaction.data.custom_id.split("::").collect::<Vec<&str>>();
-        let name = id_vec.get(2).ok_or("There is no command data".to_string())?.to_string();
-        let value = match interaction.data.values.first() {
-            Some(value) => Some(value.clone()),
-            None => match id_vec.get(3) {
-                Some(value) => Some(value.to_string()),
-                None => None
-            }
-        };
+        let id_vec = interaction.data.custom_id.split(":").collect::<Vec<&str>>();
+        let command_id = id_vec.get(2).ok_or("There is no command data".to_string())?.to_string();
+
+        let application_component = application.find_component(command_id).await
+            .ok_or("There is no component with matching id".to_string())?;
+
+        let name = application_component.command;
 
         let mut options = HashMap::new();
+
+        for i in 0..application_component.options.len() {
+            let value = if let Some(value) = id_vec.get(i + 3) { value } else { break };
+            let (key, kind) = application_component.options[i].clone();
+            let value = convert_value_to_option(value.to_string(), kind)?;
+            options.insert(key, value);
+        }
+
+        for i in 0..application_component.values.len() {
+            let value = if let Some(value) = interaction.data.values.get(i) { value.clone() } else { break };
+            let (key, kind) = application_component.values[i].clone();
+            let value = convert_value_to_option(value.to_string(), kind)?;
+            options.insert(key, value);
+        }
 
         let user = match interaction.member.clone() {
             Some(value) => match value.user {
@@ -106,10 +118,27 @@ impl InteractionContext {
                 users: HashMap::new()
             },
             target_id: None,
-            guild_id: interaction.guild_id,
-            value
+            guild_id: interaction.guild_id
         })
     }
+}
+
+fn convert_value_to_option(value: String, kind: String) -> Result<CommandOptionValue, String> {
+    Ok(if kind == "String".to_string() {
+        CommandOptionValue::String(value)
+    } else if kind == "Boolean".to_string() {
+        CommandOptionValue::Boolean(
+            if value == "true".to_string() { true } else { false }
+        )
+    } else if kind == "Integer" {
+        CommandOptionValue::Integer(
+            value.parse::<i64>().map_err(|_| "Invalid option type".to_string())?
+        )
+    } else if kind == "User" {
+        CommandOptionValue::User(
+            Id::from_str(value.as_str()).map_err(|_| "Invalid option type".to_string())?
+        )
+    } else { return Err("Invalid option type".to_string()) })
 }
 
 fn parse_options_to_value(command_data_options: Vec<CommandDataOption>) -> Vec<(String, CommandOptionValue)> {
