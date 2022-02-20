@@ -11,7 +11,7 @@ use database::redis::RedisConnection;
 use dotenv::dotenv;
 use ed25519_dalek::PublicKey;
 use futures::FutureExt;
-use crate::application::Application;
+use crate::application::{Application, Component};
 use crate::commands::Command;
 use twilight_http::Client;
 use crate::commands::context::InteractionContext;
@@ -49,6 +49,13 @@ async fn main() {
         command!("top day me", "top", crate::commands::top::me::run)
 
     ]).await;
+
+    application.add_components(vec![Component {
+        options: vec![("member".to_string(), "User".to_string())],
+        values: vec![("page".to_string(), "Integer".to_string())],
+        command: "case list".to_string(),
+        id: "cl".to_string()
+    }]).await;
 
     server::listen(80, public_key, application, mongodb, redis, discord_http).await;
 
