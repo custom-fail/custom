@@ -101,7 +101,13 @@ impl InteractionContext {
                 None => interaction.user
             }
             None => interaction.user
-        };
+        }.ok_or("Cannot get information about executor".to_string())?;
+
+        if !interaction.data.custom_id.starts_with(
+            format!("a:{}", user.id.to_string()).as_str()
+        ) && !interaction.data.custom_id.starts_with("a:*") {
+            return Err("This place is not dedicated for you :eyes:".to_string())
+        }
 
         Ok(Self {
             options,
@@ -109,7 +115,7 @@ impl InteractionContext {
             command_text: name,
             custom_id: Some(interaction.data.custom_id),
             member: interaction.member,
-            user,
+            user: Some(user),
             resolved: CommandInteractionDataResolved {
                 channels: HashMap::new(),
                 members: HashMap::new(),

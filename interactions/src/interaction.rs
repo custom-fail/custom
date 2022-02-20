@@ -23,11 +23,13 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
             data: None
         },
         _ => {
+            let mut response_type = 4;
             let response = match interaction {
                 Interaction::ApplicationCommand(interaction) => {
                     commands_handler(interaction, application, mongodb, redis, discord_http).await
                 }
                 Interaction::MessageComponent(interaction) => {
+                    response_type = 7;
                     component_handler(interaction, application, mongodb, redis, discord_http).await
                 },
                 _ => Err("Not supported interaction type".to_string())
@@ -35,7 +37,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
 
             match response {
                 Ok(response) => InteractionResponse {
-                    r#type: 4,
+                    r#type: response_type,
                     data: Some(response)
                 },
                 Err(error) => InteractionResponse {
@@ -54,9 +56,13 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
     }
 }
 
-async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, _: MongoDBConnection, _: RedisConnection, _: Arc<Client>) -> Result<CallbackData, String> {
-    let context = InteractionContext::from_message_component_interaction(interaction, application).await?;
-    Err("This interaction type is not supported".to_string())
+async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
+
+    let context = InteractionContext::from_message_component_interaction(interaction, application.clone()).await?;
+    let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command")?;
+
+    (command.run)(context, mongodb, redis, discord_http).await
+
 }
 
 async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
