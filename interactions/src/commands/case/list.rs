@@ -57,7 +57,9 @@ pub async fn run(
     let pages  = if count % 6 == 0 { count / 6 } else { count / 6 + 1 };
 
     let mut result = vec![];
-    for page in 1..(pages + 1) {
+    for page in 1..(
+        if pages + 1 > 25 { 25 } else { pages + 1 }
+    ) {
         result.push(SelectMenuOption {
             default: false,
             description: None,
