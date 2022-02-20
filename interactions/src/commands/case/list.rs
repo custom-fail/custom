@@ -29,9 +29,16 @@ pub async fn run(
         CommandOptionValue::User
     ).ok_or("Member id type not match".to_string())?.clone();
 
+    let page = u64::try_from(
+        check_type!(
+            interaction.options.get("page").unwrap_or(&CommandOptionValue::Integer(1)),
+            CommandOptionValue::Integer
+        ).ok_or("Case id type not match".to_string())?.clone()
+    ).map_err(|_| "Page must be u64".to_string())?;
+
     let case_list = mongodb.cases.find(
         doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false },
-        FindOptions::builder().limit(6).sort(doc! { "created_at": -1 as i32 }).build()
+        FindOptions::builder().limit(6).skip(Some(page - 1)).sort(doc! { "created_at": -1 as i32 }).build()
     ).await.map_err(|err| format!("{:?}", err))?;
 
     let count = mongodb.cases.count_documents(
@@ -66,7 +73,7 @@ pub async fn run(
             Component::ActionRow(ActionRow {
                 components: vec![
                     Component::SelectMenu(SelectMenu {
-                        custom_id: format!("{user_id}:{member_id}:case"),
+                        custom_id: format!("a:{user_id}:cl:{member_id}"),
                         disabled: false,
                         max_values: Some(1),
                         min_values: Some(1),
