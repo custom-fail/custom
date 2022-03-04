@@ -1,15 +1,15 @@
 use std::sync::Arc;
 use mongodb::bson::doc;
 use twilight_http::Client;
-use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
+use twilight_model::http::interaction::InteractionResponseData;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
 use crate::utilities::embed::embed_to_response;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
     let case_id = check_type!(

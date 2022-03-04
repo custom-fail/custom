@@ -6,7 +6,7 @@ use mongodb::options::FindOptions;
 use std::sync::Arc;
 use futures::TryStreamExt;
 use twilight_http::Client;
-use twilight_model::application::callback::CallbackData;
+use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::application::component::{ActionRow, Component, SelectMenu};
 use twilight_model::application::component::select_menu::SelectMenuOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
@@ -19,7 +19,7 @@ pub async fn run(
     mongodb: MongoDBConnection,
     _: RedisConnection,
     _: Arc<Client>,
-) -> Result<CallbackData, String> {
+) -> Result<InteractionResponseData, String> {
 
     let user_id = interaction.user.ok_or("There is no user information")?.id;
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
@@ -38,7 +38,7 @@ pub async fn run(
 
     let case_list = mongodb.cases.find(
         doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false },
-        FindOptions::builder().limit(6).skip(Some(page - 1)).sort(doc! { "created_at": -1 as i32 }).build()
+        FindOptions::builder().limit(6).skip(Some((page - 1) * 6)).sort(doc! { "created_at": -1 as i32 }).build()
     ).await.map_err(|err| format!("{:?}", err))?;
 
     let count = mongodb.cases.count_documents(
@@ -69,8 +69,10 @@ pub async fn run(
         });
     }
 
-    Ok(CallbackData {
+    Ok(InteractionResponseData {
         allowed_mentions: None,
+        attachments: None,
+        choices: None,
         components: Some(vec![
             Component::ActionRow(ActionRow {
                 components: vec![
@@ -86,8 +88,10 @@ pub async fn run(
             })
         ]),
         content: None,
+        custom_id: None,
         embeds: Some(vec![embed]),
         flags: None,
+        title: None,
         tts: None
     })
 

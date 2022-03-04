@@ -1,35 +1,28 @@
 use std::sync::Arc;
-use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::{ApplicationCommand, Interaction, MessageComponentInteraction};
 use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use serde::{Serialize, Deserialize};
 use twilight_http::Client;
+use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
 use crate::Application;
 use crate::commands::context::InteractionContext;
 use crate::commands::parse_slash_command_to_text;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct InteractionResponse {
-    r#type: u8,
-    data: Option<CallbackData>
-}
-
 pub async fn handle_interaction(interaction: Interaction, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> InteractionResponse {
     match interaction {
         Interaction::Ping(_) => InteractionResponse {
-            r#type: 1,
+            kind: InteractionResponseType::Pong,
             data: None
         },
         _ => {
-            let mut response_type = 4;
+            let mut response_type = InteractionResponseType::ChannelMessageWithSource;
             let response = match interaction {
                 Interaction::ApplicationCommand(interaction) => {
                     commands_handler(interaction, application, mongodb, redis, discord_http).await
                 }
                 Interaction::MessageComponent(interaction) => {
-                    response_type = 7;
+                    response_type = InteractionResponseType::UpdateMessage;
                     component_handler(interaction, application, mongodb, redis, discord_http).await
                 },
                 _ => Err("Not supported interaction type".to_string())
@@ -37,17 +30,21 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
 
             match response {
                 Ok(response) => InteractionResponse {
-                    r#type: response_type,
+                    kind: response_type,
                     data: Some(response)
                 },
                 Err(error) => InteractionResponse {
-                    r#type: 4,
-                    data: Some(CallbackData {
+                    kind: InteractionResponseType::ChannelMessageWithSource,
+                    data: Some(InteractionResponseData {
                         allowed_mentions: None,
+                        attachments: None,
+                        choices: None,
                         components: None,
                         content: Some(error),
+                        custom_id: None,
                         embeds: None,
                         flags: Some(MessageFlags::EPHEMERAL),
+                        title: None,
                         tts: None
                     })
                 }
@@ -56,7 +53,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
     }
 }
 
-async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
+async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
 
     let context = InteractionContext::from_message_component_interaction(interaction, application.clone()).await?;
     let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command")?;
@@ -65,7 +62,7 @@ async fn component_handler(interaction: Box<MessageComponentInteraction>, applic
 
 }
 
-async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
+async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
 
     let command_vec = parse_slash_command_to_text(interaction.data.clone());
     let command_text = command_vec.clone().join(" ");

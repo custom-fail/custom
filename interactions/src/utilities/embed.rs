@@ -1,5 +1,5 @@
-use twilight_model::application::callback::CallbackData;
 use twilight_model::channel::embed::{Embed, EmbedField};
+use twilight_model::http::interaction::InteractionResponseData;
 
 fn text_to_embed(title: String, description: String) -> Embed {
     Embed {
@@ -19,24 +19,32 @@ fn text_to_embed(title: String, description: String) -> Embed {
     }
 }
 
-pub fn text_to_response_embed(title: String, description: String) -> CallbackData {
-    CallbackData {
+pub fn text_to_response_embed(title: String, description: String) -> InteractionResponseData {
+    InteractionResponseData {
         allowed_mentions: None,
+        attachments: None,
+        choices: None,
         components: None,
         content: None,
+        custom_id: None,
         embeds: Some(vec![text_to_embed(title, description)]),
         flags: None,
+        title: None,
         tts: None
     }
 }
 
-pub fn embed_to_response(embed: Embed) -> CallbackData {
-    CallbackData {
+pub fn embed_to_response(embed: Embed) -> InteractionResponseData {
+    InteractionResponseData {
         allowed_mentions: None,
+        attachments: None,
+        choices: None,
         components: None,
         content: None,
+        custom_id: None,
         embeds: Some(vec![embed]),
         flags: None,
+        title: None,
         tts: None
     }
 }

@@ -1,15 +1,15 @@
 use std::sync::Arc;
 use mongodb::bson::doc;
 use twilight_http::Client;
-use twilight_model::application::callback::CallbackData;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
+use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<CallbackData, String> {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
 
     let case_id = check_type!(
         interaction.options.get("id").ok_or("There is no case id".to_string())?,
@@ -20,12 +20,16 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         doc! { "index": case_id, "removed": false }, doc! { "$set": {"removed": true } }, None
     ).await.map_err(|err| format!("{err}"))?.ok_or("Cannot find case with selected id")?;
 
-    Ok(CallbackData {
+    Ok(InteractionResponseData {
         allowed_mentions: None,
+        attachments: None,
+        choices: None,
         components: None,
         content: Some("**Removed case**".to_string()),
+        custom_id: None,
         embeds: Some(vec![removed_case.to_embed(discord_http).await?]),
         flags: Some(MessageFlags::EPHEMERAL),
+        title: None,
         tts: None
     })
 
