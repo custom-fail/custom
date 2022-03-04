@@ -9,7 +9,10 @@ export const configs = new Map()
 configs.set("898986393177567242", {
     autoPublisherChannels: ["946159295270096997"],
     autoDeleteChannels: {
-        "904330935871356949": 10000
+        "946179628207308810": 1 * 60 * 1000
+    },
+    messageRoleChannels: {
+        "947886352203149462": "947886434323415051"
     },
     voiceRole: "946173995768774687"
 })
