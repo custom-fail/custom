@@ -57,6 +57,7 @@ impl InteractionContext {
             member: command.member.clone(),
             user,
             resolved: command.data.resolved.unwrap_or(CommandInteractionDataResolved {
+                attachments: HashMap::new(),
                 channels: HashMap::new(),
                 members: HashMap::new(),
                 messages: HashMap::new(),
@@ -117,6 +118,7 @@ impl InteractionContext {
             member: interaction.member,
             user: Some(user),
             resolved: CommandInteractionDataResolved {
+                attachments: HashMap::new(),
                 channels: HashMap::new(),
                 members: HashMap::new(),
                 messages: HashMap::new(),
