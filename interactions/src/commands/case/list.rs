@@ -11,6 +11,7 @@ use twilight_model::application::component::{ActionRow, Component, SelectMenu};
 use twilight_model::application::component::select_menu::SelectMenuOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use database::models::case::Case;
+use database::models::config::GuildConfig;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
@@ -20,6 +21,7 @@ pub async fn run(
     mongodb: MongoDBConnection,
     _: RedisConnection,
     _: Arc<Client>,
+    _: GuildConfig
 ) -> ResponseData {
 
     let user_id = interaction.user.ok_or("There is no user information")?.id;

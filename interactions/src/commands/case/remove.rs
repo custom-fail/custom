@@ -4,13 +4,14 @@ use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::channel::message::MessageFlags;
+use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
 
     let case_id = check_type!(
         interaction.options.get("id").ok_or("There is no case id".to_string())?,

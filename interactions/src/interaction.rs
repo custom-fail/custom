@@ -62,7 +62,10 @@ async fn component_handler(interaction: Box<MessageComponentInteraction>, applic
     let context = InteractionContext::from_message_component_interaction(interaction, application.clone()).await?;
     let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command")?;
 
-    (command.run)(context, mongodb, redis, discord_http).await
+    let guild_id = context.guild_id.ok_or("Cannot find guild_id".to_string())?;
+    let config = mongodb.get_config(guild_id).await.map_err(|_| "Cannot find guild config".to_string())?;
+
+    (command.run)(context, mongodb, redis, discord_http, config).await
 
 }
 
@@ -79,7 +82,7 @@ async fn commands_handler(interaction: Box<ApplicationCommand>, application: App
 
     config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
 
-    (command.run)(context, mongodb, redis, discord_http).await
+    (command.run)(context, mongodb, redis, discord_http, config).await
 
 }
 
@@ -93,6 +96,6 @@ async fn modal_handler(interaction: Box<ModalSubmitInteraction>, application: Ap
 
     config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
 
-    (command.run)(context, mongodb, redis, discord_http).await
+    (command.run)(context, mongodb, redis, discord_http, config).await
 
 }

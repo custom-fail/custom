@@ -3,6 +3,7 @@ use mongodb::bson::doc;
 use mongodb::options::FindOneOptions;
 use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
+use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
@@ -10,7 +11,7 @@ use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 use crate::utilities::embed::embed_to_response;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
     let member_id = check_type!(

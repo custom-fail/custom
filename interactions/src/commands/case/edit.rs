@@ -6,11 +6,12 @@ use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use twilight_model::http::interaction::InteractionResponseData;
+use database::models::config::GuildConfig;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
 
