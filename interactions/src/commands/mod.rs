@@ -8,12 +8,13 @@ use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
 use twilight_model::application::interaction::application_command::{CommandData, CommandOptionValue};
-use twilight_model::http::interaction::InteractionResponseData;
+use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::commands::context::InteractionContext;
 
-pub type Response = Pin<Box<dyn Future<Output = Result<InteractionResponseData, String>> + Send + 'static>>;
+pub type ResponseData = Result<(InteractionResponseData, Option<InteractionResponseType>), String>;
+pub type Response = Pin<Box<dyn Future<Output = ResponseData> + Send + 'static>>;
 type Callback = fn(InteractionContext, MongoDBConnection, RedisConnection, Arc<Client>) -> Response;
 
 #[macro_export]

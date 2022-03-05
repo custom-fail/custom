@@ -7,7 +7,7 @@ use twilight_http::Client;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
 use crate::Application;
 use crate::commands::context::InteractionContext;
-use crate::commands::parse_slash_command_to_text;
+use crate::commands::{parse_slash_command_to_text, ResponseData};
 
 pub async fn handle_interaction(interaction: Interaction, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> InteractionResponse {
     match interaction {
@@ -16,21 +16,21 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
             data: None
         },
         _ => {
-            let mut response_type = InteractionResponseType::ChannelMessageWithSource;
+            let mut response_type_default = InteractionResponseType::ChannelMessageWithSource;
             let response = match interaction {
                 Interaction::ApplicationCommand(interaction) => {
                     commands_handler(interaction, application, mongodb, redis, discord_http).await
                 }
                 Interaction::MessageComponent(interaction) => {
-                    response_type = InteractionResponseType::UpdateMessage;
+                    response_type_default = InteractionResponseType::UpdateMessage;
                     component_handler(interaction, application, mongodb, redis, discord_http).await
                 },
                 _ => Err("Not supported interaction type".to_string())
             };
 
             match response {
-                Ok(response) => InteractionResponse {
-                    kind: response_type,
+                Ok((response, response_type)) => InteractionResponse {
+                    kind: response_type.unwrap_or(response_type_default),
                     data: Some(response)
                 },
                 Err(error) => InteractionResponse {
@@ -53,7 +53,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
     }
 }
 
-async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
+async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
 
     let context = InteractionContext::from_message_component_interaction(interaction, application.clone()).await?;
     let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command")?;
@@ -62,7 +62,7 @@ async fn component_handler(interaction: Box<MessageComponentInteraction>, applic
 
 }
 
-async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
+async fn commands_handler(interaction: Box<ApplicationCommand>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
 
     let command_vec = parse_slash_command_to_text(interaction.data.clone());
     let command_text = command_vec.clone().join(" ");

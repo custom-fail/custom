@@ -13,13 +13,14 @@ use twilight_model::application::interaction::application_command::CommandOption
 use database::models::case::Case;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
+use crate::commands::ResponseData;
 
 pub async fn run(
     interaction: InteractionContext,
     mongodb: MongoDBConnection,
     _: RedisConnection,
     _: Arc<Client>,
-) -> Result<InteractionResponseData, String> {
+) -> ResponseData {
 
     let user_id = interaction.user.ok_or("There is no user information")?.id;
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
@@ -69,7 +70,7 @@ pub async fn run(
         });
     }
 
-    Ok(InteractionResponseData {
+    Ok((InteractionResponseData {
         allowed_mentions: None,
         attachments: None,
         choices: None,
@@ -93,6 +94,6 @@ pub async fn run(
         flags: None,
         title: None,
         tts: None
-    })
+    }, None))
 
 }

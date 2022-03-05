@@ -8,8 +8,9 @@ use database::redis::RedisConnection;
 use twilight_model::http::interaction::InteractionResponseData;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
+use crate::commands::ResponseData;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
 
@@ -39,7 +40,7 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
 
     case.reason = Some(reason);
 
-    Ok(InteractionResponseData {
+    Ok((InteractionResponseData {
         allowed_mentions: None,
         attachments: None,
         choices: None,
@@ -50,6 +51,6 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         flags: Some(MessageFlags::EPHEMERAL),
         title: None,
         tts: None
-    })
+    }, None))
 
 }

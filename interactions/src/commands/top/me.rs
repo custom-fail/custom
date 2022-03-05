@@ -1,12 +1,12 @@
 use std::sync::Arc;
 use twilight_http::Client;
-use twilight_model::http::interaction::InteractionResponseData;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::commands::context::InteractionContext;
+use crate::commands::ResponseData;
 use crate::utilities::embed::text_to_response_embed;
 
-pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>) -> Result<InteractionResponseData, String> {
+pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>) -> ResponseData {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
     let user = interaction.user.ok_or("Unknown user")?;
@@ -49,9 +49,9 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
     ).map_err(|err| format!("{err}"))?.ok_or("There is no `user_before`")?;
     result = format!("{result}**{user_before}** messages for user before (to you)");
 
-    Ok(text_to_response_embed(
+    Ok((text_to_response_embed(
         format!("Top of the {week_or_day} for {}#{}", user.name, user.discriminator),
         result
-    ))
+    ), None))
 
 }

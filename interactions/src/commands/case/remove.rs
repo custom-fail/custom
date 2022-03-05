@@ -8,8 +8,9 @@ use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use crate::check_type;
 use crate::commands::context::InteractionContext;
+use crate::commands::ResponseData;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> Result<InteractionResponseData, String> {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
 
     let case_id = check_type!(
         interaction.options.get("id").ok_or("There is no case id".to_string())?,
@@ -20,7 +21,7 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         doc! { "index": case_id, "removed": false }, doc! { "$set": {"removed": true } }, None
     ).await.map_err(|err| format!("{err}"))?.ok_or("Cannot find case with selected id")?;
 
-    Ok(InteractionResponseData {
+    Ok((InteractionResponseData {
         allowed_mentions: None,
         attachments: None,
         choices: None,
@@ -31,6 +32,6 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         flags: Some(MessageFlags::EPHEMERAL),
         title: None,
         tts: None
-    })
+    }, None))
 
 }
