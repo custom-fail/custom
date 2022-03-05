@@ -4,6 +4,7 @@ use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use twilight_http::Client;
+use twilight_model::application::interaction::modal::ModalSubmitInteraction;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
 use crate::Application;
 use crate::commands::context::InteractionContext;
@@ -25,6 +26,9 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
                     response_type_default = InteractionResponseType::UpdateMessage;
                     component_handler(interaction, application, mongodb, redis, discord_http).await
                 },
+                Interaction::ModalSubmit(interaction) => {
+                    modal_handler(interaction, application, mongodb, redis, discord_http).await
+                }
                 _ => Err("Not supported interaction type".to_string())
             };
 
@@ -72,6 +76,20 @@ async fn commands_handler(interaction: Box<ApplicationCommand>, application: App
     let config = mongodb.get_config(guild_id).await.map_err(|_| "Cannot find guild config".to_string())?;
 
     let context = InteractionContext::from_command_data(interaction.clone(), (command_vec.clone(), command_text.clone()));
+
+    config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
+
+    (command.run)(context, mongodb, redis, discord_http).await
+
+}
+
+async fn modal_handler(interaction: Box<ModalSubmitInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
+
+    let context = InteractionContext::from_modal_submit_interaction(interaction, application.clone()).await?;
+    let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command".to_string())?;
+
+    let guild_id = context.guild_id.ok_or("Cannot find guild_id".to_string())?;
+    let config = mongodb.get_config(guild_id).await?;
 
     config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
 
