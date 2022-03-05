@@ -146,9 +146,9 @@ impl InteractionContext {
     pub async fn from_modal_submit_interaction(interaction: Box<ModalSubmitInteraction>, application: Application) -> Result<Self, String> {
 
         let id_vec = interaction.data.custom_id.split(":").collect::<Vec<&str>>();
-        let name = id_vec.get(0).ok_or("".to_string())?.to_string();
+        let name = id_vec.get(1).ok_or("Cannot extract command from custom_ids".to_string())?.to_string();
 
-        let modal = application.find_modal(name).await.ok_or("".to_string())?;
+        let modal = application.find_modal(name).await.ok_or("Unknown modal".to_string())?;
 
         let mut options = HashMap::new();
 
