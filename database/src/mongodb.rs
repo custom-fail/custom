@@ -3,8 +3,9 @@ use std::sync::Arc;
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::doc;
 use tokio::sync::Mutex;
+use twilight_model::channel::embed::Embed;
 use twilight_model::id::Id;
-use twilight_model::id::marker::GuildMarker;
+use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 
@@ -51,6 +52,37 @@ impl MongoDBConnection {
             Err(err) => return Err(format!("{err}"))
         }
 
+    }
+
+    pub async fn create_case(&self, discord_http: Arc<twilight_http::Client>, case: Case, case_embed: Embed, dm_case: Option<Id<UserMarker>>, logs: Option<Id<ChannelMarker>>) -> Result<(), String> {
+
+        self.cases.insert_one(case, None).await.map_err(|err| format!("{err}"))?;
+
+        if let Some(channel_id) = logs {
+            discord_http.create_message(channel_id)
+                .embeds(&[case_embed.clone()]).map_err(|err| err.to_string())?
+                .exec().await.map_err(|err| err.to_string())?
+                .model().await.map_err(|err| err.to_string())?;
+        }
+
+        if let Some(member_id) = dm_case {
+            let channel = discord_http.create_private_channel(member_id)
+                .exec().await.map_err(|err| err.to_string())?
+                .model().await.map_err(|err| err.to_string())?;
+            discord_http.create_message(channel.id)
+                .embeds(&[case_embed]).map_err(|err| err.to_string())?
+                .exec().await.map_err(|err| err.to_string())?
+                .model().await.map_err(|err| err.to_string())?;
+        }
+
+        Ok(())
+
+    }
+
+    pub async fn get_next_case_index(&self, guild_id: Id<GuildMarker>) -> Result<u64, String> {
+        Ok(self.cases.count_documents(
+        doc! { "guild_id": guild_id.to_string() }, None
+        ).await.map_err(|err| format!("{err}"))? + 1)
     }
 
 }

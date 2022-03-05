@@ -5,7 +5,7 @@ use twilight_model::http::interaction::{InteractionResponseData, InteractionResp
 use database::models::case::Case;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use mongodb::bson::{DateTime, doc};
+use mongodb::bson::DateTime;
 use twilight_model::channel::message::MessageFlags;
 use database::models::config::GuildConfig;
 use crate::commands::ResponseData;
@@ -36,7 +36,7 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
        CommandOptionValue::String
     ).cloned();
 
-    let count = mongodb.cases.count_documents(doc! {}, None).await.map_err(|err| format!("{err}"))?;
+    let index = mongodb.get_next_case_index(guild_id).await? as u16;
 
     let case = Case {
         moderator_id: user_id,
@@ -47,7 +47,7 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         reason,
         removed: false,
         duration: None,
-        index: (count + 1) as u16
+        index
     };
 
     let case_embed = case.to_embed(discord_http.clone()).await?;
