@@ -27,7 +27,7 @@ impl ModalBuilder {
         Self {
             custom_id: self.custom_id.clone(),
             title: self.title.clone(),
-            inputs: vec![vec![text_input], self.inputs.clone()].concat()
+            inputs: vec![self.inputs.clone(), vec![text_input]].concat()
         }
     }
 
