@@ -5,13 +5,15 @@ mod interaction;
 mod application;
 mod utilities;
 
+use std::collections::HashMap;
 use std::sync::Arc;
+use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
 use ed25519_dalek::PublicKey;
 use futures::FutureExt;
-use crate::application::{Application, Component};
+use crate::application::{Application, Component, Modal};
 use crate::commands::Command;
 use twilight_http::Client;
 use crate::commands::context::InteractionContext;
@@ -43,6 +45,8 @@ async fn main() {
         command!("case last", "moderation", crate::commands::case::last::run),
         command!("case list", "moderation", crate::commands::case::list::run),
 
+        command!("warn", "moderation", crate::commands::moderation::warn::run),
+
         command!("top week all", "top", crate::commands::top::all::run),
         command!("top day all", "top", crate::commands::top::all::run),
         command!("top week me", "top", crate::commands::top::me::run),
@@ -56,6 +60,15 @@ async fn main() {
         command: "case list".to_string(),
         id: "cl".to_string()
     }]).await;
+
+    application.add_modals(vec![
+        Modal {
+            options: vec![("member".to_string(), "User".to_string())],
+            inputs: HashMap::from([("reason".to_string(), "String".to_string())]),
+            command: "warn".to_string(),
+            id: "warn".to_string()
+        }
+    ]).await;
 
     server::listen(80, public_key, application, mongodb, redis, discord_http).await;
 
