@@ -3,13 +3,14 @@ use std::str::FromStr;
 use twilight_model::application::interaction::application_command::{CommandDataOption, CommandInteractionDataResolved, CommandOptionValue};
 use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
 use twilight_model::application::interaction::{ApplicationCommand, MessageComponentInteraction};
+use twilight_model::application::interaction::modal::ModalSubmitInteraction;
 use twilight_model::guild::PartialMember;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GenericMarker, GuildMarker};
 use twilight_model::user::User;
 use crate::Application;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InteractionContext {
     pub options: HashMap<String, CommandOptionValue>,
     pub command_vec: Vec<String>,
@@ -30,6 +31,18 @@ macro_rules! check_type {
             _ => None
         }
     }
+}
+
+macro_rules! ok_or_skip {
+    ($value: expr) => {
+        if let Some(value) = $value { value.clone() } else { continue }
+    };
+}
+
+macro_rules! ok_or_break {
+    ($value: expr) => {
+        if let Some(value) = $value { value.clone() } else { break }
+    };
 }
 
 impl InteractionContext {
@@ -83,14 +96,14 @@ impl InteractionContext {
         let mut options = HashMap::new();
 
         for i in 0..application_component.options.len() {
-            let value = if let Some(value) = id_vec.get(i + 3) { value } else { break };
+            let value = ok_or_break!(id_vec.get(i + 3));
             let (key, kind) = application_component.options[i].clone();
             let value = convert_value_to_option(value.to_string(), kind)?;
             options.insert(key, value);
         }
 
         for i in 0..application_component.values.len() {
-            let value = if let Some(value) = interaction.data.values.get(i) { value.clone() } else { break };
+            let value = ok_or_break!(interaction.data.values.get(i));
             let (key, kind) = application_component.values[i].clone();
             let value = convert_value_to_option(value.to_string(), kind)?;
             options.insert(key, value);
@@ -114,6 +127,58 @@ impl InteractionContext {
             options,
             command_vec: vec![name.clone()],
             command_text: name,
+            custom_id: Some(interaction.data.custom_id),
+            member: interaction.member,
+            user: Some(user),
+            resolved: CommandInteractionDataResolved {
+                attachments: HashMap::new(),
+                channels: HashMap::new(),
+                members: HashMap::new(),
+                messages: HashMap::new(),
+                roles: HashMap::new(),
+                users: HashMap::new()
+            },
+            target_id: None,
+            guild_id: interaction.guild_id
+        })
+    }
+
+    pub async fn from_modal_submit_interaction(interaction: Box<ModalSubmitInteraction>, application: Application) -> Result<Self, String> {
+
+        let id_vec = interaction.data.custom_id.split(":").collect::<Vec<&str>>();
+        let name = id_vec.get(0).ok_or("".to_string())?.to_string();
+
+        let modal = application.find_modal(name).await.ok_or("".to_string())?;
+
+        let mut options = HashMap::new();
+
+        for i in 0..modal.options.len() {
+            let value = ok_or_break!(id_vec.get(i + 2));
+            let (key, kind) = modal.options[i].clone();
+            let value = convert_value_to_option(value.to_string(), kind)?;
+            options.insert(key, value);
+        }
+
+        for action_row in interaction.data.components {
+            for text_input in action_row.components {
+                let kind = ok_or_skip!(modal.inputs.get(text_input.custom_id.as_str()));
+                let value = convert_value_to_option(text_input.value, kind)?;
+                options.insert(text_input.custom_id, value);
+            }
+        }
+
+        let user = match interaction.member.clone() {
+            Some(value) => match value.user {
+                Some(user) => Some(user),
+                None => interaction.user
+            }
+            None => interaction.user
+        }.ok_or("Cannot get information about executor".to_string())?;
+
+        Ok(Self {
+            options,
+            command_vec: vec![modal.command.clone()],
+            command_text: modal.command,
             custom_id: Some(interaction.data.custom_id),
             member: interaction.member,
             user: Some(user),
