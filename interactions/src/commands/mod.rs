@@ -1,6 +1,7 @@
 pub mod top;
 pub mod case;
 pub mod context;
+pub mod moderation;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -58,7 +59,7 @@ pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> Vec<Strin
     if slash_command_data.options.len() != 0 {
         handle_value(
             vec![slash_command_data.name],
-            slash_command_data.options[0].name.to_owned(),
+            slash_command_data.options[0].name.to_lowercase(),
             slash_command_data.options[0].value.to_owned(),
         )
     } else {
@@ -69,11 +70,11 @@ pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> Vec<Strin
 fn handle_value(mut before: Vec<String>, name: String, slash_command_value: CommandOptionValue) -> Vec<String> {
     match slash_command_value {
         SubCommandGroup(value) => handle_value(
-            { before.push(name); before },
+            { before.push(name.to_lowercase()); before },
             value[0].name.to_owned(),
             value[0].value.to_owned(),
         ),
-        SubCommand(_) => { before.push(name); before },
+        SubCommand(_) => { before.push(name.to_lowercase()); before },
         _ => before,
     }
 }
