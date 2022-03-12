@@ -24,6 +24,7 @@ async fn main() {
     let redis = RedisConnection::connect(redis_url).unwrap();
 
     let scam_domains = ScamLinks::new().await.expect("Cannot load scam links manager");
+    scam_domains.connect();
 
     let discord_token =
         std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
@@ -41,6 +42,7 @@ async fn main() {
             mongodb.clone(),
             redis.clone(),
             discord_http.clone(),
+            scam_domains.clone()
         ));
     }
 }
