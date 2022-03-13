@@ -1,18 +1,21 @@
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_http::request::AuditLogReason;
+use twilight_model::channel::embed::{Embed, EmbedAuthor};
 use twilight_model::gateway::payload::incoming::MessageCreate;
-use database::models::config::{Action, AutoModerator};
+use twilight_model::id::Id;
+use twilight_model::id::marker::UserMarker;
+use twilight_model::util::ImageHash;
+use database::models::config::automod::checks::Checks;
+use database::models::config::automod::filters::Filters;
+use database::models::config::moderation::Moderation;
 use database::mongodb::MongoDBConnection;
+use crate::{ok_or_skip, ScamLinks};
 
-async fn execute_action(discord_http: Arc<Client>, action: Action, message: Box<MessageCreate>, reason: &str) -> Result<(), ()> {
-    if action.delete_message {
-        discord_http.delete_message(message.channel_id, message.id).reason(reason).map_err(|_| ())?.exec().await;
-    };
-    Ok(())
-}
+pub async fn run(message: Box<MessageCreate>, mongodb: MongoDBConnection, discord_http: Arc<Client>, scam_domains: ScamLinks) -> Result<(), ()> {
 
-pub async fn run(message: Box<MessageCreate>, mongodb: MongoDBConnection, discord_http: Arc<Client>) -> Result<(), ()> {
+    let invites = regex::Regex::new(r"(?i)(discord.gg|discordapp.com/invite|discord.com/invite)(?:/#)?/([a-zA-Z0-9-]+)").map_err(|_| ())?;
+    let domains = regex::Regex::new(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]").map_err(|_| ())?;
 
     let guild_id = message.guild_id.ok_or(())?;
     let guild_config = mongodb.get_config(guild_id).await.map_err(|_| ())?;
@@ -21,48 +24,31 @@ pub async fn run(message: Box<MessageCreate>, mongodb: MongoDBConnection, discor
         return Ok(())
     }
 
-    for automod_config in guild_config.moderation.automod {
-        match automod_config {
-            AutoModerator::MessageLength(config) => {
+    let message_content = message.content.to_lowercase();
 
-                let enters = message.content.lines().count();
-                let split = message.content.len() / usize::from(config.line_len);
-                let lines = enters + split;
+    for automod in guild_config.moderation.automod {
+        for filter in automod.filters {
+            let is_filtred = match filter {
+                Filters::Attachments(config) => {
+                    let message_attachments_count = message.attachments.len();
+                    (if let Some(min) = config.min {
+                        (min as usize) > message_attachments_count
+                    } else { false }) || (if let Some(max) = config.max {
+                        (max as usize) < message_attachments_count
+                    } else { false })
+                },
+                Filters::MessageLength(config) => {
+                    let message_content_len = message.content.len();
+                    (if let Some(min) = config.min {
+                        (min as usize) > message_content_len
+                    } else { false }) || (if let Some(max) = config.max {
+                        (max as usize) < message_content_len
+                    } else { false })
+                },
+                Filters::Stickers => { message.sticker_items.len() > 0 }
+            };
 
-                if lines < usize::from(config.max_lines) { continue }
-
-                execute_action(
-                    discord_http.clone(),
-                    guild_config.moderation.automod_actions.get(config.first_action.as_str()).ok_or(())?.clone(),
-                    message.clone(),
-                    "Sending too long messages"
-                ).await?;
-
-                return Ok(())
-
-            }
-            AutoModerator::AntiCapsLock(config) => {
-
-                if usize::from(config.min_msg_len) < message.content.len() || usize::from(config.max_msg_len) < message.content.len() {
-                    continue
-                }
-
-                let uppercase = message.content.chars().filter(|c| char::is_uppercase(c.clone())).count();
-                let uppercase_part = uppercase * 100 / message.content.len();
-
-                if uppercase_part < usize::from(config.max_uppercase) { continue }
-
-                execute_action(
-                    discord_http.clone(),
-                    guild_config.moderation.automod_actions.get(config.first_action.as_str()).ok_or(())?.clone(),
-                    message.clone(),
-                    "Turn off your CAPSLOCK"
-                ).await?;
-
-            },
-            AutoModerator::AntiInvites(config) => {
-
-            }
+            if is_filtred { return Ok(()) }
         }
     }
 
