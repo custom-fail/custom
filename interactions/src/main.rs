@@ -46,6 +46,7 @@ async fn main() {
         command!("case list", "moderation", crate::commands::case::list::run),
 
         command!("warn", "moderation", crate::commands::moderation::warn::run),
+        command!("mod-dash", "moderation", crate::commands::moderation::dash::run),
 
         command!("top week all", "top", crate::commands::top::all::run),
         command!("top day all", "top", crate::commands::top::all::run),
@@ -54,19 +55,74 @@ async fn main() {
 
     ]).await;
 
-    application.add_components(vec![Component {
-        options: vec![("member".to_string(), "User".to_string())],
-        values: vec![("page".to_string(), "Integer".to_string())],
-        command: "case list".to_string(),
-        id: "cl".to_string()
-    }]).await;
+    application.add_components(vec![
+        // page switching in case list command
+        Component {
+            options: vec![("member".to_string(), "User".to_string())],
+            values: vec![("page".to_string(), "Integer".to_string())],
+            command: "case list".to_string(),
+            id: "cl".to_string()
+        },
+        // mod panel
+        Component {
+            options: vec![("action".to_string(), "String".to_string())],
+            values: vec![],
+            command: "mod-dash".to_string(),
+            id: "mod-panel".to_string()
+        }
+    ]).await;
 
     application.add_modals(vec![
+        // context menu moderation commands
         Modal {
             options: vec![("member".to_string(), "User".to_string())],
             inputs: HashMap::from([("reason".to_string(), "String".to_string())]),
             command: "warn".to_string(),
             id: "warn".to_string()
+        },
+        Modal {
+            options: vec![("member".to_string(), "User".to_string())],
+            inputs: HashMap::from([("reason".to_string(), "String".to_string())]),
+            command: "kick".to_string(),
+            id: "kick".to_string()
+        },
+        // mod panel
+        Modal {
+            options: vec![],
+            inputs: HashMap::from([
+                ("member".to_string(), "User".to_string()),
+                ("reason".to_string(), "String".to_string())
+            ]),
+            command: "kick".to_string(),
+            id: "kick-d".to_string()
+        },
+        Modal {
+            options: vec![],
+            inputs: HashMap::from([
+                ("member".to_string(), "User".to_string()),
+                ("reason".to_string(), "String".to_string())
+            ]),
+            command: "warn".to_string(),
+            id: "warn-d".to_string()
+        },
+        Modal {
+            options: vec![],
+            inputs: HashMap::from([
+                ("member".to_string(), "User".to_string()),
+                ("duration".to_string(), "String".to_string()),
+                ("reason".to_string(), "String".to_string())
+            ]),
+            command: "mute".to_string(),
+            id: "mute-d".to_string()
+        },
+        Modal {
+            options: vec![],
+            inputs: HashMap::from([
+                ("member".to_string(), "User".to_string()),
+                ("reason".to_string(), "String".to_string())
+            ]),
+            command: "ban".to_string(),
+            id: "ban-d".to_string()
         }
     ]).await;
 
