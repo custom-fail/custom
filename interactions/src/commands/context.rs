@@ -8,6 +8,7 @@ use twilight_model::guild::PartialMember;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GenericMarker, GuildMarker};
 use twilight_model::user::User;
+use utils::{ok_or_break, ok_or_skip};
 use crate::Application;
 
 #[derive(Debug, Clone)]
@@ -21,28 +22,6 @@ pub struct InteractionContext {
     pub resolved: CommandInteractionDataResolved,
     pub target_id: Option<Id<GenericMarker>>,
     pub guild_id: Option<Id<GuildMarker>>
-}
-
-#[macro_export]
-macro_rules! check_type {
-    ($value: expr, $type: path) => {
-        match $value {
-            $type(v) => Some(v),
-            _ => None
-        }
-    }
-}
-
-macro_rules! ok_or_skip {
-    ($value: expr) => {
-        if let Some(value) = $value { value.clone() } else { continue }
-    };
-}
-
-macro_rules! ok_or_break {
-    ($value: expr) => {
-        if let Some(value) = $value { value.clone() } else { break }
-    };
 }
 
 impl InteractionContext {
@@ -96,14 +75,14 @@ impl InteractionContext {
         let mut options = HashMap::new();
 
         for i in 0..application_component.options.len() {
-            let value = ok_or_break!(id_vec.get(i + 3));
+            let value = ok_or_break!(id_vec.get(i + 3), Some);
             let (key, kind) = application_component.options[i].clone();
             let value = convert_value_to_option(value.to_string(), kind)?;
             options.insert(key, value);
         }
 
         for i in 0..application_component.values.len() {
-            let value = ok_or_break!(interaction.data.values.get(i));
+            let value = ok_or_break!(interaction.data.values.get(i), Some);
             let (key, kind) = application_component.values[i].clone();
             let value = convert_value_to_option(value.to_string(), kind)?;
             options.insert(key, value);
@@ -153,7 +132,7 @@ impl InteractionContext {
         let mut options = HashMap::new();
 
         for i in 0..modal.options.len() {
-            let value = ok_or_break!(id_vec.get(i + 2));
+            let value = ok_or_break!(id_vec.get(i + 2), Some);
             let (key, kind) = modal.options[i].clone();
             let value = convert_value_to_option(value.to_string(), kind)?;
             options.insert(key, value);
@@ -161,7 +140,7 @@ impl InteractionContext {
 
         for action_row in interaction.data.components {
             for text_input in action_row.components {
-                let kind = ok_or_skip!(modal.inputs.get(text_input.custom_id.as_str()));
+                let kind = ok_or_skip!(modal.inputs.get(text_input.custom_id.as_str()), Some);
                 let value = convert_value_to_option(text_input.value, kind)?;
                 options.insert(text_input.custom_id, value);
             }

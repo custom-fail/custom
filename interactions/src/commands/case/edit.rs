@@ -7,7 +7,7 @@ use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use twilight_model::http::interaction::InteractionResponseData;
 use database::models::config::GuildConfig;
-use crate::check_type;
+use utils::check_type;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 

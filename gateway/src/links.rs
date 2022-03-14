@@ -22,24 +22,6 @@ struct UpdateMessage {
     domains: Vec<String>
 }
 
-#[macro_export]
-macro_rules! ok_or_stop {
-    ($value: expr, $type: path) => {
-        if let $type(value) = $value {
-            value
-        } else { return }
-    };
-}
-
-#[macro_export]
-macro_rules! ok_or_skip {
-    ($value: expr, $type: path) => {
-        if let $type(value) = $value {
-            value
-        } else { continue }
-    };
-}
-
 impl ScamLinks {
     pub async fn new() -> Result<Self, String> {
 

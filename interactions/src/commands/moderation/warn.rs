@@ -8,8 +8,9 @@ use database::redis::RedisConnection;
 use mongodb::bson::DateTime;
 use twilight_model::channel::message::MessageFlags;
 use database::models::config::GuildConfig;
+use utils::check_type;
 use crate::commands::ResponseData;
-use crate::{check_type, InteractionContext};
+use crate::InteractionContext;
 use crate::utilities::modal::{ModalBuilder, RepetitiveTextInput};
 
 pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, config: GuildConfig) -> ResponseData {

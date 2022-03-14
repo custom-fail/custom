@@ -7,7 +7,7 @@ use twilight_model::channel::message::MessageFlags;
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use crate::check_type;
+use utils::check_type;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 
