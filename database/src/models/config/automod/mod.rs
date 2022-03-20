@@ -26,5 +26,6 @@ pub struct AntiInvites {
 pub struct AutoModeratorV2 {
     pub filters: Vec<Filters>,
     pub checks: Vec<Checks>,
-    pub actions: Vec<Actions>
+    pub actions: Vec<Actions>,
+    pub reason: String
 }
