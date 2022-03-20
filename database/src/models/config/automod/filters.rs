@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "type")]
 pub enum Filters {
     MessageLength(MessageLength),
     Attachments(Attachments),
@@ -18,4 +19,3 @@ pub struct Attachments {
     pub min: Option<u8>,
     pub max: Option<u8>
 }
-
