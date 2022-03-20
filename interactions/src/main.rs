@@ -45,7 +45,11 @@ async fn main() {
         command!("case last", "moderation", crate::commands::case::last::run),
         command!("case list", "moderation", crate::commands::case::list::run),
 
+        command!("kick", "moderation", crate::commands::moderation::kick::run),
+        command!("mute", "moderation", crate::commands::moderation::mute::run),
         command!("warn", "moderation", crate::commands::moderation::warn::run),
+        command!("ban", "moderation", crate::commands::moderation::ban::run),
+
         command!("mod-dash", "moderation", crate::commands::moderation::dash::run),
 
         command!("top week all", "top", crate::commands::top::all::run),

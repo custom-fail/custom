@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use reqwest::Url;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::HeaderValue;
+use utils::ok_or_return;
 
 const ALL_DOMAINS_ENDPOINT: &str = "https://phish.sinking.yachts/v2/all";
 const DOMAINS_FEED_ENDPOINT: &str = "wss://phish.sinking.yachts/feed";
@@ -53,9 +54,9 @@ impl ScamLinks {
             println!("Connected to phish.sinking.yachts");
 
             read.for_each(|message| async {
-                let msg = ok_or_stop!(message, Ok).into_data();
-                let test = ok_or_stop!(String::from_utf8(msg), Ok);
-                let request = ok_or_stop!(serde_json::from_str::<UpdateMessage>(test.as_str()), Ok);
+                let msg = ok_or_return!(message, Ok).into_data();
+                let test = ok_or_return!(String::from_utf8(msg), Ok);
+                let request = ok_or_return!(serde_json::from_str::<UpdateMessage>(test.as_str()), Ok);
                 if request.action == "add".to_string() {
                     for domain in request.domains {
                         discord_scam_domains.lock().await.push(domain);

@@ -26,6 +26,24 @@ macro_rules! ok_or_break {
 }
 
 #[macro_export]
+macro_rules! ok_or_break_without_clone {
+    ($value: expr, $type: path) => {
+        if let $type(value) = $value {
+            value
+        } else { break }
+    };
+}
+
+#[macro_export]
+macro_rules! ok_or_skip_without_clone {
+    ($value: expr, $type: path) => {
+        if let $type(value) = $value {
+            value
+        } else { continue }
+    };
+}
+
+#[macro_export]
 macro_rules! check_type {
     ($value: expr, $type: path) => {
         match $value {

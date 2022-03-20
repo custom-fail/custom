@@ -4,6 +4,7 @@ use twilight_model::http::interaction::InteractionResponseData;
 
 pub enum RepetitiveTextInput {
     Reason,
+    Member,
     Duration
 }
 
@@ -49,6 +50,18 @@ impl ModalBuilder {
                 self.add_custom_component(TextInput {
                     custom_id: "duration".to_string(),
                     label: "Duration".to_string(),
+                    max_length: Some(21),
+                    min_length: None,
+                    placeholder: None,
+                    required: Some(true),
+                    style: TextInputStyle::Short,
+                    value: None
+                })
+            },
+            RepetitiveTextInput::Member => {
+                self.add_custom_component(TextInput {
+                    custom_id: "member".to_string(),
+                    label: "Member ID".to_string(),
                     max_length: Some(21),
                     min_length: None,
                     placeholder: None,
