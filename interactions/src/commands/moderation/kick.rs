@@ -32,10 +32,11 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         CommandOptionValue::User
     ).ok_or("Member id type not match".to_string())?.clone();
 
-    let reason = check_type!(
-        interaction.options.get("reason").ok_or("There is no reason".to_string())?,
-       CommandOptionValue::String
-    ).cloned();
+    let reason = match interaction.options.get("reason") {
+        Some(CommandOptionValue::String(value)) => Some(value),
+        Some(_) => None,
+        None => None
+    }.cloned();
 
     let index = mongodb.get_next_case_index(guild_id).await? as u16;
 
