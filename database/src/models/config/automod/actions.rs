@@ -7,7 +7,12 @@ pub enum Actions {
     IncreaseBucket,
     DeleteMessage,
     SendLogs,
-    Timeout,
+    Timeout(Timeout),
     Kick,
     Ban
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Timeout {
+    pub duration: i64
 }
