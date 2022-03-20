@@ -6,7 +6,7 @@ use twilight_model::application::interaction::{ApplicationCommand, MessageCompon
 use twilight_model::application::interaction::modal::ModalSubmitInteraction;
 use twilight_model::guild::PartialMember;
 use twilight_model::id::Id;
-use twilight_model::id::marker::{GenericMarker, GuildMarker};
+use twilight_model::id::marker::{ChannelMarker, GenericMarker, GuildMarker};
 use twilight_model::user::User;
 use utils::{ok_or_break, ok_or_skip};
 use crate::Application;
@@ -17,6 +17,7 @@ pub struct InteractionContext {
     pub command_vec: Vec<String>,
     pub command_text: String,
     pub custom_id: Option<String>,
+    pub channel_id: Id<ChannelMarker>,
     pub member: Option<PartialMember>,
     pub user: Option<User>,
     pub resolved: CommandInteractionDataResolved,
@@ -46,6 +47,7 @@ impl InteractionContext {
             command_vec: subcommands.0,
             command_text: subcommands.1,
             custom_id: None,
+            channel_id: command.channel_id,
             member: command.member.clone(),
             user,
             resolved: command.data.resolved.unwrap_or(CommandInteractionDataResolved {
@@ -107,6 +109,7 @@ impl InteractionContext {
             command_vec: vec![name.clone()],
             command_text: name,
             custom_id: Some(interaction.data.custom_id),
+            channel_id: interaction.channel_id,
             member: interaction.member,
             user: Some(user),
             resolved: CommandInteractionDataResolved {
@@ -159,6 +162,7 @@ impl InteractionContext {
             command_vec: vec![modal.command.clone()],
             command_text: modal.command,
             custom_id: Some(interaction.data.custom_id),
+            channel_id: interaction.channel_id,
             member: interaction.member,
             user: Some(user),
             resolved: CommandInteractionDataResolved {
