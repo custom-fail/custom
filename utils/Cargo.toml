@@ -6,4 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-twilight-model = { git = "https://github.com/oceaann/twilight.git", branch = "oceaann/util-until" }
+twilight-http = { git = "https://github.com/twilight-rs/twilight" }
+twilight-model = { git = "https://github.com/twilight-rs/twilight" }
+mongodb = "2.1.0"
+redis = "0.21.5"
+twilight-validate = { git = "https://github.com/twilight-rs/twilight" }
