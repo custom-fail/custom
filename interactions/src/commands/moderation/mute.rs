@@ -13,9 +13,9 @@ use twilight_model::channel::message::MessageFlags;
 use twilight_model::datetime::Timestamp;
 use database::models::case::Case;
 use utils::check_type;
+use utils::modals::{ModalBuilder, RepetitiveTextInput};
 use crate::commands::ResponseData;
 use crate::InteractionContext;
-use crate::utilities::modal::{ModalBuilder, RepetitiveTextInput};
 
 pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, config: GuildConfig) -> ResponseData {
 

@@ -9,9 +9,9 @@ use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use utils::check_type;
+use utils::modals::{ModalBuilder, RepetitiveTextInput};
 use crate::commands::ResponseData;
 use crate::InteractionContext;
-use crate::utilities::modal::{ModalBuilder, RepetitiveTextInput};
 
 pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, config : GuildConfig) -> ResponseData {
 
