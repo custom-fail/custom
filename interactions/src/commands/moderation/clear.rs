@@ -10,6 +10,7 @@ use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use utils::check_type;
+use utils::errors::Error;
 use crate::commands::ResponseData;
 use crate::InteractionContext;
 
@@ -19,7 +20,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
     let amount = check_type!(
         interaction.options.get("amount").ok_or("There is no amount value".to_string())?,
         CommandOptionValue::Integer
-    ).ok_or("".to_string())?;
+    ).ok_or("")?;
 
     let member = match interaction.options.get("member") {
         Some(member) => check_type!(member, CommandOptionValue::User),
@@ -32,7 +33,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
     }.cloned();
 
     if amount < &2 || amount > &600 {
-        return Err("You can clear up to 600 messages".to_string())
+        return Err(Error::from("You can clear up to 600 messages"))
     }
 
     let loops = if amount % 100 != 0 { (amount / 100) + 1 } else { amount / 50 };
@@ -44,15 +45,15 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
 
         let mut messages = if let Some(last) = last {
             discord_http.channel_messages(channel_id)
-                .limit(amount as u16).map_err(|err| err.to_string())?
+                .limit(amount as u16).map_err(Error::from)?
                 .after(last)
-                .exec().await.map_err(|err| err.to_string())?
-                .model().await.map_err(|err| err.to_string())?
+                .exec().await.map_err(Error::from)?
+                .model().await.map_err(Error::from)?
         } else {
             discord_http.channel_messages(channel_id)
-                .limit(amount as u16).map_err(|err| err.to_string())?
-                .exec().await.map_err(|err| err.to_string())?
-                .model().await.map_err(|err| err.to_string())?
+                .limit(amount as u16).map_err(Error::from)?
+                .exec().await.map_err(Error::from)?
+                .model().await.map_err(Error::from)?
         };
 
         last = messages.last().map(|msg| msg.id);
@@ -82,7 +83,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
         if messages.len() < 1 { continue }
 
         discord_http.delete_messages(channel_id, &messages)
-            .exec().await.map_err(|err| err.to_string())?;
+            .exec().await.map_err(Error::from)?;
 
     }
 

@@ -8,36 +8,37 @@ use database::redis::RedisConnection;
 use twilight_model::http::interaction::InteractionResponseData;
 use database::models::config::GuildConfig;
 use utils::check_type;
+use utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 
 pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
 
-    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
+    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
 
     let case_id = check_type!(
-        interaction.options.get("id").ok_or("There is no case id".to_string())?,
+        interaction.options.get("id").ok_or("There is no case id")?,
         CommandOptionValue::Integer
-    ).ok_or("Case id type not match".to_string())?.clone();
+    ).ok_or("Case id type not match")?.clone();
 
     let mut case = mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, None
-    ).await.map_err(|err| format!("{err}"))?.ok_or("There is no case with selected id".to_string())?;
+    ).await.map_err(Error::from)?.ok_or("There is no case with selected id")?;
 
-    let member_id = interaction.user.ok_or("Cannot get user data".to_string())?.id;
+    let member_id = interaction.user.ok_or("Cannot get user data")?.id;
 
     if case.moderator_id != member_id {
-        return Err("You can't edit cases created by someone else".to_string())
+        return Err(Error::from("You can't edit cases created by someone else"))
     }
 
     let reason = check_type!(
-        interaction.options.get("reason").ok_or("There is no reason".to_string())?,
+        interaction.options.get("reason").ok_or("There is no reason")?,
        CommandOptionValue::String
-    ).ok_or("Reason type not match".to_string())?.clone();
+    ).ok_or("Reason type not match")?.clone();
 
     mongodb.cases.update_one(
         doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, doc! { "$set": {"reason": reason.clone() } }, None
-    ).await.map_err(|err| format!("{err}"))?;
+    ).await.map_err(Error::from)?;
 
     case.reason = Some(reason);
 

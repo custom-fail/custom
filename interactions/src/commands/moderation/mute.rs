@@ -13,6 +13,7 @@ use twilight_model::channel::message::MessageFlags;
 use twilight_model::datetime::Timestamp;
 use database::models::case::Case;
 use utils::check_type;
+use utils::errors::Error;
 use utils::modals::{ModalBuilder, RepetitiveTextInput};
 use crate::commands::ResponseData;
 use crate::InteractionContext;
@@ -29,13 +30,13 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         ));
     }
 
-    let user_id = interaction.user.ok_or("Cannot find executor".to_string())?.id;
-    let guild_id = interaction.guild_id.ok_or("This is guild only".to_string())?;
+    let user_id = interaction.user.ok_or("Cannot find executor")?.id;
+    let guild_id = interaction.guild_id.ok_or("This is guild only")?;
 
     let member_id = check_type!(
-        interaction.options.get("member").ok_or("There is no member id".to_string())?,
+        interaction.options.get("member").ok_or("There is no member id")?,
         CommandOptionValue::User
-    ).ok_or("Member id type not match".to_string())?.clone();
+    ).ok_or("Member id type not match")?.clone();
 
     let reason = match interaction.options.get("reason") {
         Some(CommandOptionValue::String(value)) => Some(value),
@@ -44,11 +45,12 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
     }.cloned();
 
     let duration = check_type!(
-        interaction.options.get("duration").ok_or("There is no reason".to_string())?,
+        interaction.options.get("duration").ok_or("There is no reason")?,
        CommandOptionValue::String
-    ).ok_or("Duration type not match".to_string())?.clone();
+    ).ok_or("Duration type not match")?.clone();
 
-    let duration = Duration::from_str(duration.as_str()).map_err(|_| "Invalid duration string (try 3m, 10s, 2d)".to_string())?;
+    let duration = Duration::from_str(duration.as_str())
+        .map_err(|_| "Invalid duration string (try 3m, 10s, 2d)")?;
     let end_at = Utc::now().timestamp() + (duration.as_secs() as i64);
 
     let timestamp = Timestamp::from_secs(end_at).ok();
@@ -56,9 +58,9 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
     discord_http
         .update_guild_member(guild_id, member_id)
         .communication_disabled_until(timestamp)
-        .map_err(|err| err.to_string())?
-        .exec().await.map_err(|err| err.to_string())?
-        .model().await.map_err(|err| err.to_string())?;
+        .map_err(Error::from)?
+        .exec().await.map_err(Error::from)?
+        .model().await.map_err(Error::from)?;
 
     let index = mongodb.get_next_case_index(guild_id).await? as u16;
 

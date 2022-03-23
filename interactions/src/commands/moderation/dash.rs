@@ -6,6 +6,7 @@ use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use utils::check_type;
+use utils::errors::Error;
 use utils::modals::{ModalBuilder, RepetitiveTextInput};
 use crate::commands::ResponseData;
 use crate::InteractionContext;
@@ -13,7 +14,7 @@ use crate::InteractionContext;
 pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: RedisConnection, _: Arc<Client>, _: GuildConfig) -> ResponseData {
 
     let action = check_type!(
-        interaction.options.get("action").ok_or("Unknown action".to_string())?,
+        interaction.options.get("action").ok_or(Error::from("Unknown action"))?,
         CommandOptionValue::String
     ).ok_or("Unknown action".to_string())?.clone();
 
@@ -34,7 +35,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
         ModalBuilder::new(format!("a:ban-d"), "Ban".to_string())
             .add_repetitive_component(RepetitiveTextInput::Member)
             .add_repetitive_component(RepetitiveTextInput::Reason)
-    } else { return Err("Unknown action".to_string()) };
+    } else { return Err(Error::from("Unknown action")) };
 
     Ok((
         modal.to_interaction_response_data(),

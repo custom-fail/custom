@@ -1,11 +1,11 @@
 use std::sync::Arc;
 use twilight_model::application::interaction::{ApplicationCommand, Interaction, MessageComponentInteraction};
-use twilight_model::channel::message::MessageFlags;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use twilight_http::Client;
 use twilight_model::application::interaction::modal::ModalSubmitInteraction;
-use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
+use twilight_model::http::interaction::{InteractionResponse, InteractionResponseType};
+use utils::errors::Error;
 use crate::Application;
 use crate::commands::context::InteractionContext;
 use crate::commands::{parse_slash_command_to_text, ResponseData};
@@ -29,7 +29,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
                 Interaction::ModalSubmit(interaction) => {
                     modal_handler(interaction, application, mongodb, redis, discord_http).await
                 }
-                _ => Err("Not supported interaction type".to_string())
+                _ => Err(Error::from("Not supported interaction type"))
             };
 
             match response {
@@ -37,21 +37,7 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
                     kind: response_type.unwrap_or(response_type_default),
                     data: Some(response)
                 },
-                Err(error) => InteractionResponse {
-                    kind: InteractionResponseType::ChannelMessageWithSource,
-                    data: Some(InteractionResponseData {
-                        allowed_mentions: None,
-                        attachments: None,
-                        choices: None,
-                        components: None,
-                        content: Some(error),
-                        custom_id: None,
-                        embeds: None,
-                        flags: Some(MessageFlags::EPHEMERAL),
-                        title: None,
-                        tts: None
-                    })
-                }
+                Err(error) => error.to_interaction_response()
             }
         }
     }
@@ -60,10 +46,11 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
 async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
 
     let context = InteractionContext::from_message_component_interaction(interaction, application.clone()).await?;
-    let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command")?;
+    let command = application.find_command(context.command_text.clone()).await.ok_or(Error::from("Cannot find command"))?;
 
-    let guild_id = context.guild_id.ok_or("Cannot find guild_id".to_string())?;
-    let config = mongodb.get_config(guild_id).await.map_err(|_| "Cannot find guild config".to_string())?;
+    let guild_id = context.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
+    let config = mongodb.get_config(guild_id)
+        .await.map_err(Error::from)?.ok_or(Error::from("Cannot find guild config"))?;
 
     (command.run)(context, mongodb, redis, discord_http, config).await
 
@@ -73,14 +60,15 @@ async fn commands_handler(interaction: Box<ApplicationCommand>, application: App
 
     let command_vec = parse_slash_command_to_text(interaction.data.clone());
     let command_text = command_vec.clone().join(" ");
-    let command = application.find_command(command_text.clone()).await.ok_or("Cannot find command")?;
+    let command = application.find_command(command_text.clone()).await.ok_or(Error::from("Cannot find command"))?;
 
-    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
-    let config = mongodb.get_config(guild_id).await.map_err(|_| "Cannot find guild config".to_string())?;
+    let guild_id = interaction.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
+    let config = mongodb.get_config(guild_id)
+        .await.map_err(Error::from)?.ok_or(Error::from("Cannot find guild config"))?;
 
     let context = InteractionContext::from_command_data(interaction.clone(), (command_vec.clone(), command_text.clone()));
 
-    config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
+    config.enabled.get(command.module.as_str()).ok_or(Error::from("This module is disabled"))?;
 
     (command.run)(context, mongodb, redis, discord_http, config).await
 
@@ -91,10 +79,11 @@ async fn modal_handler(interaction: Box<ModalSubmitInteraction>, application: Ap
     let context = InteractionContext::from_modal_submit_interaction(interaction, application.clone()).await?;
     let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command".to_string())?;
 
-    let guild_id = context.guild_id.ok_or("Cannot find guild_id".to_string())?;
-    let config = mongodb.get_config(guild_id).await?;
+    let guild_id = context.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
+    let config = mongodb.get_config(guild_id)
+        .await.map_err(Error::from)?.ok_or(Error::from("Cannot find guild config"))?;
 
-    config.enabled.get(command.module.as_str()).ok_or("This module is disabled".to_string())?;
+    config.enabled.get(command.module.as_str()).ok_or(Error::from("This module is disabled"))?;
 
     (command.run)(context, mongodb, redis, discord_http, config).await
 

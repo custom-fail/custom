@@ -13,9 +13,10 @@ use twilight_model::http::interaction::{InteractionResponseData, InteractionResp
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
+use utils::errors::Error;
 use crate::commands::context::InteractionContext;
 
-pub type ResponseData = Result<(InteractionResponseData, Option<InteractionResponseType>), String>;
+pub type ResponseData = Result<(InteractionResponseData, Option<InteractionResponseType>), Error>;
 pub type Response = Pin<Box<dyn Future<Output = ResponseData> + Send + 'static>>;
 type Callback = fn(InteractionContext, MongoDBConnection, RedisConnection, Arc<Client>, GuildConfig) -> Response;
 

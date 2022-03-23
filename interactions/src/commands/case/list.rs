@@ -13,6 +13,7 @@ use database::models::case::Case;
 use database::models::config::GuildConfig;
 use utils::check_type;
 use utils::embeds::EmbedBuilder;
+use utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 
@@ -24,19 +25,19 @@ pub async fn run(
     _: GuildConfig
 ) -> ResponseData {
     let user_id = interaction.user.ok_or("There is no user information")?.id;
-    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
+    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
 
     let member_id = check_type!(
-        interaction.options.get("member").ok_or("There is no member id".to_string())?,
+        interaction.options.get("member").ok_or("There is no member id")?,
         CommandOptionValue::User
-    ).ok_or("Member id type not match".to_string())?.clone();
+    ).ok_or("Member id type not match")?.clone();
 
     let page = u64::try_from(
         check_type!(
             interaction.options.get("page").unwrap_or(&CommandOptionValue::Integer(1)),
             CommandOptionValue::Integer
-        ).ok_or("Case id type not match".to_string())?.clone()
-    ).map_err(|_| "Page must be u64".to_string())?;
+        ).ok_or("Case id type not match")?.clone()
+    ).map_err(|_| "Page must be u64")?;
 
     let action_type = match interaction.options.get("type") {
         Some(CommandOptionValue::String(value)) => {
@@ -52,7 +53,7 @@ pub async fn run(
     };
 
     let filter = if let Some(action_type) = action_type {
-        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false, "action": action_type }
+        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false, "action": (action_type as i64) }
     } else {
         doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false }
     };
@@ -62,15 +63,15 @@ pub async fn run(
         FindOptions::builder()
             .limit(6).skip(Some((page - 1) * 6))
             .sort(doc! { "created_at": -1 as i32 }).build()
-    ).await.map_err(|err| format!("{:?}", err))?;
+    ).await.map_err(Error::from)?;
 
     let count = mongodb.cases.count_documents(filter, None)
-        .await.map_err(|err| format!("{err}"))?;
+        .await.map_err(Error::from)?;
 
-    let case_list: Vec<Case> = case_list.try_collect().await.map_err(|err| format!("{err}"))?;
+    let case_list: Vec<Case> = case_list.try_collect().await.map_err(Error::from)?;
 
     if case_list.len() < 1 {
-        return Err("This user has no cases".to_string())
+        return Err(Error::from("This user has no cases"))
     }
 
     let fields = case_list.into_iter().map(|case| case.to_field()).collect();
