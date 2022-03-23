@@ -35,7 +35,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
         EmbedBuilder::new()
             .title(format!("Top {week_or_day} users"))
             .description(leaderboard_string)
-            .to_interaction_response_data(),
+            .to_interaction_response_data(false),
         None
     ))
 

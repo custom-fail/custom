@@ -24,6 +24,8 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         FindOneOptions::builder().sort(doc! { "created_at": (-1 as i32) }).build()
     ).await.map_err(|err| format!("{err}"))?.ok_or("This user has no cases".to_string())?;
 
-    Ok((interaction_response_data_from_embed(case.to_embed(discord_http).await?), None))
+    Ok((interaction_response_data_from_embed(
+        case.to_embed(discord_http).await?, false
+    ), None))
 
 }

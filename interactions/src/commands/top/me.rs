@@ -56,7 +56,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
                 format!("Top of the {week_or_day} for {}#{}", user.name, user.discriminator)
             )
             .description(result)
-            .to_interaction_response_data(),
+            .to_interaction_response_data(false),
         None
     ))
 

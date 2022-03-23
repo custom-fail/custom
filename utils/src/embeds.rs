@@ -1,4 +1,5 @@
 use twilight_model::channel::embed::{Embed, EmbedField};
+use twilight_model::channel::message::MessageFlags;
 use twilight_model::http::interaction::InteractionResponseData;
 
 pub struct EmbedBuilder {
@@ -58,12 +59,12 @@ impl EmbedBuilder {
         }
     }
 
-    pub fn to_interaction_response_data(&self) -> InteractionResponseData {
-        interaction_response_data_from_embed(self.to_embed())
+    pub fn to_interaction_response_data(&self, ephemeral: bool) -> InteractionResponseData {
+        interaction_response_data_from_embed(self.to_embed(), ephemeral)
     }
 }
 
-pub fn interaction_response_data_from_embed(embed: Embed) -> InteractionResponseData {
+pub fn interaction_response_data_from_embed(embed: Embed, ephemeral: bool) -> InteractionResponseData {
     InteractionResponseData {
         allowed_mentions: None,
         attachments: None,
@@ -72,7 +73,7 @@ pub fn interaction_response_data_from_embed(embed: Embed) -> InteractionResponse
         content: None,
         custom_id: None,
         embeds: Some(vec![embed]),
-        flags: None,
+        flags: if ephemeral { Some(MessageFlags::EPHEMERAL) } else { None },
         title: None,
         tts: None
     }

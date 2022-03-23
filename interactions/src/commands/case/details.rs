@@ -22,6 +22,9 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, None
     ).await.map_err(|err| format!("{err}"))?.ok_or("Cannot find case with selected id".to_string())?;
 
-    Ok((interaction_response_data_from_embed(case.to_embed(discord_http).await?), None))
+    Ok((interaction_response_data_from_embed(
+        case.to_embed(discord_http).await?,
+        false
+    ), None))
 
 }
