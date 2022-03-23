@@ -51,6 +51,7 @@ async fn main() {
         command!("ban", "moderation", crate::commands::moderation::ban::run),
 
         command!("mod-dash", "moderation", crate::commands::moderation::dash::run),
+        command!("clear", "moderation", crate::commands::moderation::clear::run),
 
         command!("top week all", "top", crate::commands::top::all::run),
         command!("top day all", "top", crate::commands::top::all::run),
