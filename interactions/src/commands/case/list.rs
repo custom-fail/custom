@@ -39,14 +39,34 @@ pub async fn run(
         ).ok_or("Case id type not match".to_string())?.clone()
     ).map_err(|_| "Page must be u64".to_string())?;
 
+    let action_type = match interaction.options.get("type") {
+        Some(CommandOptionValue::String(value)) => {
+            Some(match value.as_str() {
+                "mutes" => 7,
+                "warns" => 1,
+                "bans" => 4,
+                "kicks" => 6,
+                _ => 0
+            })
+        },
+        _ => None
+    };
+
+    let filter = if let Some(action_type) = action_type {
+        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false, "action": action_type }
+    } else {
+        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false }
+    };
+
     let case_list = mongodb.cases.find(
-        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false },
-        FindOptions::builder().limit(6).skip(Some((page - 1) * 6)).sort(doc! { "created_at": -1 as i32 }).build()
+        filter.clone(),
+        FindOptions::builder()
+            .limit(6).skip(Some((page - 1) * 6))
+            .sort(doc! { "created_at": -1 as i32 }).build()
     ).await.map_err(|err| format!("{:?}", err))?;
 
-    let count = mongodb.cases.count_documents(
-        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false }, None
-    ).await.map_err(|err| format!("{err}"))?;
+    let count = mongodb.cases.count_documents(filter, None)
+        .await.map_err(|err| format!("{err}"))?;
 
     let case_list: Vec<Case> = case_list.try_collect().await.map_err(|err| format!("{err}"))?;
 
