@@ -6,9 +6,9 @@ use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use utils::check_type;
+use utils::embeds::interaction_response_data_from_embed;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
-use crate::utilities::embed::embed_to_response;
 
 pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
 
@@ -22,6 +22,6 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, None
     ).await.map_err(|err| format!("{err}"))?.ok_or("Cannot find case with selected id".to_string())?;
 
-    Ok((embed_to_response(case.to_embed(discord_http).await?), None))
+    Ok((interaction_response_data_from_embed(case.to_embed(discord_http).await?), None))
 
 }

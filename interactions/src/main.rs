@@ -3,7 +3,6 @@ mod authorize;
 mod commands;
 mod interaction;
 mod application;
-mod utilities;
 
 use std::collections::HashMap;
 use std::sync::Arc;

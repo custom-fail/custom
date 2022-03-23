@@ -3,9 +3,9 @@ use twilight_http::Client;
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
+use utils::embeds::EmbedBuilder;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
-use crate::utilities::embed::text_to_response_embed;
 
 pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>, _: GuildConfig) -> ResponseData {
 
@@ -50,9 +50,14 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
     ).map_err(|err| format!("{err}"))?.ok_or("There is no `user_before`")?;
     result = format!("{result}**{user_before}** messages for user before (to you)");
 
-    Ok((text_to_response_embed(
-        format!("Top of the {week_or_day} for {}#{}", user.name, user.discriminator),
-        result
-    ), None))
+    Ok((
+        EmbedBuilder::new()
+            .title(
+                format!("Top of the {week_or_day} for {}#{}", user.name, user.discriminator)
+            )
+            .description(result)
+            .to_interaction_response_data(),
+        None
+    ))
 
 }

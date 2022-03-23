@@ -1,4 +1,3 @@
-use crate::utilities::embed::embed_from_fields;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use mongodb::bson::doc;
@@ -13,6 +12,7 @@ use twilight_model::application::interaction::application_command::CommandOption
 use database::models::case::Case;
 use database::models::config::GuildConfig;
 use utils::check_type;
+use utils::embeds::EmbedBuilder;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 
@@ -23,7 +23,6 @@ pub async fn run(
     _: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
-
     let user_id = interaction.user.ok_or("There is no user information")?.id;
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id".to_string())?;
 
@@ -75,9 +74,9 @@ pub async fn run(
     }
 
     let fields = case_list.into_iter().map(|case| case.to_field()).collect();
-    let embed = embed_from_fields(fields);
+    let embed = EmbedBuilder::new().fields(fields).to_embed();
 
-    let pages  = if count % 6 == 0 { count / 6 } else { count / 6 + 1 };
+    let pages = if count % 6 == 0 { count / 6 } else { count / 6 + 1 };
 
     let mut result = vec![];
     for page in 1..(
