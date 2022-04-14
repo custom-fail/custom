@@ -11,8 +11,9 @@ twilight-model = { git = "https://github.com/twilight-rs/twilight" }
 serde = "1.0.134"
 redis = "0.21.5"
 twilight-http = { git = "https://github.com/twilight-rs/twilight" }
-duration-string = "0.0.6"
+humantime = "2.1.0"
 utils = { path = "../utils" }
+dashmap = "5.2.0"
 
 [dependencies.mongodb]
 version = "2.1.0"

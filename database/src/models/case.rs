@@ -1,6 +1,5 @@
 use std::sync::Arc;
-use std::time::Duration;
-use duration_string::DurationString;
+use std::time::Duration as StdDuration;
 use mongodb::bson::DateTime;
 use twilight_model::datetime::Timestamp;
 use serde::{Serialize, Deserialize};
@@ -9,6 +8,7 @@ use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedField, EmbedFooter
 use twilight_model::guild::Member;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
+use humantime::format_duration;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Case {
@@ -77,16 +77,16 @@ impl Case {
             self.member_id,
             action_type_to_string(self.action),
             if let Some(duration) = self.duration {
-                format!("\n**Duration:** {}", DurationString::from(
-                    Duration::from_secs(duration as u64)
-                ).to_string())
+                format!("\n**Duration:** {}",
+                    format_duration(StdDuration::from_secs(duration as u64))
+                )
             } else { "".to_string() },
             match &self.reason {
                 Some(reason) => reason.clone().clone(),
                 None => "None".to_string()
             }
         );
-        
+
         let footer = EmbedFooter {
             icon_url: None,
             proxy_icon_url: None,
