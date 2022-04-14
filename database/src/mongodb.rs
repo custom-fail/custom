@@ -9,6 +9,7 @@ use utils::errors::Error;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 
+#[derive(Clone)]
 pub struct MongoDBConnection {
     pub client: Client,
     pub database: Database,
@@ -87,16 +88,4 @@ impl MongoDBConnection {
         ).await.map_err(Error::from)? + 1)
     }
 
-}
-
-impl Clone for MongoDBConnection {
-    fn clone(&self) -> Self {
-        Self {
-            client: self.client.clone(),
-            database: self.database.clone(),
-            configs: self.configs.clone_with_type(),
-            configs_cache: self.configs_cache.clone(),
-            cases: self.cases.clone_with_type()
-        }
-    }
 }
