@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use std::sync::Arc;
+use dashmap::DashMap;
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::doc;
-use tokio::sync::Mutex;
 use twilight_model::channel::embed::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
@@ -15,7 +14,7 @@ pub struct MongoDBConnection {
     pub database: Database,
     pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
-    pub configs_cache: Arc<Mutex<HashMap<Id<GuildMarker>, GuildConfig>>>
+    pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>
 }
 
 impl MongoDBConnection {
@@ -28,7 +27,7 @@ impl MongoDBConnection {
         let cases = db.collection::<Case>("cases");
 
         Ok(Self {
-            configs_cache: Arc::new(Mutex::new(HashMap::new())),
+            configs_cache: Arc::new(DashMap::new()),
             database: db,
             cases,
             client,
@@ -38,21 +37,21 @@ impl MongoDBConnection {
 
     pub async fn get_config(&self, guild_id: Id<GuildMarker>) -> Result<Option<GuildConfig>, mongodb::error::Error> {
 
-        let mut configs_cache = self.configs_cache.lock().await;
-        let config = configs_cache.get(&guild_id);
+        match self.configs_cache.get(&guild_id){
+            Some(config) => {
+                return Ok(Some(config.to_owned()))
+            },
+            None => {
 
-        if let Some(config) = config {
-            return Ok(Some(config.clone()))
-        } else {
+                let response = self.configs.clone_with_type().find_one(doc! { "guild_id": guild_id.to_string() }, None).await;
 
-            let response = self.configs.clone_with_type().find_one(doc! { "guild_id": guild_id.to_string() }, None).await;
+                if let Ok(Some(config)) = response.clone() {
+                    self.configs_cache.insert(guild_id, config);
+                }
 
-            if let Ok(Some(config)) = response.clone() {
-                configs_cache.insert(guild_id, config);
-            };
+                response
 
-            response
-
+            }
         }
 
     }
