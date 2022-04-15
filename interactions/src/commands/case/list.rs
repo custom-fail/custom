@@ -3,7 +3,8 @@ use database::redis::RedisConnection;
 use mongodb::bson::doc;
 use mongodb::options::FindOptions;
 use std::sync::Arc;
-use futures::TryStreamExt;
+use futures::{StreamExt, TryStreamExt};
+use mongodb::bson;
 use twilight_http::Client;
 use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::application::component::{ActionRow, Component, SelectMenu};
@@ -12,10 +13,24 @@ use twilight_model::application::interaction::application_command::CommandOption
 use database::models::case::Case;
 use database::models::config::GuildConfig;
 use utils::check_type;
-use utils::embeds::EmbedBuilder;
 use utils::errors::Error;
+use serde::{Serialize, Deserialize};
+use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedFooter};
+use utils::avatars::get_avatar_url;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
+
+#[derive(Serialize, Deserialize)]
+struct ActionDocument {
+    action: u8
+}
+
+#[derive(Serialize, Deserialize)]
+struct CountActions {
+    #[serde(rename = "_id")]
+    target: ActionDocument,
+    count: usize
+}
 
 pub async fn run(
     interaction: InteractionContext,
@@ -65,19 +80,72 @@ pub async fn run(
             .sort(doc! { "created_at": -1 as i32 }).build()
     ).await.map_err(Error::from)?;
 
-    let count = mongodb.cases.count_documents(filter, None)
-        .await.map_err(Error::from)?;
-
     let case_list: Vec<Case> = case_list.try_collect().await.map_err(Error::from)?;
 
     if case_list.len() < 1 {
         return Err(Error::from("This user has no cases"))
     }
 
-    let fields = case_list.into_iter().map(|case| case.to_field()).collect();
-    let embed = EmbedBuilder::new().fields(fields).to_embed();
+    let mut count = mongodb.cases.aggregate(
+        [
+            doc! { "$match": filter },
+            doc! {
+                "$group": {
+                    "_id": { "action": "$action" },
+                    "count": { "$sum": 1 as u32 },
+                    "totalValue": { "$sum": "$count" }
+                }
+            }
+        ],
+        None
+    ).await.map_err(Error::from)?;
 
-    let pages = if count % 6 == 0 { count / 6 } else { count / 6 + 1 };
+    let mut total = 0;
+    let mut footer = vec![];
+
+    while let Some(result) = count.next().await {
+
+        let result = result.map_err(Error::from)?;
+        let result: CountActions = bson::from_document(result).map_err(Error::from)?;
+
+        if let Some(action_type) = action_type {
+            if action_type == result.target.action {
+                total += result.count;
+            }
+        } else { total += result.count }
+
+        footer.push(format!("{}: {}", match result.target.action {
+            7 => "Mutes",
+            1 => "Warns",
+            4 => "Bans",
+            6 => "Kicks",
+            _ => "???"
+        }, result.count));
+
+    }
+
+    let fields = case_list.into_iter().map(|case| case.to_field()).collect();
+    let embed = Embed {
+        author: None,
+        color: None,
+        description: None,
+        fields,
+        footer: Some(EmbedFooter {
+            icon_url: None,
+            proxy_icon_url: None,
+            text: footer.join(" | ")
+        }),
+        image: None,
+        kind: "".to_string(),
+        provider: None,
+        thumbnail: None,
+        timestamp: None,
+        title: None,
+        url: None,
+        video: None
+    };
+
+    let pages = if total % 6 == 0 { total / 6 } else { total / 6 + 1 };
 
     let mut result = vec![];
     for page in 1..(
