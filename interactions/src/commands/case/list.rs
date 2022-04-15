@@ -124,9 +124,26 @@ pub async fn run(
 
     }
 
+    let author = if let Some(user) = interaction.resolved.users.get(&member_id) {
+        let avatar = get_avatar_url(user.avatar, user.id);
+        EmbedAuthor {
+            icon_url: Some(avatar.to_owned()),
+            name: format!("{}#{} {}", user.name, user.discriminator, user_id),
+            proxy_icon_url: Some(avatar),
+            url: None
+        }
+    } else {
+        EmbedAuthor {
+            icon_url: Some("https://cdn.discordapp.com/embed/avatars/0.png".to_string()),
+            name: format!("Deleted User#0000 {member_id}"),
+            proxy_icon_url: Some("https://cdn.discordapp.com/embed/avatars/0.png".to_string()),
+            url: None
+        }
+    };
+
     let fields = case_list.into_iter().map(|case| case.to_field()).collect();
     let embed = Embed {
-        author: None,
+        author: Some(author),
         color: None,
         description: None,
         fields,
