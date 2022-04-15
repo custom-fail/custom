@@ -82,3 +82,22 @@ impl ScamLinks {
 
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::ScamLinks;
+
+    #[tokio::test]
+    async fn test_contains_method() {
+        let scam_links = ScamLinks::new().await.unwrap();
+        assert_eq!(
+            scam_links.contains(vec!["moderating-verified-school.club".to_string()]).await,
+            true
+        );
+        assert_eq!(
+            scam_links.contains(vec!["".to_string()]).await,
+            false
+        );
+    }
+
+}
