@@ -18,3 +18,33 @@ pub struct GuildConfig {
     pub levels: Levels,
     pub top: Top
 }
+
+impl GuildConfig {
+    pub fn default(guild_id: Id<GuildMarker>) -> Self {
+        Self {
+            guild_id,
+            enabled: HashMap::new(),
+            moderation: Moderation {
+                mute_type: 0,
+                native_support: false,
+                logs_channel: None,
+                dm_case: false,
+                automod_logs: None,
+                bucket_actions: HashMap::new(),
+                automod: vec![]
+            },
+            premium: false,
+            levels: Levels {
+                xp_timeout: 0,
+                xp_min: 0,
+                xp_max: 0
+            },
+            top: Top {
+                week: false,
+                day: false,
+                webhook_url: "".to_string()
+            }
+        }
+    }
+
+}

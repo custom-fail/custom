@@ -36,21 +36,24 @@ impl MongoDBConnection {
         })
     }
 
-    pub async fn get_config(&self, guild_id: Id<GuildMarker>) -> Result<Option<GuildConfig>, mongodb::error::Error> {
+    pub async fn get_config(&self, guild_id: Id<GuildMarker>) -> Result<GuildConfig, mongodb::error::Error> {
 
         match self.configs_cache.get(&guild_id){
             Some(config) => {
-                return Ok(Some(config.to_owned()))
+                return Ok(config.to_owned())
             },
             None => {
 
-                let response = self.configs.clone_with_type().find_one(doc! { "guild_id": guild_id.to_string() }, None).await;
+                let config = self.configs.clone_with_type().find_one(
+                    doc! {
+                        "guild_id": guild_id.to_string()
+                    }, None
+                ).await?.unwrap_or(GuildConfig::default(guild_id));
 
-                if let Ok(Some(config)) = response.clone() {
-                    self.configs_cache.insert(guild_id, config);
-                }
+                self.configs_cache.insert(guild_id, config.to_owned());
 
-                response
+
+                Ok(config)
 
             }
         }

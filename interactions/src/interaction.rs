@@ -49,8 +49,7 @@ async fn component_handler(interaction: Box<MessageComponentInteraction>, applic
     let command = application.find_command(context.command_text.clone()).await.ok_or(Error::from("Cannot find command"))?;
 
     let guild_id = context.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
-    let config = mongodb.get_config(guild_id)
-        .await.map_err(Error::from)?.ok_or(Error::from("Cannot find guild config"))?;
+    let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
 
     (command.run)(context, mongodb, redis, discord_http, config).await
 
@@ -63,8 +62,7 @@ async fn commands_handler(interaction: Box<ApplicationCommand>, application: App
     let command = application.find_command(command_text.clone()).await.ok_or(Error::from("Cannot find command"))?;
 
     let guild_id = interaction.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
-    let config = mongodb.get_config(guild_id)
-        .await.map_err(Error::from)?.ok_or(Error::from("Cannot find guild config"))?;
+    let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
 
     let context = InteractionContext::from_command_data(interaction.clone(), (command_vec.clone(), command_text.clone()));
 
@@ -80,8 +78,7 @@ async fn modal_handler(interaction: Box<ModalSubmitInteraction>, application: Ap
     let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command".to_string())?;
 
     let guild_id = context.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
-    let config = mongodb.get_config(guild_id)
-        .await.map_err(Error::from)?.ok_or(Error::from("Cannot find guild config"))?;
+    let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
 
     config.enabled.get(command.module.as_str()).ok_or(Error::from("This module is disabled"))?;
 
