@@ -5,12 +5,7 @@ use crate::embeds::EmbedBuilder;
 
 #[derive(Debug)]
 pub enum Error {
-    DeserializeBody(twilight_http::response::DeserializeBodyError),
-    MessageValidation(twilight_validate::message::MessageValidationError),
-    ValidationError(twilight_validate::request::ValidationError),
-    DiscordAPI(twilight_http::error::Error),
-    MongoDB(mongodb::error::Error),
-    Redis(redis::RedisError),
+    Debug(Vec<String>),
     Message(String)
 }
 
@@ -28,86 +23,70 @@ impl From<&str> for Error {
 
 impl From<redis::RedisError> for Error {
     fn from(error: RedisError) -> Self {
-        Self::Redis(error)
+        Self::Debug(vec![format!("{:?}", error)])
     }
 }
 
 impl From<mongodb::error::Error> for Error {
     fn from(error: mongodb::error::Error) -> Self {
-        Self::MongoDB(error)
+        Self::Debug(vec![format!("{:?}", error)])
     }
 }
 
 impl From<mongodb::bson::de::Error> for Error {
     fn from(error: mongodb::bson::de::Error) -> Self {
-        Error::from(mongodb::error::Error::from(error))
+        Self::Debug(vec![format!("{:?}", error)])
     }
 }
 
 impl From<twilight_http::response::DeserializeBodyError> for Error {
     fn from(error: twilight_http::response::DeserializeBodyError) -> Self {
-        Self::DeserializeBody(error)
+        Self::Debug(vec![format!("{:?}", error)])
     }
 }
 
 impl From<twilight_http::error::Error> for Error {
     fn from(error: twilight_http::Error) -> Self {
-        Self::DiscordAPI(error)
+        Self::Debug(vec![error.to_string(), format!("{:?}", error)])
     }
 }
 
 impl From<twilight_validate::request::ValidationError> for Error {
     fn from(error: twilight_validate::request::ValidationError) -> Self {
-        Self::ValidationError(error)
+        Self::Debug(vec![error.to_string(), format!("{:?}", error)])
     }
 }
 
 impl From<twilight_validate::message::MessageValidationError> for Error {
     fn from(error: twilight_validate::message::MessageValidationError) -> Self {
-        Self::MessageValidation(error)
+        Self::Debug(vec![error.to_string(), format!("{:?}", error)])
     }
-}
-
-enum ResponseType {
-    Message,
-    Embed
 }
 
 impl Error {
     pub fn to_interaction_data_response(&self) -> InteractionResponseData {
 
-        let error = match self {
-            Error::DeserializeBody(error) =>
-                (vec![format!("{:?}", error)], ResponseType::Embed),
-            Error::ValidationError(error) =>
-                (vec![error.to_string(), format!("{:?}", error)], ResponseType::Embed),
-            Error::MessageValidation(error) =>
-                (vec![error.to_string(), format!("{:?}", error)], ResponseType::Embed),
-            Error::DiscordAPI(error) =>
-                (vec![error.to_string(), format!("{:?}", error)], ResponseType::Embed),
-            Error::MongoDB(error) => (vec![format!("{:?}", error)], ResponseType::Embed),
-            Error::Redis(error) => (vec![format!("{:?}", error)], ResponseType::Embed),
-            Error::Message(message) => (vec![message.clone()], ResponseType::Message)
-        };
-
-        if let ResponseType::Embed = error.1 {
-            let description = format!("```{}```", error.0.join("``` ```"));
-            EmbedBuilder::new()
-                .title("Internal Server Error".to_string())
-                .description(description)
-                .to_interaction_response_data(true)
-        } else {
-            InteractionResponseData {
-                allowed_mentions: None,
-                attachments: None,
-                choices: None,
-                components: None,
-                content: error.0.first().cloned(),
-                custom_id: None,
-                embeds: None,
-                flags: Some(MessageFlags::EPHEMERAL),
-                title: None,
-                tts: None
+        match self {
+            Error::Debug(errors) => {
+                let description = format!("```{}```", errors.join("``` ```"));
+                EmbedBuilder::new()
+                    .title("Internal Server Error".to_string())
+                    .description(description)
+                    .to_interaction_response_data(true)
+            },
+            Error::Message(message) => {
+                InteractionResponseData {
+                    allowed_mentions: None,
+                    attachments: None,
+                    choices: None,
+                    components: None,
+                    content: Some(message.to_owned()),
+                    custom_id: None,
+                    embeds: None,
+                    flags: Some(MessageFlags::EPHEMERAL),
+                    title: None,
+                    tts: None
+                }
             }
         }
 
