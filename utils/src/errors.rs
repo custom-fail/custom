@@ -1,5 +1,6 @@
 use redis::RedisError;
 use twilight_model::channel::message::MessageFlags;
+use twilight_model::datetime::TimestampParseError;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
 use crate::embeds::EmbedBuilder;
 
@@ -59,6 +60,12 @@ impl From<twilight_validate::request::ValidationError> for Error {
 
 impl From<twilight_validate::message::MessageValidationError> for Error {
     fn from(error: twilight_validate::message::MessageValidationError) -> Self {
+        Self::Debug(vec![error.to_string(), format!("{:?}", error)])
+    }
+}
+
+impl From<TimestampParseError> for Error {
+    fn from(error: TimestampParseError) -> Self {
         Self::Debug(vec![error.to_string(), format!("{:?}", error)])
     }
 }

@@ -11,3 +11,4 @@ twilight-model = { git = "https://github.com/twilight-rs/twilight" }
 mongodb = "2.1.0"
 redis = "0.21.5"
 twilight-validate = { git = "https://github.com/twilight-rs/twilight" }
+humantime = "2.1.0"
