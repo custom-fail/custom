@@ -1,10 +1,10 @@
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "key")]
 pub enum Actions {
     DirectMessage,
-    IncreaseBucket,
+    IncreaseBucket(String),
     DeleteMessage,
     SendLogs,
     Timeout(Timeout),

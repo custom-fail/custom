@@ -3,6 +3,7 @@ use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
 use crate::models::config::activity::{Levels, Top};
+use crate::models::config::automod::bucket::BucketActions;
 use crate::models::config::moderation::Moderation;
 
 pub mod moderation;
@@ -47,4 +48,9 @@ impl GuildConfig {
         }
     }
 
+    pub fn get_bucket_action(&self, key: String) -> Option<BucketActions> {
+        self.moderation.bucket_actions.get(key.as_str()).cloned()
+    }
+
 }
+
