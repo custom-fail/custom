@@ -40,21 +40,18 @@ impl MongoDBConnection {
 
         match self.configs_cache.get(&guild_id){
             Some(config) => {
-                return Ok(config.to_owned())
+                Ok(config.to_owned())
             },
             None => {
-
                 let config = self.configs.clone_with_type().find_one(
                     doc! {
                         "guild_id": guild_id.to_string()
                     }, None
-                ).await?.unwrap_or(GuildConfig::default(guild_id));
+                ).await?.unwrap_or_else(|| GuildConfig::default(guild_id));
 
                 self.configs_cache.insert(guild_id, config.to_owned());
 
-
                 Ok(config)
-
             }
         }
 
@@ -87,7 +84,7 @@ impl MongoDBConnection {
 
     pub async fn get_next_case_index(&self, guild_id: Id<GuildMarker>) -> Result<u64, Error> {
         Ok(self.cases.count_documents(
-        doc! { "guild_id": guild_id.to_string() }, None
+            doc! { "guild_id": guild_id.to_string() }, None
         ).await.map_err(Error::from)? + 1)
     }
 

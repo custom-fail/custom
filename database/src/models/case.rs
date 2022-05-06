@@ -68,15 +68,10 @@ impl Case {
             "**Member:** <@{}>\n**Action:** {}{}\n**Reason:** {}",
             self.member_id,
             action_type_to_string(self.action),
-            if let Some(duration) = self.duration {
-                format!("\n**Duration:** {}",
-                    format_duration(StdDuration::from_secs(duration as u64))
-                )
-            } else { "".to_string() },
-            match &self.reason {
-                Some(reason) => reason.clone().clone(),
-                None => "None".to_string()
-            }
+            self.duration.map(|duration| format!(
+                "\n**Duration:** {}", format_duration(StdDuration::from_secs(duration as u64))
+            )).unwrap_or_else(|| "".to_string()),
+            self.reason.to_owned().unwrap_or_else(|| "None".to_string())
         );
 
         let footer = EmbedFooter {
@@ -106,7 +101,7 @@ impl Case {
     pub fn to_field(&self) -> EmbedField {
 
         let action = action_type_to_string(self.action);
-        let reason = self.reason.to_owned().unwrap_or("None".to_string());
+        let reason = self.reason.to_owned().unwrap_or_else(|| "None".to_string());
 
         EmbedField {
             inline: false,

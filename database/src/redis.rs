@@ -40,7 +40,7 @@ impl RedisConnection {
 
     pub fn get_all(&self, path: String, limit: isize) -> Result<Vec<(String, u32)>, RedisError> {
         let mut connection = self.client.get_connection()?;
-        Ok(connection.zrevrange_withscores(path, 0, limit - 1)?)
+        connection.zrevrange_withscores(path, 0, limit - 1)
     }
 
     pub fn increase(
@@ -50,7 +50,7 @@ impl RedisConnection {
         count: u8,
     ) -> Result<(), RedisError> {
         let mut connection = self.client.get_connection()?;
-        Ok(connection.zincr(path, user_id.to_string(), count)?)
+        connection.zincr(path, user_id.to_string(), count)
     }
 }
 
