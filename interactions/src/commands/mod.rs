@@ -2,6 +2,7 @@ pub mod top;
 pub mod case;
 pub mod context;
 pub mod moderation;
+pub mod levels;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -31,6 +32,7 @@ macro_rules! command {
     }
 }
 
+#[derive(Clone)]
 pub struct Command {
     pub name: String,
     pub module: String,
@@ -47,18 +49,8 @@ impl Command {
     }
 }
 
-impl Clone for Command {
-    fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-            module: self.module.clone(),
-            run: self.run.clone(),
-        }
-    }
-}
-
 pub fn parse_slash_command_to_text(slash_command_data: CommandData) -> Vec<String> {
-    if slash_command_data.options.len() != 0 {
+    if slash_command_data.options.is_empty() {
         handle_value(
             vec![slash_command_data.name.to_lowercase()],
             slash_command_data.options[0].name.clone(),

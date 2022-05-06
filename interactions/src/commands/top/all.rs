@@ -16,14 +16,13 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
 
     let week_or_day = interaction.command_vec.get(1).cloned()
         .ok_or("Invalid command")?;
-    if !["week", "day"].contains(&week_or_day.clone().as_str()) {
+    if !["week", "day"].contains(&week_or_day.as_str()) {
         return Err(Error::from("Invalid command"))
     }
 
     let leaderboard = redis.get_all(format!("top_{week_or_day}.{guild_id}"), 3).map_err(Error::from)?;
 
     let leaderboard_string = leaderboard
-        .clone()
         .iter()
         .enumerate()
         .map(|(index, (user_id, messages))| -> String {

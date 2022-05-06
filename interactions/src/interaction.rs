@@ -46,9 +46,9 @@ pub async fn handle_interaction(interaction: Interaction, application: Applicati
 async fn component_handler(interaction: Box<MessageComponentInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
 
     let context = InteractionContext::from_message_component_interaction(interaction, application.clone()).await?;
-    let command = application.find_command(context.command_text.clone()).await.ok_or(Error::from("Cannot find command"))?;
+    let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command")?;
 
-    let guild_id = context.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
+    let guild_id = context.guild_id.ok_or("Cannot find guild_id")?;
     let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
 
     (command.run)(context, mongodb, redis, discord_http, config).await
@@ -59,14 +59,15 @@ async fn commands_handler(interaction: Box<ApplicationCommand>, application: App
 
     let command_vec = parse_slash_command_to_text(interaction.data.clone());
     let command_text = command_vec.clone().join(" ");
-    let command = application.find_command(command_text.clone()).await.ok_or(Error::from("Cannot find command"))?;
+    let command = application.find_command(command_text.clone())
+        .await.ok_or("Cannot find command")?;
 
-    let guild_id = interaction.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
+    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
     let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
 
     let context = InteractionContext::from_command_data(interaction.clone(), (command_vec.clone(), command_text.clone()));
 
-    config.enabled.get(command.module.as_str()).ok_or(Error::from("This module is disabled"))?;
+    config.enabled.get(command.module.as_str()).ok_or("This module is disabled")?;
 
     (command.run)(context, mongodb, redis, discord_http, config).await
 
@@ -75,12 +76,12 @@ async fn commands_handler(interaction: Box<ApplicationCommand>, application: App
 async fn modal_handler(interaction: Box<ModalSubmitInteraction>, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> ResponseData {
 
     let context = InteractionContext::from_modal_submit_interaction(interaction, application.clone()).await?;
-    let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command".to_string())?;
+    let command = application.find_command(context.command_text.clone()).await.ok_or("Cannot find command")?;
 
-    let guild_id = context.guild_id.ok_or(Error::from("Cannot find guild_id"))?;
+    let guild_id = context.guild_id.ok_or("Cannot find guild_id")?;
     let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
 
-    config.enabled.get(command.module.as_str()).ok_or(Error::from("This module is disabled"))?;
+    config.enabled.get(command.module.as_str()).ok_or("This module is disabled")?;
 
     (command.run)(context, mongodb, redis, discord_http, config).await
 

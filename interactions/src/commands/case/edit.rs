@@ -16,10 +16,10 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
 
-    let case_id = check_type!(
+    let case_id = *check_type!(
         interaction.options.get("id").ok_or("There is no case id")?,
         CommandOptionValue::Integer
-    ).ok_or("Case id type not match")?.clone();
+    ).ok_or("Case id type not match")?;
 
     let mut case = mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, None

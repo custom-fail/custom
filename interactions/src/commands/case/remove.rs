@@ -14,10 +14,10 @@ use crate::commands::ResponseData;
 
 pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
 
-    let case_id = check_type!(
+    let case_id = *check_type!(
         interaction.options.get("id").ok_or("There is no case id")?,
         CommandOptionValue::Integer
-    ).ok_or("Case id type not match")?.clone();
+    ).ok_or("Case id type not match")?;
 
     let removed_case = mongodb.cases.find_one_and_update(
         doc! { "index": case_id, "removed": false }, doc! { "$set": {"removed": true } }, None

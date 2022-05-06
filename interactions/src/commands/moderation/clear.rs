@@ -18,21 +18,19 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
 
     let channel_id = interaction.channel_id;
     let amount = check_type!(
-        interaction.options.get("amount").ok_or("There is no amount value".to_string())?,
+        interaction.options.get("amount").ok_or("There is no amount value")?,
         CommandOptionValue::Integer
     ).ok_or("")?;
 
-    let member = match interaction.options.get("member") {
-        Some(member) => check_type!(member, CommandOptionValue::User),
-        None => None
-    }.cloned();
+    let member = interaction.options.get("member")
+        .map(|member| check_type!(member, CommandOptionValue::User))
+        .flatten();
 
-    let filter = match interaction.options.get("filter") {
-        Some(filter) => check_type!(filter, CommandOptionValue::String),
-        None => None
-    }.cloned();
+    let filter = interaction.options.get("filter")
+        .map(|filter| check_type!(filter, CommandOptionValue::String))
+        .flatten();
 
-    if amount < &2 || amount > &600 {
+    if !(&2..=&600).contains(&amount) {
         return Err(Error::from("You can clear up to 600 messages"))
     }
 
@@ -60,11 +58,11 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
 
         if let Some(member) = member {
             messages = messages.iter()
-                .filter(|msg| msg.author.id == member)
+                .filter(|msg| &msg.author.id == member)
                 .cloned().collect::<Vec<Message>>();
         }
 
-        if let Some(filter) = &filter {
+        if let Some(filter) = filter {
             messages = messages.iter()
                 .filter(|msg| {
                     match filter.as_str() {
@@ -80,7 +78,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
         let messages = messages.iter()
             .map(|message| message.id).collect::<Vec<Id<MessageMarker>>>();
 
-        if messages.len() < 1 { continue }
+        if messages.is_empty() { continue }
 
         discord_http.delete_messages(channel_id, &messages)
             .exec().await.map_err(Error::from)?;

@@ -18,8 +18,5 @@ pub fn verify_signature(
     let msg = format!("{timestamp}{body}");
     let verified = public_key.verify(msg.as_bytes(), &signature);
 
-    match verified {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    verified.is_ok()
 }

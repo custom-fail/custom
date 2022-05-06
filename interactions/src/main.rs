@@ -24,7 +24,7 @@ async fn main() {
 
     let public_key_env = std::env::var("PUBLIC_KEY").expect("Cannot load PUBLIC_KEY from .env");
     let pbk_bytes = hex::decode(public_key_env.as_str()).expect("Invalid public value");
-    let public_key = PublicKey::from_bytes(&pbk_bytes.as_ref()).expect("Unknown public key");
+    let public_key = PublicKey::from_bytes(&pbk_bytes).expect("Unknown public key");
 
     let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB_URL from .env");
     let redis_url = std::env::var("REDIS_URL").expect("Cannot load REDIS_URL from .env");

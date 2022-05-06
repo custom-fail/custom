@@ -29,10 +29,10 @@ struct HttpResponse {
 }
 
 impl HttpResponse {
-    pub fn into_response(&self) -> Result<Response<Body>, Infallible> {
+    pub fn to_response(&self) -> Result<Response<Body>, Infallible> {
         let mut response = Response::default();
         *response.status_mut() = self.status;
-        *response.body_mut() = Body::from(self.body.clone());
+        *response.body_mut() = Body::from(self.body);
         Ok(response)
     }
 }
@@ -45,8 +45,8 @@ const INVALID_BODY: HttpResponse = HttpResponse { body: "Invalid/Missing body", 
 
 async fn route(request: Request<Body>, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> Result<Response<Body>, Infallible> {
 
-    if request.method() != &Method::POST {
-        return METHOD_NOT_ALLOWED.into_response();
+    if request.method() != Method::POST {
+        return METHOD_NOT_ALLOWED.to_response();
     };
 
     let timestamp = request.headers().get("X-Signature-Timestamp");
@@ -54,34 +54,34 @@ async fn route(request: Request<Body>, public_key: PublicKey, application: Appli
 
     let timestamp = match string_from_headers_option(timestamp) {
         Some(timestamp) => timestamp,
-        None => return MISSING_HEADERS.into_response()
+        None => return MISSING_HEADERS.to_response()
     };
 
     let signature = match string_from_headers_option(signature) {
         Some(signature) => signature,
-        None => return MISSING_HEADERS.into_response()
+        None => return MISSING_HEADERS.to_response()
     };
 
     let whole_body = hyper::body::to_bytes(request.into_body()).await;
     let whole_body = match whole_body {
         Ok(whole_body) => whole_body,
-        Err(_) => return INVALID_BODY.into_response()
+        Err(_) => return INVALID_BODY.to_response()
     };
 
     let reversed_body = whole_body.iter().cloned().collect::<Vec<u8>>();
     let body = String::from_utf8(reversed_body);
     let body = match body {
         Ok(body) => body,
-        Err(_) => return INVALID_BODY.into_response()
+        Err(_) => return INVALID_BODY.to_response()
     };
 
-    if !verify_signature(public_key.clone(), signature, timestamp, body.clone()) {
-        return UNAUTHORIZED.into_response();
+    if !verify_signature(public_key, signature, timestamp, body.clone()) {
+        return UNAUTHORIZED.to_response();
     };
 
     let interaction = match serde_json::from_str::<Interaction>(body.as_str()) {
         Ok(value) => value,
-        Err(_) => return INVALID_BODY.into_response()
+        Err(_) => return INVALID_BODY.to_response()
     };
 
     let content = handle_interaction(interaction, application, mongodb, redis, discord_http).await;
@@ -93,22 +93,21 @@ async fn route(request: Request<Body>, public_key: PublicKey, application: Appli
 
     match response {
         Ok(response) => Ok(response),
-        Err(_) => INTERNAL_SERVER_ERROR.into_response()
+        Err(_) => INTERNAL_SERVER_ERROR.to_response()
     }
 
 }
 
-pub async fn listen(port: u8, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) -> () {
+pub async fn listen(port: u8, public_key: PublicKey, application: Application, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>) {
 
     let service = make_service_fn(move |_| {
-        let public_key = public_key.clone();
         let application = application.clone();
         let mongodb = mongodb.clone();
         let redis = redis.clone();
         let discord_http = discord_http.clone();
         async move {
             Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                route(req, public_key.clone(), application.clone(), mongodb.clone(), redis.clone(), discord_http.clone())
+                route(req, public_key.to_owned(), application.to_owned(), mongodb.to_owned(), redis.to_owned(), discord_http.to_owned())
             }))
         }
     });

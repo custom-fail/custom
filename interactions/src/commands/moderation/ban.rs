@@ -27,10 +27,10 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
     let user_id = interaction.user.ok_or("Cannot find executor")?.id;
     let guild_id = interaction.guild_id.ok_or("This is guild only")?;
 
-    let member_id = check_type!(
+    let member_id = *check_type!(
         interaction.options.get("member").ok_or("There is no member id")?,
         CommandOptionValue::User
-    ).ok_or("Member id type not match")?.clone();
+    ).ok_or("Member id type not match")?;
 
     let reason = match interaction.options.get("reason") {
         Some(CommandOptionValue::String(value)) => Some(value),

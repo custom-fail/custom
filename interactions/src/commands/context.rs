@@ -9,6 +9,7 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GenericMarker, GuildMarker};
 use twilight_model::user::User;
 use utils::{ok_or_break, ok_or_skip};
+use utils::errors::Error;
 use crate::Application;
 
 #[derive(Debug, Clone)]
@@ -64,13 +65,13 @@ impl InteractionContext {
 
     }
 
-    pub async fn from_message_component_interaction(interaction: Box<MessageComponentInteraction>, application: Application) -> Result<Self, String> {
+    pub async fn from_message_component_interaction(interaction: Box<MessageComponentInteraction>, application: Application) -> Result<Self, Error> {
 
-        let id_vec = interaction.data.custom_id.split(":").collect::<Vec<&str>>();
-        let command_id = id_vec.get(2).ok_or("There is no command data".to_string())?.to_string();
+        let id_vec = interaction.data.custom_id.split(':').collect::<Vec<&str>>();
+        let command_id = id_vec.get(2).ok_or("There is no command data")?.to_string();
 
         let application_component = application.find_component(command_id).await
-            .ok_or("There is no component with matching id".to_string())?;
+            .ok_or("There is no component with matching id")?;
 
         let name = application_component.command;
 
@@ -96,12 +97,12 @@ impl InteractionContext {
                 None => interaction.user
             }
             None => interaction.user
-        }.ok_or("Cannot get information about executor".to_string())?;
+        }.ok_or("Cannot get information about executor")?;
 
         if !interaction.data.custom_id.starts_with(
-            format!("a:{}", user.id.to_string()).as_str()
+            format!("a:{}", user.id).as_str()
         ) && !interaction.data.custom_id.starts_with("a:*") {
-            return Err("This place is not dedicated for you :eyes:".to_string())
+            return Err(Error::from("This place is not dedicated for you :eyes:"))
         }
 
         Ok(Self {
@@ -125,12 +126,12 @@ impl InteractionContext {
         })
     }
 
-    pub async fn from_modal_submit_interaction(interaction: Box<ModalSubmitInteraction>, application: Application) -> Result<Self, String> {
+    pub async fn from_modal_submit_interaction(interaction: Box<ModalSubmitInteraction>, application: Application) -> Result<Self, Error> {
 
-        let id_vec = interaction.data.custom_id.split(":").collect::<Vec<&str>>();
-        let name = id_vec.get(1).ok_or("Cannot extract command from custom_ids".to_string())?.to_string();
+        let id_vec = interaction.data.custom_id.split(':').collect::<Vec<&str>>();
+        let name = id_vec.get(1).ok_or("Cannot extract command from custom_ids")?.to_string();
 
-        let modal = application.find_modal(name).await.ok_or("Unknown modal".to_string())?;
+        let modal = application.find_modal(name).await.ok_or("Unknown modal")?;
 
         let mut options = HashMap::new();
 
@@ -155,7 +156,7 @@ impl InteractionContext {
                 None => interaction.user
             }
             None => interaction.user
-        }.ok_or("Cannot get information about executor".to_string())?;
+        }.ok_or("Cannot get information about executor")?;
 
         Ok(Self {
             options,
@@ -179,13 +180,11 @@ impl InteractionContext {
     }
 }
 
-fn convert_value_to_option(value: String, kind: String) -> Result<CommandOptionValue, String> {
-    Ok(if kind == "String".to_string() {
+fn convert_value_to_option(value: String, kind: String) -> Result<CommandOptionValue, Error> {
+    Ok(if kind == "String" {
         CommandOptionValue::String(value)
-    } else if kind == "Boolean".to_string() {
-        CommandOptionValue::Boolean(
-            if value == "true".to_string() { true } else { false }
-        )
+    } else if kind == "Boolean" {
+        CommandOptionValue::Boolean(value == "true")
     } else if kind == "Integer" {
         CommandOptionValue::Integer(
             value.parse::<i64>().map_err(|_| "Invalid option type".to_string())?
@@ -194,7 +193,7 @@ fn convert_value_to_option(value: String, kind: String) -> Result<CommandOptionV
         CommandOptionValue::User(
             Id::from_str(value.as_str()).map_err(|_| "Invalid option type".to_string())?
         )
-    } else { return Err("Invalid option type".to_string()) })
+    } else { return Err(Error::from("Invalid option type")) })
 }
 
 fn parse_options_to_value(command_data_options: Vec<CommandDataOption>) -> Vec<(String, CommandOptionValue)> {

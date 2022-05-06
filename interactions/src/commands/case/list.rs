@@ -42,16 +42,16 @@ pub async fn run(
     let user_id = interaction.user.ok_or("There is no user information")?.id;
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
 
-    let member_id = check_type!(
+    let member_id = *check_type!(
         interaction.options.get("member").ok_or("There is no member id")?,
         CommandOptionValue::User
-    ).ok_or("Member id type not match")?.clone();
+    ).ok_or("Member id type not match")?;
 
     let page = u64::try_from(
-        check_type!(
+        *check_type!(
             interaction.options.get("page").unwrap_or(&CommandOptionValue::Integer(1)),
             CommandOptionValue::Integer
-        ).ok_or("Case id type not match")?.clone()
+        ).ok_or("Case id type not match")?
     ).map_err(|_| "Page must be u64")?;
 
     let action_type = match interaction.options.get("type") {
@@ -77,12 +77,12 @@ pub async fn run(
         filter.clone(),
         FindOptions::builder()
             .limit(6).skip(Some((page - 1) * 6))
-            .sort(doc! { "created_at": -1 as i32 }).build()
+            .sort(doc! { "created_at": -1_i32 }).build()
     ).await.map_err(Error::from)?;
 
     let case_list: Vec<Case> = case_list.try_collect().await.map_err(Error::from)?;
 
-    if case_list.len() < 1 {
+    if case_list.is_empty() {
         return Err(Error::from("This user has no cases"))
     }
 
@@ -92,7 +92,7 @@ pub async fn run(
             doc! {
                 "$group": {
                     "_id": { "action": "$action" },
-                    "count": { "$sum": 1 as u32 },
+                    "count": { "$sum": 1_u32 },
                     "totalValue": { "$sum": "$count" }
                 }
             }
