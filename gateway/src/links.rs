@@ -57,7 +57,7 @@ impl ScamLinks {
                 let msg = ok_or_return!(message, Ok).into_data();
                 let test = ok_or_return!(String::from_utf8(msg), Ok);
                 let request = ok_or_return!(serde_json::from_str::<UpdateMessage>(test.as_str()), Ok);
-                if request.action == "add".to_string() {
+                if request.action == *"add" {
                     for domain in request.domains {
                         discord_scam_domains.lock().await.push(domain);
                     }
@@ -72,7 +72,6 @@ impl ScamLinks {
         let scam_domains = self.discord_scam_domains.lock().await;
 
         for domain in domains {
-            println!("{domain} {}", scam_domains.contains(&domain));
             if scam_domains.contains(&domain) {
                 return true
             }

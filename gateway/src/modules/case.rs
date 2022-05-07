@@ -13,7 +13,7 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
 
     let event_at = Utc::now().timestamp();
 
-    let guild_config = mongodb.get_config(guild_id.clone()).await.map_err(|_| ())?;
+    let guild_config = mongodb.get_config(guild_id).await.map_err(|_| ())?;
     if !guild_config.moderation.native_support {
         return Err(())
     }
@@ -40,9 +40,11 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
         }
     } else { None };
 
-    let moderator = action.user_id.ok_or(())?.clone();
+    let moderator = action.user_id.ok_or(())?;
 
     let user = audit_log.users.iter().find(|u| u.id == moderator).ok_or(())?;
+    if user.bot { return Ok(()) }
+
     let created_at = action.id.timestamp();
     let ping = created_at - event_at * 1000;
 
@@ -50,7 +52,7 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, guild_id
         return Err(());
     }
 
-    let count = mongodb.get_next_case_index(guild_id.clone()).await.map_err(|_| ())?;
+    let count = mongodb.get_next_case_index(guild_id).await.map_err(|_| ())?;
 
     let case = Case {
         moderator_id: moderator,

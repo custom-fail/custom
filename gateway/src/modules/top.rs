@@ -1,9 +1,9 @@
+use twilight_model::channel::Message;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use twilight_model::gateway::payload::incoming::MessageCreate;
 
 pub async fn run(
-    message: Box<MessageCreate>,
+    message: Message,
     mongodb: MongoDBConnection,
     redis: RedisConnection
 ) -> Result<(), ()> {
