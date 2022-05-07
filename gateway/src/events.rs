@@ -3,19 +3,21 @@ use database::redis::RedisConnection;
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::gateway::event::Event;
-use crate::ScamLinks;
+use crate::{Bucket, ScamLinks};
 
 pub async fn on_event(
     event: Event,
     mongodb: MongoDBConnection,
     redis: RedisConnection,
     discord_http: Arc<Client>,
-    scam_domains: ScamLinks
+    scam_domains: ScamLinks,
+    bucket: Bucket
 ) -> Result<(), ()> {
     match event {
         Event::MessageCreate(event) => {
-            crate::modules::auto::run(event.clone(), mongodb.clone(), discord_http, scam_domains).await.ok();
-            crate::modules::top::run(event, mongodb, redis).await.ok();
+            let message = event.as_ref().0.to_owned();
+            crate::modules::automod::run(message.clone(), mongodb.clone(), discord_http, scam_domains, bucket).await.ok();
+            crate::modules::top::run(message, mongodb, redis).await.ok();
         }
         Event::BanAdd(event) => { crate::modules::case::on_ban::run(event, mongodb, discord_http).await.ok(); },
         Event::MemberRemove(event) => { crate::modules::case::on_kick::run(event, mongodb, discord_http).await.ok(); },
