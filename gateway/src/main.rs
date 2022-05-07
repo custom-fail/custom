@@ -1,6 +1,7 @@
 mod events;
 mod modules;
 mod links;
+mod bucket;
 
 use crate::events::on_event;
 use database::mongodb::MongoDBConnection;
@@ -10,6 +11,7 @@ use futures_util::StreamExt;
 use std::sync::Arc;
 use twilight_gateway::Shard;
 use twilight_model::gateway::Intents;
+use crate::bucket::Bucket;
 use crate::links::ScamLinks;
 
 #[tokio::main]
@@ -26,6 +28,8 @@ async fn main() {
     let scam_domains = ScamLinks::new().await.expect("Cannot load scam links manager");
     scam_domains.connect();
 
+    let bucket: Bucket = Default::default();
+
     let discord_token =
         std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
     let discord_http = Arc::new(twilight_http::Client::new(discord_token.clone()));
@@ -39,10 +43,11 @@ async fn main() {
     while let Some(event) = events.next().await {
         tokio::spawn(on_event(
             event,
-            mongodb.clone(),
-            redis.clone(),
-            discord_http.clone(),
-            scam_domains.clone()
+            mongodb.to_owned(),
+            redis.to_owned(),
+            discord_http.to_owned(),
+            scam_domains.to_owned(),
+            bucket.to_owned()
         ));
     }
 }
