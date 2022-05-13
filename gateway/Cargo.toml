@@ -22,3 +22,4 @@ tokio-tungstenite = { version = "0.17.1", features = ["native-tls"] }
 serde = "1.0.136"
 regex = "1.5.4"
 utils = { "path" = "../utils" }
+dashmap = "5.2.0"

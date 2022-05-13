@@ -23,7 +23,16 @@ pub async fn on_event(
         Event::MemberRemove(event) => { crate::modules::case::on_kick::run(event, mongodb, discord_http).await.ok(); },
         Event::MemberUpdate(event) => {
             crate::modules::case::on_timeout::run(event, mongodb, discord_http).await.ok();
-        }
+        },
+        Event::GuildCreate(event) => {
+            crate::modules::cache::set_guild(redis, event.id, event.name.to_owned(), event.icon).ok();
+        },
+        Event::GuildUpdate(event) => {
+            crate::modules::cache::set_guild(redis, event.id, event.name.to_owned(), event.icon).ok();
+        },
+        Event::GuildDelete(event) => {
+            crate::modules::cache::delete_guild(redis, event.id).ok();
+        },
         _ => return Err(()),
     };
     Ok(())
