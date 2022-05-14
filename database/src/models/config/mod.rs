@@ -32,7 +32,8 @@ impl GuildConfig {
                 dm_case: false,
                 automod_logs: None,
                 bucket_actions: HashMap::new(),
-                automod: vec![]
+                automod: vec![],
+                automod_ignore: vec![]
             },
             premium: false,
             levels: Levels {
