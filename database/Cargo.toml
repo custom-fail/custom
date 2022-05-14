@@ -14,6 +14,7 @@ twilight-http = { git = "https://github.com/twilight-rs/twilight" }
 humantime = "2.1.0"
 utils = { path = "../utils" }
 dashmap = "5.2.0"
+serde_json = "1.0.79"
 
 [dependencies.mongodb]
 version = "2.1.0"

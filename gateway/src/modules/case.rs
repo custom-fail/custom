@@ -10,7 +10,14 @@ use database::models::case::Case;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 
-pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, redis: RedisConnection, guild_id: Id<GuildMarker>, target_id: Id<UserMarker>, action_type: (AuditLogEventType, u8)) -> Result<(), ()> {
+pub async fn run(
+    mongodb: MongoDBConnection,
+    discord_http: Arc<Client>,
+    redis: RedisConnection,
+    guild_id: Id<GuildMarker>,
+    target_id: Id<UserMarker>,
+    action_type: (AuditLogEventType, u8)
+) -> Result<(), ()> {
 
     let event_at = Utc::now().timestamp();
 
@@ -31,11 +38,18 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, redis: R
         return Err(());
     };
 
+    let created_at = action.id.timestamp();
+    let ping = created_at / 1000 - event_at;
+    if ping > 2 {
+        return Err(());
+    }
+
     let duration = if action_type.1 == 7 {
         let change = action.changes.last().ok_or(())?;
+
         if let AuditLogChange::CommunicationDisabledUntil { old: _, new } = change {
             let ends_on = new.ok_or(())?;
-            Some(ends_on.as_secs() - event_at)
+            Some(ends_on.as_secs() - created_at / 1000)
         } else {
             return Err(())
         }
@@ -45,13 +59,6 @@ pub async fn run(mongodb: MongoDBConnection, discord_http: Arc<Client>, redis: R
 
     let user = audit_log.users.iter().find(|u| u.id == moderator).ok_or(())?;
     if user.bot { return Ok(()) }
-
-    let created_at = action.id.timestamp();
-    let ping = created_at - event_at * 1000;
-
-    if ping > 2000 {
-        return Err(());
-    }
 
     let count = mongodb.get_next_case_index(guild_id).await.map_err(|_| ())?;
 
