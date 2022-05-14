@@ -58,7 +58,10 @@ pub async fn run(
     ).ok_or("Member id type not match")?;
 
     let reason = match interaction.options.get("reason") {
-        Some(CommandOptionValue::String(value)) => Some(value),
+        Some(CommandOptionValue::String(value)) => {
+            if value.is_empty() { None }
+            else { Some(value) }
+        },
         Some(_) => None,
         None => None
     }.cloned();
