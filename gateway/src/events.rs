@@ -19,10 +19,10 @@ pub async fn on_event(
             crate::modules::automod::run(message.clone(), mongodb.clone(), discord_http, scam_domains, bucket).await.ok();
             crate::modules::top::run(message, mongodb, redis).await.ok();
         }
-        Event::BanAdd(event) => { crate::modules::case::on_ban::run(event, mongodb, discord_http).await.ok(); },
-        Event::MemberRemove(event) => { crate::modules::case::on_kick::run(event, mongodb, discord_http).await.ok(); },
+        Event::BanAdd(event) => { crate::modules::case::on_ban::run(event, mongodb, discord_http, redis).await.ok(); },
+        Event::MemberRemove(event) => { crate::modules::case::on_kick::run(event, mongodb, discord_http, redis).await.ok(); },
         Event::MemberUpdate(event) => {
-            crate::modules::case::on_timeout::run(event, mongodb, discord_http).await.ok();
+            crate::modules::case::on_timeout::run(event, mongodb, discord_http, redis).await.ok();
         },
         Event::GuildCreate(event) => {
             crate::modules::cache::set_guild(redis, event.id, event.name.to_owned(), event.icon).ok();

@@ -1,6 +1,16 @@
 use redis::{Client, Commands, RedisError};
-use twilight_model::id::marker::UserMarker;
+use serde_json::json;
+use twilight_model::id::marker::{GuildMarker, UserMarker};
 use twilight_model::id::Id;
+use twilight_model::util::ImageHash;
+use serde::{Serialize, Deserialize};
+use utils::errors::Error;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PartialGuild {
+    pub name: String,
+    pub icon: Option<ImageHash>
+}
 
 pub struct RedisConnection {
     client: Client,
@@ -10,6 +20,23 @@ impl RedisConnection {
     pub fn connect(url: String) -> Result<Self, RedisError> {
         let client = Client::open(url)?;
         Ok(Self { client })
+    }
+
+    pub fn set_guild(&self, id: Id<GuildMarker>, guild: PartialGuild) -> Result<(), RedisError> {
+        let mut connection = self.client.get_connection()?;
+        let data = json!(guild).to_string();
+        connection.set(format!("guilds.{id}"), data)
+    }
+
+    pub fn get_guild(&self, id: Id<GuildMarker>) -> Result<PartialGuild, Error> {
+        let mut connection = self.client.get_connection().map_err(Error::from)?;
+        let data: String = connection.get(format!("guilds.{id}")).map_err(Error::from)?;
+        serde_json::from_str(data.as_str()).map_err(Error::from)
+    }
+
+    pub fn delete_guild(&self, id: Id<GuildMarker>) -> Result<(), RedisError> {
+        let mut connection = self.client.get_connection()?;
+        connection.del(format!("guilds.{id}"))
     }
 
     pub fn get_by_position(

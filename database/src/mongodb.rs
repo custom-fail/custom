@@ -8,6 +8,7 @@ use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
 use utils::errors::Error;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
+use crate::redis::RedisConnection;
 
 #[derive(Clone)]
 pub struct MongoDBConnection {
@@ -57,9 +58,17 @@ impl MongoDBConnection {
 
     }
 
-    pub async fn create_case(&self, discord_http: Arc<twilight_http::Client>, case: Case, case_embed: Embed, dm_case: Option<Id<UserMarker>>, logs: Option<Id<ChannelMarker>>) -> Result<(), Error> {
+    pub async fn create_case(
+        &self,
+        discord_http: Arc<twilight_http::Client>,
+        redis: RedisConnection,
+        case: Case,
+        case_embed: Embed,
+        dm_case: Option<Id<UserMarker>>,
+        logs: Option<Id<ChannelMarker>>
+    ) -> Result<(), Error> {
 
-        self.cases.insert_one(case, None).await.map_err(Error::from)?;
+        self.cases.insert_one(case.to_owned(), None).await.map_err(Error::from)?;
 
         if let Some(channel_id) = logs {
             discord_http.create_message(channel_id)
@@ -72,8 +81,9 @@ impl MongoDBConnection {
             let channel = discord_http.create_private_channel(member_id)
                 .exec().await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
+            let embed = case.to_dm_embed(redis).map_err(Error::from)?;
             discord_http.create_message(channel.id)
-                .embeds(&[case_embed]).map_err(Error::from)?
+                .embeds(&[embed]).map_err(Error::from)?
                 .exec().await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
