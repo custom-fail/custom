@@ -70,6 +70,12 @@ impl From<TimestampParseError> for Error {
     }
 }
 
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Self {
+        Self::Debug(vec![format!("{:?}", error)])
+    }
+}
+
 impl Error {
     pub fn to_interaction_data_response(&self) -> InteractionResponseData {
 
