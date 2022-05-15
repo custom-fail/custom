@@ -25,14 +25,23 @@ pub async fn on_event(
             crate::modules::case::on_timeout::run(event, mongodb, discord_http, redis).await.ok();
         },
         Event::GuildCreate(event) => {
-            crate::modules::cache::set_guild(redis, event.id, event.name.to_owned(), event.icon).ok();
+            crate::modules::cache::on_guild_create(redis, event).ok();
         },
         Event::GuildUpdate(event) => {
-            crate::modules::cache::set_guild(redis, event.id, event.name.to_owned(), event.icon).ok();
+            crate::modules::cache::on_guild_update(redis, event).ok();
         },
         Event::GuildDelete(event) => {
             crate::modules::cache::delete_guild(redis, event.id).ok();
         },
+        Event::RoleCreate(event) => {
+            crate::modules::cache::fetch_and_set(redis, discord_http, event.guild_id).await.ok();
+        },
+        Event::RoleUpdate(event) => {
+            crate::modules::cache::fetch_and_set(redis, discord_http, event.guild_id).await.ok();
+        },
+        Event::RoleDelete(event) => {
+            crate::modules::cache::fetch_and_set(redis, discord_http, event.guild_id).await.ok();
+        }
         _ => return Err(()),
     };
     Ok(())

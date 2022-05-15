@@ -1,6 +1,6 @@
 use redis::{Client, Commands, RedisError};
 use serde_json::json;
-use twilight_model::id::marker::{GuildMarker, UserMarker};
+use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
 use twilight_model::id::Id;
 use twilight_model::util::ImageHash;
 use serde::{Serialize, Deserialize};
@@ -9,7 +9,8 @@ use utils::errors::Error;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PartialGuild {
     pub name: String,
-    pub icon: Option<ImageHash>
+    pub icon: Option<ImageHash>,
+    pub roles: Vec<Id<RoleMarker>>
 }
 
 pub struct RedisConnection {
