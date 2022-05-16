@@ -51,11 +51,6 @@ pub fn check_position(
     member: PartialMember
 ) -> Result<bool, Error> {
 
-    let target_role = match target_member.roles.first() {
-        Some(role) => role,
-        None => return Ok(true)
-    };
-
     let moderator_role = match member.roles.first() {
         Some(role) => role,
         None => return Ok(false)
@@ -64,12 +59,29 @@ pub fn check_position(
     let guild = redis.get_guild(guild_id).map_err(Error::from)?;
     let everyone_position = guild.roles.len();
 
-    let target_role_index = guild.roles.iter()
-        .position(|role| role == target_role).unwrap_or(everyone_position);
+    let mut target_role_index = None;
+    for role in target_member.roles.to_owned() {
+        let position = guild.roles.iter()
+            .position(|pos_role| pos_role == &role)
+            .unwrap_or(everyone_position);
+        if let Some(index) = target_role_index {
+            if index < position {
+                target_role_index = Some(position);
+            }
+        } else {
+            target_role_index = Some(position);
+        }
+    }
+
+    let target_role_index = match target_role_index {
+        Some(role) => role,
+        None => return Ok(true)
+    };
+
     let moderator_role_index = guild.roles.iter()
         .position(|role| role == moderator_role).unwrap_or(everyone_position);
 
-    Ok(target_role_index > moderator_role_index)
+    Ok(target_role_index < moderator_role_index)
 
 }
 

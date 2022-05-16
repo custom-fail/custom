@@ -10,9 +10,10 @@ pub async fn fetch_and_set(
     discord_http: Arc<Client>,
     guild_id: Id<GuildMarker>
 ) -> Result<(), ()> {
-    let guild = discord_http.guild(guild_id)
+    let mut guild = discord_http.guild(guild_id)
         .exec().await.map_err(|_| ())?
         .model().await.map_err(|_| ())?;
+    guild.roles.sort_by_cached_key(|role| role.position);
     set_guild(redis, guild_id, PartialGuild {
         name: guild.name,
         icon: guild.icon,
@@ -21,18 +22,22 @@ pub async fn fetch_and_set(
 }
 
 pub fn on_guild_create(redis: RedisConnection, event: Box<GuildCreate>) -> Result<(), ()> {
+    let mut roles = event.roles.to_owned();
+    roles.sort_by_cached_key(|role| role.position);
     set_guild(redis, event.id, PartialGuild {
         name: event.name.to_owned(),
         icon: event.icon,
-        roles: event.roles.iter().map(|role| role.id).collect()
+        roles: roles.iter().map(|role| role.id).collect()
     })
 }
 
 pub fn on_guild_update(redis: RedisConnection, event: Box<GuildUpdate>) -> Result<(), ()> {
+    let mut roles = event.roles.to_owned();
+    roles.sort_by_cached_key(|role| role.position);
     set_guild(redis, event.id, PartialGuild {
         name: event.name.to_owned(),
         icon: event.icon,
-        roles: event.roles.iter().map(|role| role.id).collect()
+        roles: roles.iter().map(|role| role.id).collect()
     })
 }
 
