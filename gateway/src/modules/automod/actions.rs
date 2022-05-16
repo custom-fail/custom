@@ -97,15 +97,13 @@ async fn send_logs(
     reason: String
 ) -> Result<(), ()> {
 
-    let channel = if let Some(channel) = guild_config.moderation.logs_channel {
-        channel
-    } else { return Err(()) };
+    let channel = guild_config.moderation.automod_logs.ok_or(())?;
 
     let avatar = get_avatar_url(message.author.avatar, message.author.id);
     let embed = Embed {
         author: Some(EmbedAuthor {
             icon_url: Some(avatar.clone()),
-            name: format!("{}#{}", message.author.name, message.author.discriminator),
+            name: format!("{}#{} {}", message.author.name, message.author.discriminator, message.author.id),
             proxy_icon_url: Some(avatar),
             url: None,
         }),
