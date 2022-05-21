@@ -1,6 +1,6 @@
 use redis::RedisError;
 use twilight_model::channel::message::MessageFlags;
-use twilight_model::datetime::TimestampParseError;
+use twilight_model::util::datetime::TimestampParseError;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
 use crate::embeds::EmbedBuilder;
 
@@ -81,6 +81,7 @@ impl Error {
 
         match self {
             Error::Debug(errors) => {
+                println!("{errors:?}");
                 let description = format!("```{}```", errors.join("``` ```"));
                 EmbedBuilder::new()
                     .title("Internal Server Error".to_string())

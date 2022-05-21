@@ -7,7 +7,7 @@ use twilight_http::Client;
 use twilight_http::error::ErrorType;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::channel::message::MessageFlags;
-use twilight_model::datetime::Timestamp;
+use twilight_model::util::datetime::Timestamp;
 use twilight_model::guild::{Member, PartialMember};
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
 use twilight_model::id::Id;

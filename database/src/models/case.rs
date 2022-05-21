@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
 use mongodb::bson::DateTime;
-use twilight_model::datetime::{Timestamp, TimestampParseError};
+use twilight_model::util::datetime::{Timestamp, TimestampParseError};
 use serde::{Serialize, Deserialize};
 use twilight_http::Client;
 use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedField, EmbedFooter};
