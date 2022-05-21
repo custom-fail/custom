@@ -17,10 +17,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Check
-      working-directory: /gateway
+      working-directory: ./gateway
       run: cargo check --verbose
     - name: Tests
-      working-directory: /gateway
+      working-directory: ./gateway
       run: cargo test --verbose
   
   interactions:
@@ -30,8 +30,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Check
-      working-directory: /interaction
+      working-directory: ./interaction
       run: cargo check --verbose
     - name: Tests
-      working-directory: /interaction
+      working-directory: ./interaction
       run: cargo test --verbose
