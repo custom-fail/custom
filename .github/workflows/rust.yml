@@ -15,11 +15,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - run: cd gateway
     - uses: actions/checkout@v3
     - name: Check
+      working-directory: /gateway
       run: cargo check --verbose
-    - name: Run tests
+    - name: Tests
+      working-directory: /gateway
       run: cargo test --verbose
   
   interactions:
@@ -27,9 +28,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - run: cd interactions
     - uses: actions/checkout@v3
     - name: Check
+      working-directory: /interaction
       run: cargo check --verbose
-    - name: Run tests
+    - name: Tests
+      working-directory: /interaction
       run: cargo test --verbose
