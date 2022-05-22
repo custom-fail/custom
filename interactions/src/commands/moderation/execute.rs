@@ -115,7 +115,6 @@ pub async fn run(
         }
     }
 
-    let user_id = interaction.user.ok_or("Cannot find executor")?.id;
     let guild_id = interaction.guild_id.ok_or("This command is guild only")?;
     let member = interaction.member.ok_or("This command is guild only")?;
 
@@ -141,7 +140,7 @@ pub async fn run(
         _ => return Err(Error::from("Invalid action"))
     };
 
-    if target_id != user_id {
+    if target_id != interaction.user.id {
         let target_member = get_target_member(
             &discord_http, guild_id, target_id
         ).await.map_err(Error::from)?;
@@ -180,7 +179,7 @@ pub async fn run(
     let index = mongodb.get_next_case_index(guild_id).await? as u16;
 
     let case = Case {
-        moderator_id: user_id,
+        moderator_id: interaction.user.id,
         created_at: DateTime::now(),
         guild_id,
         member_id: target_id,

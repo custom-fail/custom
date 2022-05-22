@@ -11,7 +11,6 @@ use crate::commands::ResponseData;
 pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>, _: GuildConfig) -> ResponseData {
 
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
-    let user = interaction.user.ok_or("Unknown user")?;
 
     let week_or_day = interaction.command_vec.get(1).cloned()
         .ok_or("Invalid command")?;
@@ -20,7 +19,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
     }
 
     let (user_score, user_position) = redis.get_by_user(
-        format!("top_{week_or_day}.{guild_id}"), user.id
+        format!("top_{week_or_day}.{guild_id}"), interaction.user.id
     ).map_err(Error::from)?;
 
     let mut result = format!("You are **{}** with **{user_score}** messages", user_position + 1);
@@ -54,7 +53,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
     Ok((
         EmbedBuilder::new()
             .title(
-                format!("Top of the {week_or_day} for {}#{}", user.name, user.discriminator)
+                format!("Top of the {week_or_day} for {}#{}", interaction.user.name, interaction.user.discriminator)
             )
             .description(result)
             .to_interaction_response_data(false),

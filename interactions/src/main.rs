@@ -59,6 +59,11 @@ async fn main() {
 
     ]).await;
 
+    application.set_slower_commands(
+        vec!["kick", "mute", "warn", "ban", "clear", "case list"]
+            .iter().map(|cmd| cmd.to_string()).collect()
+    ).await;
+
     application.add_components(vec![
         // page switching in case list command
         Component {

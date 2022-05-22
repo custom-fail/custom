@@ -39,7 +39,6 @@ pub async fn run(
     _: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
-    let user_id = interaction.user.ok_or("There is no user information")?.id;
     let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
 
     let member_id = *check_type!(
@@ -128,7 +127,7 @@ pub async fn run(
         let avatar = get_avatar_url(user.avatar, user.id);
         EmbedAuthor {
             icon_url: Some(avatar.to_owned()),
-            name: format!("{}#{} {}", user.name, user.discriminator, user_id),
+            name: format!("{}#{} {}", user.name, user.discriminator, user.id),
             proxy_icon_url: Some(avatar),
             url: None
         }
@@ -185,7 +184,7 @@ pub async fn run(
             Component::ActionRow(ActionRow {
                 components: vec![
                     Component::SelectMenu(SelectMenu {
-                        custom_id: format!("a:{user_id}:cl:{member_id}"),
+                        custom_id: format!("a:{}:cl:{member_id}", interaction.user.id),
                         disabled: false,
                         max_values: Some(1),
                         min_values: Some(1),

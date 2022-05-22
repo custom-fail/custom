@@ -23,7 +23,8 @@ pub struct Modal {
 pub struct Application {
     commands: Arc<Mutex<HashMap<String, Command>>>,
     components: Arc<Mutex<HashMap<String, Component>>>,
-    modals: Arc<Mutex<HashMap<String, Modal>>>
+    modals: Arc<Mutex<HashMap<String, Modal>>>,
+    slower_commands: Arc<Mutex<Vec<String>>>
 }
 
 impl Application {
@@ -31,8 +32,19 @@ impl Application {
         Self {
             commands: Arc::new(Mutex::new(HashMap::new())),
             components: Arc::new(Mutex::new(HashMap::new())),
-            modals: Arc::new(Mutex::new(HashMap::new()))
+            modals: Arc::new(Mutex::new(HashMap::new())),
+            slower_commands: Arc::new(Mutex::new(vec![]))
         }
+    }
+
+    pub async fn set_slower_commands(&self, commands: Vec<String>) {
+        let mut slower_command = self.slower_commands.lock().await;
+        *slower_command = commands;
+    }
+
+    pub async fn is_slower(&self, command: &String) -> bool {
+        let slower_command = self.slower_commands.lock().await;
+        slower_command.contains(command)
     }
 
     pub async fn add_commands(&self, commands: Vec<Command>) {
@@ -42,9 +54,9 @@ impl Application {
         }
     }
 
-    pub async fn find_command(&self, name: String) -> Option<Command> {
+    pub async fn find_command(&self, name: &String) -> Option<Command> {
         let commands = self.commands.lock().await;
-        commands.get(&name).cloned()
+        commands.get(name).cloned()
     }
 
     pub async fn add_components(&self, components: Vec<Component>) {
@@ -54,9 +66,9 @@ impl Application {
         }
     }
 
-    pub async fn find_component(&self, id: String) -> Option<Component> {
+    pub async fn find_component(&self, id: &String) -> Option<Component> {
         let components = self.components.lock().await;
-        components.get(&id).cloned()
+        components.get(id).cloned()
     }
 
     pub async fn add_modals(&self, components: Vec<Modal>) {
@@ -66,9 +78,9 @@ impl Application {
         }
     }
 
-    pub async fn find_modal(&self, id: String) -> Option<Modal> {
+    pub async fn find_modal(&self, id: &String) -> Option<Modal> {
         let modals = self.modals.lock().await;
-        modals.get(&id).cloned()
+        modals.get(id).cloned()
     }
 
 }

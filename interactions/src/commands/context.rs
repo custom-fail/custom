@@ -20,14 +20,17 @@ pub struct InteractionContext {
     pub custom_id: Option<String>,
     pub channel_id: Id<ChannelMarker>,
     pub member: Option<PartialMember>,
-    pub user: Option<User>,
+    pub user: User,
     pub resolved: CommandInteractionDataResolved,
     pub target_id: Option<Id<GenericMarker>>,
     pub guild_id: Option<Id<GuildMarker>>
 }
 
 impl InteractionContext {
-    pub fn from_command_data(command: Box<ApplicationCommand>, subcommands: (Vec<String>, String)) -> Self {
+    pub fn from_command_data(
+        command: Box<ApplicationCommand>,
+        subcommands: (Vec<String>, String)
+    ) -> Result<Self, Error> {
 
         let mut command_options = HashMap::new();
 
@@ -35,15 +38,13 @@ impl InteractionContext {
             command_options.insert(name, value);
         }
 
-        let user = match command.member.clone() {
-            Some(value) => match value.user {
-                Some(user) => Some(user),
-                None => command.user
-            }
-            None => command.user
-        };
+        let user = command.member.as_ref()
+            .map(|member| member.user.to_owned())
+            .flatten()
+            .or(command.user)
+            .ok_or("Cannot get information about executor")?;
 
-        Self {
+        Ok(Self {
             options: command_options,
             command_vec: subcommands.0,
             command_text: subcommands.1,
@@ -61,16 +62,19 @@ impl InteractionContext {
             }),
             target_id: command.data.target_id,
             guild_id: command.guild_id
-        }
+        })
 
     }
 
-    pub async fn from_message_component_interaction(interaction: Box<MessageComponentInteraction>, application: Application) -> Result<Self, Error> {
+    pub async fn from_message_component_interaction(
+        interaction: Box<MessageComponentInteraction>,
+        application: &Application
+    ) -> Result<Self, Error> {
 
         let id_vec = interaction.data.custom_id.split(':').collect::<Vec<&str>>();
         let command_id = id_vec.get(2).ok_or("There is no command data")?.to_string();
 
-        let application_component = application.find_component(command_id).await
+        let application_component = application.find_component(&command_id).await
             .ok_or("There is no component with matching id")?;
 
         let name = application_component.command;
@@ -91,13 +95,11 @@ impl InteractionContext {
             options.insert(key, value);
         }
 
-        let user = match interaction.member.clone() {
-            Some(value) => match value.user {
-                Some(user) => Some(user),
-                None => interaction.user
-            }
-            None => interaction.user
-        }.ok_or("Cannot get information about executor")?;
+        let user = interaction.member.as_ref()
+            .map(|member| member.user.to_owned())
+            .flatten()
+            .or(interaction.user)
+            .ok_or("Cannot get information about executor")?;
 
         if !interaction.data.custom_id.starts_with(
             format!("a:{}", user.id).as_str()
@@ -112,7 +114,7 @@ impl InteractionContext {
             custom_id: Some(interaction.data.custom_id),
             channel_id: interaction.channel_id,
             member: interaction.member,
-            user: Some(user),
+            user,
             resolved: CommandInteractionDataResolved {
                 attachments: HashMap::new(),
                 channels: HashMap::new(),
@@ -126,12 +128,15 @@ impl InteractionContext {
         })
     }
 
-    pub async fn from_modal_submit_interaction(interaction: Box<ModalSubmitInteraction>, application: Application) -> Result<Self, Error> {
+    pub async fn from_modal_submit_interaction(
+        interaction: Box<ModalSubmitInteraction>,
+        application: &Application
+    ) -> Result<Self, Error> {
 
         let id_vec = interaction.data.custom_id.split(':').collect::<Vec<&str>>();
         let name = id_vec.get(1).ok_or("Cannot extract command from custom_ids")?.to_string();
 
-        let modal = application.find_modal(name).await.ok_or("Unknown modal")?;
+        let modal = application.find_modal(&name).await.ok_or("Unknown modal")?;
 
         let mut options = HashMap::new();
 
@@ -150,13 +155,11 @@ impl InteractionContext {
             }
         }
 
-        let user = match interaction.member.clone() {
-            Some(value) => match value.user {
-                Some(user) => Some(user),
-                None => interaction.user
-            }
-            None => interaction.user
-        }.ok_or("Cannot get information about executor")?;
+        let user = interaction.member.as_ref()
+            .map(|member| member.user.to_owned())
+            .flatten()
+            .or(interaction.user)
+            .ok_or("Cannot get information about executor")?;
 
         Ok(Self {
             options,
@@ -165,7 +168,7 @@ impl InteractionContext {
             custom_id: Some(interaction.data.custom_id),
             channel_id: interaction.channel_id,
             member: interaction.member,
-            user: Some(user),
+            user,
             resolved: CommandInteractionDataResolved {
                 attachments: HashMap::new(),
                 channels: HashMap::new(),

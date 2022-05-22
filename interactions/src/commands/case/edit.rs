@@ -25,9 +25,7 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
         doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, None
     ).await.map_err(Error::from)?.ok_or("There is no case with selected id")?;
 
-    let member_id = interaction.user.ok_or("Cannot get user data")?.id;
-
-    if case.moderator_id != member_id {
+    if case.moderator_id != interaction.user.id {
         return Err(Error::from("You can't edit cases created by someone else"))
     }
 
@@ -37,7 +35,8 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
     ).ok_or("Reason type not match")?.clone();
 
     mongodb.cases.update_one(
-        doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, doc! { "$set": {"reason": reason.clone() } }, None
+        doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false },
+        doc! { "$set": {"reason": reason.clone() } }, None
     ).await.map_err(Error::from)?;
 
     case.reason = Some(reason);
