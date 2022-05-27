@@ -11,7 +11,7 @@ use twilight_model::util::datetime::Timestamp;
 use twilight_model::guild::{Member, PartialMember};
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
 use twilight_model::id::Id;
-use twilight_model::id::marker::{GuildMarker, UserMarker};
+use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
 use database::models::case::Case;
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
@@ -44,6 +44,24 @@ async fn get_target_member(
     }
 }
 
+pub fn get_highest_role_pos(
+    everyone_position: usize,
+    sorted_roles: &Vec<Id<RoleMarker>>,
+    target_roles: &Vec<Id<RoleMarker>>
+) -> usize {
+    let mut target_role_index = everyone_position;
+
+    for role in target_roles {
+        let position = sorted_roles.iter()
+            .position(|pos_role| pos_role == role)
+            .unwrap_or(everyone_position);
+
+        if target_role_index < position { target_role_index = position }
+    }
+
+    target_role_index
+}
+
 pub fn check_position(
     redis: &RedisConnection,
     guild_id: Id<GuildMarker>,
@@ -51,35 +69,20 @@ pub fn check_position(
     member: PartialMember
 ) -> Result<bool, Error> {
 
-    let moderator_role = match member.roles.first() {
-        Some(role) => role,
-        None => return Ok(false)
-    };
-
     let guild = redis.get_guild(guild_id).map_err(Error::from)?;
     let everyone_position = guild.roles.len();
 
-    let mut target_role_index = None;
-    for role in target_member.roles.to_owned() {
-        let position = guild.roles.iter()
-            .position(|pos_role| pos_role == &role)
-            .unwrap_or(everyone_position);
-        if let Some(index) = target_role_index {
-            if index < position {
-                target_role_index = Some(position);
-            }
-        } else {
-            target_role_index = Some(position);
-        }
-    }
+    let target_role_index = get_highest_role_pos(
+        everyone_position,
+        &guild.roles,
+        &target_member.roles
+    );
 
-    let target_role_index = match target_role_index {
-        Some(role) => role,
-        None => return Ok(true)
-    };
-
-    let moderator_role_index = guild.roles.iter()
-        .position(|role| role == moderator_role).unwrap_or(everyone_position);
+    let moderator_role_index = get_highest_role_pos(
+        everyone_position,
+        &guild.roles,
+        &member.roles
+    );
 
     Ok(target_role_index < moderator_role_index)
 
