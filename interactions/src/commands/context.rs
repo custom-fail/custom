@@ -39,8 +39,7 @@ impl InteractionContext {
         }
 
         let user = command.member.as_ref()
-            .map(|member| member.user.to_owned())
-            .flatten()
+            .and_then(|member| member.user.to_owned())
             .or(command.user)
             .ok_or("Cannot get information about executor")?;
 
@@ -96,8 +95,7 @@ impl InteractionContext {
         }
 
         let user = interaction.member.as_ref()
-            .map(|member| member.user.to_owned())
-            .flatten()
+            .and_then(|member| member.user.to_owned())
             .or(interaction.user)
             .ok_or("Cannot get information about executor")?;
 
@@ -156,8 +154,7 @@ impl InteractionContext {
         }
 
         let user = interaction.member.as_ref()
-            .map(|member| member.user.to_owned())
-            .flatten()
+            .and_then(|member| member.user.to_owned())
             .or(interaction.user)
             .ok_or("Cannot get information about executor")?;
 

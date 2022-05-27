@@ -23,12 +23,10 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
     ).ok_or("")?;
 
     let member = interaction.options.get("member")
-        .map(|member| check_type!(member, CommandOptionValue::User))
-        .flatten();
+        .and_then(|member| check_type!(member, CommandOptionValue::User));
 
     let filter = interaction.options.get("filter")
-        .map(|filter| check_type!(filter, CommandOptionValue::String))
-        .flatten();
+        .and_then(|filter| check_type!(filter, CommandOptionValue::String));
 
     if !(&2..=&600).contains(&amount) {
         return Err(Error::from("You can clear up to 600 messages"))

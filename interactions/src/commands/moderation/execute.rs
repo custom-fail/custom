@@ -31,10 +31,10 @@ async fn get_target_member(
     match discord_http.guild_member(guild_id, member_id).exec().await {
         Ok(value) => match value.model().await {
             Ok(member) => Ok(Some(member)),
-            Err(err) => return Err(Error::from(err))
+            Err(err) => Err(Error::from(err))
         }
         Err(err) => {
-            return match err.kind() {
+            match err.kind() {
                 ErrorType::Response { status, .. } => {
                     if status == &404 { Ok(None) } else { Err(Error::from(err)) }
                 },
@@ -46,8 +46,8 @@ async fn get_target_member(
 
 pub fn get_highest_role_pos(
     everyone_position: usize,
-    sorted_roles: &Vec<Id<RoleMarker>>,
-    target_roles: &Vec<Id<RoleMarker>>
+    sorted_roles: &[Id<RoleMarker>],
+    target_roles: &[Id<RoleMarker>]
 ) -> usize {
     let mut target_role_index = everyone_position;
 
@@ -97,7 +97,7 @@ pub async fn run(
 ) -> ResponseData {
 
     if let Some(target_user) = interaction.target_id {
-        return if *&interaction.command_text == "mute" {
+        return if interaction.command_text == "mute" {
             Ok((
                 ModalBuilder::new(format!("a:mute:{target_user}"), "Mute".to_string())
                     .add_repetitive_component(RepetitiveTextInput::Duration)
@@ -158,7 +158,7 @@ pub async fn run(
     }
 
     let mut case_duration = None;
-    if *&interaction.command_text == "mute" {
+    if interaction.command_text == "mute" {
         let duration = check_type!(
             interaction.options.get("duration").ok_or("There is no duration")?,
             CommandOptionValue::String

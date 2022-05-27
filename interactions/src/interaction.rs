@@ -11,7 +11,7 @@ use crate::{Application, Command};
 use crate::commands::context::InteractionContext;
 use crate::commands::{parse_slash_command_to_text, ResponseData};
 
-pub async fn handle_command(
+async fn handle_command(
     interaction: Interaction,
     application: Application,
     mongodb: MongoDBConnection,
@@ -57,7 +57,6 @@ pub async fn handle_command(
 
             discord_http.execute_webhook(id, &*token)
                 .payload_json(bytes_data.as_slice()).exec().await.ok();
-
         });
 
         Ok((InteractionResponseData {
