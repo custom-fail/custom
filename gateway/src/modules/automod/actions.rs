@@ -145,7 +145,7 @@ async fn timeout(
 
     let timeout_end = Utc::now().timestamp() + config.duration;
     let timestamp =
-        twilight_model::datetime::Timestamp::from_secs(timeout_end).map_err(|_| ())?;
+        twilight_model::util::datetime::Timestamp::from_secs(timeout_end).map_err(|_| ())?;
 
     discord_http
         .update_guild_member(guild_id, message.author.id)
