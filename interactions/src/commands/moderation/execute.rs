@@ -45,16 +45,15 @@ async fn get_target_member(
 }
 
 pub fn get_highest_role_pos(
-    everyone_position: usize,
     sorted_roles: &[Id<RoleMarker>],
     target_roles: &[Id<RoleMarker>]
 ) -> usize {
-    let mut target_role_index = everyone_position;
+    let mut target_role_index = 0;
 
     for role in target_roles {
         let position = sorted_roles.iter()
             .position(|pos_role| pos_role == role)
-            .unwrap_or(everyone_position);
+            .unwrap_or(0);
 
         if target_role_index < position { target_role_index = position }
     }
@@ -70,16 +69,13 @@ pub fn check_position(
 ) -> Result<bool, Error> {
 
     let guild = redis.get_guild(guild_id).map_err(Error::from)?;
-    let everyone_position = guild.roles.len();
 
     let target_role_index = get_highest_role_pos(
-        everyone_position,
         &guild.roles,
         &target_member.roles
     );
 
     let moderator_role_index = get_highest_role_pos(
-        everyone_position,
         &guild.roles,
         &member.roles
     );
