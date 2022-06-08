@@ -33,7 +33,7 @@ async fn main() {
     let discord_token = std::env::var("DISCORD_TOKEN")
         .expect("Cannot load DISCORD_TOKEN from .env");
     let discord_clients = DiscordClients::load(
-        &mongodb, discord_token, public_key
+        &mongodb, Some(discord_token), Some(public_key)
     ).await.unwrap();
 
     let application = Application::new();

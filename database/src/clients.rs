@@ -15,8 +15,8 @@ pub type DiscordClients = Arc<DashMap<Id<ApplicationMarker>, Client>>;
 pub trait LoadDiscordClients {
     async fn load(
         mongodb: &MongoDBConnection,
-        main_client_token: String,
-        main_public_key: String
+        main_client_token: Option<String>,
+        main_public_key: Option<String>
     ) -> Result<DiscordClients, Error>;
 }
 
@@ -38,8 +38,8 @@ pub struct ClientData {
 impl LoadDiscordClients for DiscordClients {
     async fn load(
         mongodb: &MongoDBConnection,
-        main_client_token: String,
-        main_public_key: String
+        main_client_token: Option<String>,
+        main_public_key: Option<String>
     ) -> Result<Self, Error> {
         let clients_data = mongodb.clients.find(doc! {}, None)
             .await.map_err(Error::from)?;
@@ -55,16 +55,24 @@ impl LoadDiscordClients for DiscordClients {
                 })
             }).collect::<Vec<(Id<ApplicationMarker>, Client)>>();
 
-        let discord_http = twilight_http::Client::new(main_client_token.to_owned());
-        let user = discord_http.current_user()
-            .exec().await.expect("Error while loading bot data")
-            .model().await.expect("Error while loading bot data");
+        if let Some(main_client_token) = main_client_token {
+            if let Some(main_public_key) = main_public_key {
 
-        clients.push((user.id.cast(), Client {
-            public_key: main_public_key,
-            http: Arc::new(discord_http),
-            token: main_client_token
-        }));
+                let discord_http = twilight_http::Client::new(main_client_token.to_owned());
+                let user = discord_http.current_user()
+                    .exec().await.expect("Error while loading bot data")
+                    .model().await.expect("Error while loading bot data");
+
+                clients.push((user.id.cast(), Client {
+                    public_key: main_public_key,
+                    http: Arc::new(discord_http),
+                    token: main_client_token
+                }));
+
+            }
+        }
+
+
 
         Ok(Arc::new(DashMap::from_iter(clients)))
     }
