@@ -12,7 +12,7 @@ use utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
+pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, config: GuildConfig) -> ResponseData {
 
     let case_id = *check_type!(
         interaction.options.get("id").ok_or("There is no case id")?,
@@ -20,7 +20,11 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
     ).ok_or("Case id type not match")?;
 
     let removed_case = mongodb.cases.find_one_and_update(
-        doc! { "index": case_id, "removed": false }, doc! { "$set": {"removed": true } }, None
+        doc! {
+            "guild_id": config.guild_id.to_string(),
+            "index": case_id,
+            "removed": false
+        }, doc! { "$set": {"removed": true } }, None
     ).await.map_err(Error::from)?.ok_or("Cannot find case with selected id")?;
 
     Ok((InteractionResponseData {
