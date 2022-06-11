@@ -9,6 +9,7 @@ use utils::errors::Error;
 use crate::clients::ClientData;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
+use crate::models::task::Task;
 use crate::redis::RedisConnection;
 
 #[derive(Clone)]
@@ -18,6 +19,7 @@ pub struct MongoDBConnection {
     pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
     pub clients: Collection<ClientData>,
+    pub tasks: Collection<Task>,
     pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>
 }
 
@@ -28,8 +30,9 @@ impl MongoDBConnection {
         let client = Client::with_uri_str(url).await?;
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
-        let cases = db.collection::<Case>("cases");
-        let clients = db.collection::<ClientData>("clients");
+        let cases = db.collection("cases");
+        let clients = db.collection("clients");
+        let tasks = db.collection("tasks");
 
         Ok(Self {
             configs_cache: Arc::new(DashMap::new()),
@@ -37,7 +40,8 @@ impl MongoDBConnection {
             cases,
             client,
             clients,
-            configs
+            configs,
+            tasks
         })
     }
 

@@ -1,9 +1,6 @@
-use database::mongodb::MongoDBConnection;
-use mongodb::bson::{DateTime, doc};
-use mongodb::options::FindOptions;
+use mongodb::bson::DateTime;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker, UserMarker};
-use utils::errors::Error;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
