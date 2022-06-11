@@ -6,11 +6,11 @@ mod application;
 
 use std::collections::HashMap;
 use std::sync::Arc;
+use database::clients::{DiscordClients, LoadDiscordClients};
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
-use ed25519_dalek::PublicKey;
 use futures::FutureExt;
 use crate::application::{Application, Component, Modal};
 use crate::commands::Command;
@@ -22,9 +22,7 @@ async fn main() {
 
     dotenv().ok();
 
-    let public_key_env = std::env::var("PUBLIC_KEY").expect("Cannot load PUBLIC_KEY from .env");
-    let pbk_bytes = hex::decode(public_key_env.as_str()).expect("Invalid public value");
-    let public_key = PublicKey::from_bytes(&pbk_bytes).expect("Unknown public key");
+    let public_key = std::env::var("PUBLIC_KEY").expect("Cannot load PUBLIC_KEY from .env");
 
     let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB_URL from .env");
     let redis_url = std::env::var("REDIS_URL").expect("Cannot load REDIS_URL from .env");
@@ -32,8 +30,11 @@ async fn main() {
     let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
     let redis = RedisConnection::connect(redis_url).unwrap();
 
-    let discord_token = std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
-    let discord_http = Arc::new(twilight_http::Client::new(discord_token));
+    let discord_token = std::env::var("DISCORD_TOKEN")
+        .expect("Cannot load DISCORD_TOKEN from .env");
+    let discord_clients = DiscordClients::load(
+        &mongodb, Some(discord_token), Some(public_key)
+    ).await.unwrap();
 
     let application = Application::new();
     application.add_commands(vec![
@@ -150,6 +151,6 @@ async fn main() {
         }
     ]).await;
 
-    server::listen(80, public_key, application, mongodb, redis, discord_http).await;
+    server::listen(80, application, mongodb, redis, discord_clients).await;
 
 }

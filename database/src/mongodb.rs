@@ -6,6 +6,7 @@ use twilight_model::channel::embed::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
 use utils::errors::Error;
+use crate::clients::ClientData;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 use crate::redis::RedisConnection;
@@ -16,6 +17,7 @@ pub struct MongoDBConnection {
     pub database: Database,
     pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
+    pub clients: Collection<ClientData>,
     pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>
 }
 
@@ -27,12 +29,14 @@ impl MongoDBConnection {
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
         let cases = db.collection::<Case>("cases");
+        let clients = db.collection::<ClientData>("clients");
 
         Ok(Self {
             configs_cache: Arc::new(DashMap::new()),
             database: db,
             cases,
             client,
+            clients,
             configs
         })
     }
