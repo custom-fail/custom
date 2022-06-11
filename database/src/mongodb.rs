@@ -106,4 +106,7 @@ impl MongoDBConnection {
         ).await.map_err(Error::from)? + 1)
     }
 
+    pub async fn create_task(&self, task: Task) -> Result<(), Error> {
+        self.tasks.insert_one(task, None).await.map(|_| ()).map_err(Error::from)
+    }
 }
