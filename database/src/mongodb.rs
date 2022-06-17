@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use dashmap::DashMap;
+use futures::TryStreamExt;
 use mongodb::{Client, Collection, Database};
-use mongodb::bson::doc;
+use mongodb::bson::{DateTime, doc};
 use twilight_model::channel::embed::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
@@ -108,5 +109,11 @@ impl MongoDBConnection {
 
     pub async fn create_task(&self, task: Task) -> Result<(), Error> {
         self.tasks.insert_one(task, None).await.map(|_| ()).map_err(Error::from)
+    }
+
+    pub async fn get_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
+        let time = DateTime::from_millis(DateTime::now().timestamp_millis() + after as i64);
+        self.tasks.find(doc! { "execute_at": { "$lt": time } }, None)
+            .await.map_err(Error::from)?.try_collect().await.map_err(Error::from)
     }
 }
