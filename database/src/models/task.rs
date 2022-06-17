@@ -5,10 +5,9 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Task {
-    execute_at: DateTime,
-    guild_id: Id<GuildMarker>,
-    application_id: Option<Id<ApplicationMarker>>,
-    action: TaskAction
+    pub execute_at: DateTime,
+    pub guild_id: Id<GuildMarker>,
+    pub action: TaskAction
 }
 
 #[derive(Serialize, Deserialize)]
