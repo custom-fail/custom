@@ -61,7 +61,7 @@ async fn main() {
     let discord_token =
         std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
 
-    let discord_clients = DiscordClients::load(
+    let (discord_clients, _) = DiscordClients::load(
         &mongodb, None, None
     ).await.unwrap();
 

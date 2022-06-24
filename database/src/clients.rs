@@ -17,7 +17,7 @@ pub trait LoadDiscordClients {
         mongodb: &MongoDBConnection,
         main_client_token: Option<String>,
         main_public_key: Option<String>
-    ) -> Result<DiscordClients, Error>;
+    ) -> Result<(DiscordClients, Option<Arc<twilight_http::Client>>), Error>;
 }
 
 #[derive(Clone)]
@@ -40,7 +40,7 @@ impl LoadDiscordClients for DiscordClients {
         mongodb: &MongoDBConnection,
         main_client_token: Option<String>,
         main_public_key: Option<String>
-    ) -> Result<Self, Error> {
+    ) -> Result<(Self, Option<Arc<twilight_http::Client>>), Error> {
         let clients_data = mongodb.clients.find(doc! {}, None)
             .await.map_err(Error::from)?;
         let clients_data: Vec<ClientData> = clients_data.try_collect().await.map_err(Error::from)?;
@@ -55,25 +55,26 @@ impl LoadDiscordClients for DiscordClients {
                 })
             }).collect::<Vec<(Id<ApplicationMarker>, Client)>>();
 
-        if let Some(main_client_token) = main_client_token {
+        let main_client = if let Some(main_client_token) = main_client_token {
             if let Some(main_public_key) = main_public_key {
+                let discord_http = Arc::new(
+                    twilight_http::Client::new(main_client_token.to_owned())
+                );
 
-                let discord_http = twilight_http::Client::new(main_client_token.to_owned());
                 let user = discord_http.current_user()
                     .exec().await.expect("Error while loading bot data")
                     .model().await.expect("Error while loading bot data");
 
                 clients.push((user.id.cast(), Client {
                     public_key: main_public_key,
-                    http: Arc::new(discord_http),
+                    http: discord_http.to_owned(),
                     token: main_client_token
                 }));
 
-            }
-        }
+                Some(discord_http)
+            } else { None }
+        } else { None };
 
-
-
-        Ok(Arc::new(DashMap::from_iter(clients)))
+        Ok((Arc::new(DashMap::from_iter(clients)), main_client))
     }
 }

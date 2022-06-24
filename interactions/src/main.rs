@@ -3,18 +3,22 @@ mod authorize;
 mod commands;
 mod interaction;
 mod application;
+mod tasks;
 
 use std::collections::HashMap;
 use std::sync::Arc;
 use database::clients::{DiscordClients, LoadDiscordClients};
 use database::models::config::GuildConfig;
+use database::models::task::{Task, TaskAction};
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use dotenv::dotenv;
 use futures::FutureExt;
+use mongodb::bson::DateTime;
 use crate::application::{Application, Component, Modal};
 use crate::commands::Command;
 use twilight_http::Client;
+use twilight_model::id::Id;
 use crate::commands::context::InteractionContext;
 
 #[tokio::main]
@@ -32,7 +36,7 @@ async fn main() {
 
     let discord_token = std::env::var("DISCORD_TOKEN")
         .expect("Cannot load DISCORD_TOKEN from .env");
-    let discord_clients = DiscordClients::load(
+    let (discord_clients, discord_http) = DiscordClients::load(
         &mongodb, Some(discord_token), Some(public_key)
     ).await.unwrap();
 
