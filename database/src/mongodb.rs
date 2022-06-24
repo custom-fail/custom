@@ -111,9 +111,12 @@ impl MongoDBConnection {
         self.tasks.insert_one(task, None).await.map(|_| ()).map_err(Error::from)
     }
 
-    pub async fn get_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
+    pub async fn get_and_delete_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
         let time = DateTime::from_millis(DateTime::now().timestamp_millis() + after as i64);
-        self.tasks.find(doc! { "execute_at": { "$lt": time } }, None)
-            .await.map_err(Error::from)?.try_collect().await.map_err(Error::from)
+        let filter = doc! { "execute_at": { "$lt": time } };
+        let tasks = self.tasks.find(filter.to_owned(), None)
+            .await.map_err(Error::from)?.try_collect().await.map_err(Error::from);
+        self.tasks.delete_many(filter, None).await.map_err(Error::from)?;
+        tasks
     }
 }
