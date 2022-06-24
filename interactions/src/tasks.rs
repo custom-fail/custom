@@ -26,7 +26,10 @@ pub async fn interval(
         let tasks = mongodb.get_and_delete_future_tasks(60 * 1000).await;
 
         if let Ok(tasks) = tasks {
-            println!("Loaded {} tasks", tasks.len());
+            if !tasks.is_empty() {
+                println!("Loaded {} tasks", tasks.len())
+            };
+
             for task in tasks {
                 let guild_config = ok_or_skip!(mongodb.get_config(task.guild_id).await, Ok);
                 let guild_discord_http = guild_config.application_id
