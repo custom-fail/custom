@@ -1,6 +1,6 @@
 use mongodb::bson::DateTime;
 use twilight_model::id::Id;
-use twilight_model::id::marker::{ApplicationMarker, GuildMarker, UserMarker};
+use twilight_model::id::marker::{GuildMarker, UserMarker};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
