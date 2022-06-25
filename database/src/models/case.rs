@@ -25,6 +25,31 @@ pub struct Case {
     pub index: u16
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(from = "u8", into = "u8")]
+pub enum CaseActionType {
+    Warn,
+    Mute,
+    Unmute,
+    Ban,
+    Unban,
+    Kick,
+    Timeout,
+    Unknown(u8)
+}
+
+impl From<u8> for CaseActionType {
+    fn from(_: u8) -> Self {
+        todo!("From u8 to action type")
+    }
+}
+
+impl From<CaseActionType> for u8 {
+    fn from(_: CaseActionType) -> Self {
+        todo!("From action type to u8")
+    }
+}
+
 fn action_type_to_string(action: u8) -> String {
     match action {
         1 => "Warn",
