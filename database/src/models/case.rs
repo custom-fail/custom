@@ -57,8 +57,10 @@ impl Case {
     }
 
     pub async fn to_embed(&self, discord_http: Arc<Client>) -> Result<Embed, Error> {
-        let moderator = discord_http.user(self.moderator_id)
-            .exec().await.map_err(Error::from)?.model().await.ok();
+        let moderator = match discord_http.user(self.moderator_id).exec().await {
+            Ok(moderator) => moderator.model().await.ok(),
+            Err(_) => None
+        };
 
         let embed_author = moderator.map(|moderator| {
             let avatar = get_avatar_url(moderator.avatar, moderator.id);
