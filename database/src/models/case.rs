@@ -38,21 +38,6 @@ pub enum CaseActionType {
     Unknown(u8)
 }
 
-// impl From<CaseActionType> for String {
-//     fn from(action_type: CaseActionType) -> Self {
-//         match action_type {
-//             CaseActionType::Warn => "Warn",
-//             CaseActionType::Mute => "Mute",
-//             CaseActionType::Unmute => "Unmute",
-//             CaseActionType::Ban => "Ban",
-//             CaseActionType::Unban => "Unban",
-//             CaseActionType::Kick => "Kick",
-//             CaseActionType::Timeout => "Timeout",
-//             CaseActionType::Unknown(_) => "Unknown"
-//         }.to_string()
-//     }
-// }
-
 impl From<u8> for CaseActionType {
     fn from(action_type: u8) -> Self {
         match action_type {
