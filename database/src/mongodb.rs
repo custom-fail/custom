@@ -1,7 +1,8 @@
 use std::sync::Arc;
 use dashmap::DashMap;
+use futures::TryStreamExt;
 use mongodb::{Client, Collection, Database};
-use mongodb::bson::doc;
+use mongodb::bson::{DateTime, doc};
 use twilight_model::channel::embed::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
@@ -9,6 +10,7 @@ use utils::errors::Error;
 use crate::clients::ClientData;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
+use crate::models::task::Task;
 use crate::redis::RedisConnection;
 
 #[derive(Clone)]
@@ -18,6 +20,7 @@ pub struct MongoDBConnection {
     pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
     pub clients: Collection<ClientData>,
+    pub tasks: Collection<Task>,
     pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>
 }
 
@@ -28,8 +31,9 @@ impl MongoDBConnection {
         let client = Client::with_uri_str(url).await?;
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
-        let cases = db.collection::<Case>("cases");
-        let clients = db.collection::<ClientData>("clients");
+        let cases = db.collection("cases");
+        let clients = db.collection("clients");
+        let tasks = db.collection("tasks");
 
         Ok(Self {
             configs_cache: Arc::new(DashMap::new()),
@@ -37,7 +41,8 @@ impl MongoDBConnection {
             cases,
             client,
             clients,
-            configs
+            configs,
+            tasks
         })
     }
 
@@ -102,4 +107,16 @@ impl MongoDBConnection {
         ).await.map_err(Error::from)? + 1)
     }
 
+    pub async fn create_task(&self, task: Task) -> Result<(), Error> {
+        self.tasks.insert_one(task, None).await.map(|_| ()).map_err(Error::from)
+    }
+
+    pub async fn get_and_delete_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
+        let time = DateTime::from_millis(DateTime::now().timestamp_millis() + after as i64);
+        let filter = doc! { "execute_at": { "$lt": time } };
+        let tasks = self.tasks.find(filter.to_owned(), None)
+            .await.map_err(Error::from)?.try_collect().await.map_err(Error::from);
+        self.tasks.delete_many(filter, None).await.map_err(Error::from)?;
+        tasks
+    }
 }

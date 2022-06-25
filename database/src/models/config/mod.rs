@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
-use twilight_model::id::marker::GuildMarker;
+use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use crate::models::config::activity::{Levels, Top};
 use crate::models::config::automod::bucket::BucketActions;
 use crate::models::config::moderation::Moderation;
@@ -13,6 +13,7 @@ pub mod automod;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildConfig {
     pub guild_id: Id<GuildMarker>,
+    pub application_id: Option<Id<ApplicationMarker>>,
     pub enabled: HashMap<String, bool>,
     pub moderation: Moderation,
     pub premium: bool,
@@ -24,6 +25,7 @@ impl GuildConfig {
     pub fn default(guild_id: Id<GuildMarker>) -> Self {
         Self {
             guild_id,
+            application_id: None,
             enabled: HashMap::new(),
             moderation: Moderation {
                 mute_type: 0,

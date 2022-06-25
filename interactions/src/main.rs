@@ -3,6 +3,7 @@ mod authorize;
 mod commands;
 mod interaction;
 mod application;
+mod tasks;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -32,9 +33,15 @@ async fn main() {
 
     let discord_token = std::env::var("DISCORD_TOKEN")
         .expect("Cannot load DISCORD_TOKEN from .env");
-    let discord_clients = DiscordClients::load(
+    let (discord_clients, discord_http) = DiscordClients::load(
         &mongodb, Some(discord_token), Some(public_key)
     ).await.unwrap();
+
+    tasks::run(
+        mongodb.to_owned(),
+        discord_clients.to_owned(),
+        discord_http.unwrap()
+    );
 
     let application = Application::new();
     application.add_commands(vec![
