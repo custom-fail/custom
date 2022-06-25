@@ -12,7 +12,7 @@ use twilight_model::guild::{Member, PartialMember};
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
-use database::models::case::Case;
+use database::models::case::{Case, CaseActionType};
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
@@ -132,10 +132,10 @@ pub async fn run(
     }.cloned();
 
     let case_type = match interaction.command_text.as_str() {
-        "mute" => 7,
-        "warn" => 1,
-        "ban" => 4,
-        "kick" => 6,
+        "warn" => CaseActionType::Warn,
+        "mute" => CaseActionType::Mute,
+        "kick" => CaseActionType::Kick,
+        "ban" => CaseActionType::Ban,
         _ => return Err(Error::from("Invalid action"))
     };
 
