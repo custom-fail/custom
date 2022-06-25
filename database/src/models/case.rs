@@ -39,8 +39,17 @@ pub enum CaseActionType {
 }
 
 impl From<u8> for CaseActionType {
-    fn from(_: u8) -> Self {
-        todo!("From u8 to action type")
+    fn from(action_type: u8) -> Self {
+        match action_type {
+            1 => CaseActionType::Warn,
+            2 => CaseActionType::Mute,
+            3 => CaseActionType::Unmute,
+            4 => CaseActionType::Ban,
+            5 => CaseActionType::Unban,
+            6 => CaseActionType::Kick,
+            7 => CaseActionType::Timeout,
+            _ => CaseActionType::Unknown(action_type)
+        }
     }
 }
 
