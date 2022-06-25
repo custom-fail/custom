@@ -54,8 +54,17 @@ impl From<u8> for CaseActionType {
 }
 
 impl From<CaseActionType> for u8 {
-    fn from(_: CaseActionType) -> Self {
-        todo!("From action type to u8")
+    fn from(action_type: CaseActionType) -> Self {
+        match action_type {
+            CaseActionType::Warn => 1,
+            CaseActionType::Mute => 2,
+            CaseActionType::Unmute => 3,
+            CaseActionType::Ban => 4,
+            CaseActionType::Unban => 5,
+            CaseActionType::Kick => 6,
+            CaseActionType::Timeout => 7,
+            CaseActionType::Unknown(action_type) => action_type
+        }
     }
 }
 
