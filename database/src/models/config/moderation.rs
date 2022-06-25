@@ -12,9 +12,18 @@ pub enum Ignore {
     User(Id<UserMarker>)
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[repr(u8)]
+pub enum MuteMode {
+    DependOnCommand = 1,
+    Timeout = 2,
+    Role = 3
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Moderation {
-    pub mute_type: u8,
+    pub mute_mode: MuteMode,
+    pub mute_role: Option<Id<RoleMarker>>,
     pub native_support: bool,
     pub logs_channel: Option<Id<ChannelMarker>>,
     pub dm_case: bool,
