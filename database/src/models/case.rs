@@ -18,7 +18,7 @@ pub struct Case {
     pub created_at: DateTime,
     pub guild_id: Id<GuildMarker>,
     pub member_id: Id<UserMarker>,
-    pub action: u8,
+    pub action: CaseActionType,
     pub reason: Option<String>,
     pub removed: bool,
     pub duration: Option<i64>,
@@ -37,6 +37,21 @@ pub enum CaseActionType {
     Timeout,
     Unknown(u8)
 }
+
+// impl From<CaseActionType> for String {
+//     fn from(action_type: CaseActionType) -> Self {
+//         match action_type {
+//             CaseActionType::Warn => "Warn",
+//             CaseActionType::Mute => "Mute",
+//             CaseActionType::Unmute => "Unmute",
+//             CaseActionType::Ban => "Ban",
+//             CaseActionType::Unban => "Unban",
+//             CaseActionType::Kick => "Kick",
+//             CaseActionType::Timeout => "Timeout",
+//             CaseActionType::Unknown(_) => "Unknown"
+//         }.to_string()
+//     }
+// }
 
 impl From<u8> for CaseActionType {
     fn from(action_type: u8) -> Self {
@@ -66,19 +81,6 @@ impl From<CaseActionType> for u8 {
             CaseActionType::Unknown(action_type) => action_type
         }
     }
-}
-
-fn action_type_to_string(action: u8) -> String {
-    match action {
-        1 => "Warn",
-        2 => "Mute",
-        3 => "Unmute",
-        4 => "Ban",
-        5 => "Unban",
-        6 => "Kick",
-        7 => "Timeout",
-        _ => "Unknown"
-    }.to_string()
 }
 
 impl Case {
@@ -127,12 +129,11 @@ impl Case {
     }
 
     pub fn to_empty_embed(&self, member: bool, moderator: bool) -> Result<Embed, TimestampParseError> {
-
         let timestamp = Timestamp::from_secs(self.created_at.timestamp_millis() / 1000)?;
 
         let mut description = format!(
-            "Action:** {}{}\n**Reason:** {}",
-            action_type_to_string(self.action),
+            "Action:** {:?}{}\n**Reason:** {}",
+            self.action,
             self.duration.map(|duration| format!(
                 "\n**Duration:** {}", format_duration(StdDuration::from_secs(duration as u64))
             )).unwrap_or_else(|| "".to_string()),
@@ -167,19 +168,14 @@ impl Case {
             url: None,
             video: None
         })
-
     }
 
     pub fn to_field(&self) -> EmbedField {
-
-        let action = action_type_to_string(self.action);
         let reason = self.reason.to_owned().unwrap_or_else(|| "None".to_string());
-
         EmbedField {
             inline: false,
-            name: format!("**Case #{} - {}**", self.index, action),
+            name: format!("**Case #{} - {:?}**", self.index, self.action),
             value: reason
         }
-
     }
 }
