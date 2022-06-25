@@ -87,26 +87,25 @@ impl Case {
     }
 
     pub async fn to_embed(&self, discord_http: Arc<Client>) -> Result<Embed, Error> {
-        let moderator_member = discord_http.guild_member(self.guild_id, self.moderator_id)
-            .exec().await.map_err(Error::from)?.model().await.ok();
+        let moderator = match discord_http.user(self.moderator_id).exec().await {
+            Ok(moderator) => moderator.model().await.ok(),
+            Err(_) => None
+        };
 
-        let embed_author = match moderator_member {
-            Some(moderator) => {
-                let avatar = get_avatar_url(moderator.user.avatar, moderator.user.id);
-                EmbedAuthor {
-                    icon_url: Some(avatar.clone()),
-                    name: format!("{}#{} {}", moderator.user.name, moderator.user.discriminator, moderator.user.id),
-                    proxy_icon_url: None,
-                    url: None
-                }
-            },
-            None => EmbedAuthor {
-                icon_url: Some(DEFAULT_AVATAR.to_string()),
-                name: "Unknown#0000".to_string(),
-                proxy_icon_url: Some(DEFAULT_AVATAR.to_string()),
+        let embed_author = moderator.map(|moderator| {
+            let avatar = get_avatar_url(moderator.avatar, moderator.id);
+            EmbedAuthor {
+                icon_url: Some(avatar.clone()),
+                name: format!("{}#{} {}", moderator.name, moderator.discriminator, moderator.id),
+                proxy_icon_url: None,
                 url: None
             }
-        };
+        }).unwrap_or(EmbedAuthor {
+            icon_url: Some(DEFAULT_AVATAR.to_string()),
+            name: "Unknown#0000".to_string(),
+            proxy_icon_url: Some(DEFAULT_AVATAR.to_string()),
+            url: None
+        });
 
         let mut embed = self.to_empty_embed(true, false).map_err(Error::from)?;
         embed.author = Some(embed_author);
