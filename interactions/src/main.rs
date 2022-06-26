@@ -52,6 +52,7 @@ async fn main() {
         command!("case last", "moderation", crate::commands::case::last::run),
         command!("case list", "moderation", crate::commands::case::list::run),
 
+        command!("timeout", "moderation", crate::commands::moderation::execute::run),
         command!("kick", "moderation", crate::commands::moderation::execute::run),
         command!("mute", "moderation", crate::commands::moderation::execute::run),
         command!("warn", "moderation", crate::commands::moderation::execute::run),
@@ -111,6 +112,15 @@ async fn main() {
             ]),
             command: "mute".to_string(),
             id: "mute".to_string()
+        },
+        Modal {
+            options: vec![("member".to_string(), "User".to_string())],
+            inputs: HashMap::from([
+                ("duration".to_string(), "String".to_string()),
+                ("reason".to_string(), "String".to_string())
+            ]),
+            command: "timeout".to_string(),
+            id: "timeout".to_string()
         },
         Modal {
             options: vec![("member".to_string(), "User".to_string())],

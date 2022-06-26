@@ -4,7 +4,7 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use crate::models::config::activity::{Levels, Top};
 use crate::models::config::automod::bucket::BucketActions;
-use crate::models::config::moderation::Moderation;
+use crate::models::config::moderation::{Moderation, MuteMode};
 
 pub mod moderation;
 pub mod activity;
@@ -28,7 +28,8 @@ impl GuildConfig {
             application_id: None,
             enabled: HashMap::new(),
             moderation: Moderation {
-                mute_type: 0,
+                mute_mode: MuteMode::Timeout,
+                mute_role: None,
                 native_support: false,
                 logs_channel: None,
                 dm_case: false,

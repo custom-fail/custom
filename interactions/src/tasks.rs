@@ -7,6 +7,8 @@ use database::mongodb::MongoDBConnection;
 use mongodb::bson::DateTime;
 use tokio::time::Instant;
 use twilight_http::Client;
+use twilight_model::id::Id;
+use twilight_model::id::marker::RoleMarker;
 use utils::ok_or_skip;
 
 pub fn run(
@@ -46,16 +48,28 @@ pub async fn interval(
     };
 }
 
-pub async fn execute_task(task: Task, _: GuildConfig, _: Arc<Client>) {
+pub async fn execute_task(task: Task, config: GuildConfig, discord_http: Arc<Client>) {
     let execute_in = u64::try_from(
         task.execute_at.timestamp_millis() - DateTime::now().timestamp_millis()
     ).unwrap_or(0); // If number is negative set it to 0 (execute it now)
     tokio::time::sleep_until(Instant::now() + Duration::from_millis(execute_in)).await;
 
+    run_action(task, config, discord_http).await.ok();
+}
+
+pub async fn run_action(task: Task, config: GuildConfig, discord_http: Arc<Client>) -> Result<(), ()> {
     match task.action {
-        TaskAction::RemoveMuteRole(_) => {
-            todo!("New muting system")
+        TaskAction::RemoveMuteRole(member_id) => {
+            let member = discord_http.guild_member(config.guild_id, member_id)
+                .exec().await.map_err(|_| ())?.model().await.map_err(|_| ())?;
+
+            let mute_role = config.moderation.mute_role.ok_or(())?;
+            let roles_without_mute_role = member.roles.iter()
+                .filter(|role| role != &&mute_role).cloned().collect::<Vec<Id<RoleMarker>>>();
+
+            discord_http.update_guild_member(config.guild_id, member_id)
+                .roles(&roles_without_mute_role).exec().await.map_err(|_| ())?;
         }
     };
-
+    Ok(())
 }

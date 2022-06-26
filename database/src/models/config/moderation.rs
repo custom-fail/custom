@@ -4,6 +4,7 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, RoleMarker, UserMarker};
 use crate::models::config::automod::AutoModeratorV2;
 use crate::models::config::automod::bucket::BucketActions;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Ignore {
@@ -12,9 +13,18 @@ pub enum Ignore {
     User(Id<UserMarker>)
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq)]
+#[repr(u8)]
+pub enum MuteMode {
+    DependOnCommand = 1,
+    Timeout = 2,
+    Role = 3
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Moderation {
-    pub mute_type: u8,
+    pub mute_mode: MuteMode,
+    pub mute_role: Option<Id<RoleMarker>>,
     pub native_support: bool,
     pub logs_channel: Option<Id<ChannelMarker>>,
     pub dm_case: bool,

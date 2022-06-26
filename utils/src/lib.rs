@@ -4,3 +4,4 @@ pub mod embeds;
 pub mod errors;
 pub mod avatars;
 pub mod uppercase;
+pub mod constants;
