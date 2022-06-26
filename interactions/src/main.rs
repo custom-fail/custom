@@ -52,6 +52,7 @@ async fn main() {
         command!("case last", "moderation", crate::commands::case::last::run),
         command!("case list", "moderation", crate::commands::case::list::run),
 
+        command!("timeout", "moderation", crate::commands::moderation::execute::run),
         command!("kick", "moderation", crate::commands::moderation::execute::run),
         command!("mute", "moderation", crate::commands::moderation::execute::run),
         command!("warn", "moderation", crate::commands::moderation::execute::run),

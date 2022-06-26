@@ -133,7 +133,7 @@ pub async fn run(
 
     let case_type = match interaction.command_text.as_str() {
         "warn" => CaseActionType::Warn,
-        "mute" => CaseActionType::Mute,
+        "timeout" | "mute" => CaseActionType::Mute,
         "kick" => CaseActionType::Kick,
         "ban" => CaseActionType::Ban,
         _ => return Err(Error::from("Invalid action"))
