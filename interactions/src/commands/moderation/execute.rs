@@ -19,6 +19,7 @@ use database::models::task::{Task, TaskAction};
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use utils::check_type;
+use utils::constants::duration::{DAY, MINUTE};
 use utils::errors::Error;
 use utils::modals::{ModalBuilder, RepetitiveTextInput};
 use utils::uppercase::FirstLetterToUpperCase;
@@ -183,12 +184,16 @@ pub async fn run(
                 .exec().await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         } else {
+            let duration_millis = duration.as_millis() as usize;
+            if duration_millis < MINUTE || duration_millis > DAY * 90 {
+                return Err(Error::from("Mutes in the role mode must be for min `1m` and max `90d`"))
+            }
+
             let mut roles = target_member
                 .ok_or("You can mute only user that are in server")?.roles;
-
-            let role = config.moderation.mute_role
+            let mute_role = config.moderation.mute_role
                 .ok_or("There is no role for muted users set")?;
-            roles.push(role);
+            roles.push(mute_role);
 
             discord_http.update_guild_member(config.guild_id, target_id)
                 .roles(&roles).exec().await.map_err(Error::from)?;
