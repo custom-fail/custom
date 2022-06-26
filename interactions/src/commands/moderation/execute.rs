@@ -14,6 +14,8 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
 use database::models::case::{Case, CaseActionType};
 use database::models::config::GuildConfig;
+use database::models::config::moderation::MuteMode;
+use database::models::task::{Task, TaskAction};
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
 use utils::check_type;
@@ -64,7 +66,7 @@ pub fn get_highest_role_pos(
 pub fn check_position(
     redis: &RedisConnection,
     guild_id: Id<GuildMarker>,
-    target_member: Member,
+    target_member: &Member,
     member: PartialMember
 ) -> Result<bool, Error> {
 
@@ -91,7 +93,6 @@ pub async fn run(
     discord_http: Arc<Client>,
     config: GuildConfig
 ) -> ResponseData {
-
     if let Some(target_user) = interaction.target_id {
         return if interaction.command_text == "mute" {
             Ok((
@@ -133,28 +134,35 @@ pub async fn run(
 
     let case_type = match interaction.command_text.as_str() {
         "warn" => CaseActionType::Warn,
-        "timeout" | "mute" => CaseActionType::Mute,
+        "timeout" | "mute" => {
+            match config.moderation.mute_mode {
+                MuteMode::Timeout => CaseActionType::Timeout,
+                MuteMode::Role => CaseActionType::Mute,
+                MuteMode::DependOnCommand => {
+                    if interaction.command_text == "mute" { CaseActionType::Mute }
+                    else { CaseActionType::Timeout }
+                }
+            }
+        },
         "kick" => CaseActionType::Kick,
         "ban" => CaseActionType::Ban,
         _ => return Err(Error::from("Invalid action"))
     };
 
-    if target_id != interaction.user.id {
-        let target_member = get_target_member(
-            &discord_http, guild_id, target_id
-        ).await.map_err(Error::from)?;
+    let target_member = get_target_member(
+        &discord_http, guild_id, target_id
+    ).await.map_err(Error::from)?;
 
-        if let Some(target_member) = target_member {
-            if !check_position(&redis, guild_id, target_member, member)? {
-                return Err(
-                    Error::from("Missing Permissions: Cannot execute moderation action on user with higher role")
-                )
-            }
+    if let Some(target_member) = &target_member {
+        if !check_position(&redis, guild_id, target_member, member)? {
+            return Err(
+                Error::from("Missing Permissions: Cannot execute moderation action on user with higher role")
+            )
         }
     }
 
     let mut case_duration = None;
-    if interaction.command_text == "mute" {
+    if [CaseActionType::Mute, CaseActionType::Timeout].contains(&case_type) {
         let duration = check_type!(
             interaction.options.get("duration").ok_or("There is no duration")?,
             CommandOptionValue::String
@@ -167,13 +175,31 @@ pub async fn run(
         let timestamp = Timestamp::from_secs(end_at).ok();
         case_duration = Some(duration.as_secs() as i64);
 
-        discord_http
-            .update_guild_member(guild_id, target_id)
-            .communication_disabled_until(timestamp)
-            .map_err(Error::from)?
-            .exec().await.map_err(Error::from)?
-            .model().await.map_err(Error::from)?;
-    }
+        if case_type == CaseActionType::Timeout {
+            discord_http
+                .update_guild_member(guild_id, target_id)
+                .communication_disabled_until(timestamp)
+                .map_err(Error::from)?
+                .exec().await.map_err(Error::from)?
+                .model().await.map_err(Error::from)?;
+        } else {
+            let mut roles = target_member
+                .ok_or("You can mute only user that are in server")?.roles;
+
+            let role = config.moderation.mute_role
+                .ok_or("There is no role for muted users set")?;
+            roles.push(role);
+
+            discord_http.update_guild_member(config.guild_id, target_id)
+                .roles(&roles).exec().await.map_err(Error::from)?;
+
+            mongodb.create_task(Task {
+                execute_at: DateTime::from_millis(end_at * 1000),
+                guild_id,
+                action: TaskAction::RemoveMuteRole(target_id)
+            }).await?;
+        }
+    };
 
     let index = mongodb.get_next_case_index(guild_id).await? as u16;
 
@@ -222,5 +248,4 @@ pub async fn run(
         title: None,
         tts: None
     }, None))
-
 }
