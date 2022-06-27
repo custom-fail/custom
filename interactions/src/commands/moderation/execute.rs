@@ -69,18 +69,19 @@ pub async fn run(
     }
 
     let duration = get_command_string_option(interaction.options.get("duration"));
+
     let duration = match duration {
         Some(duration) => {
             let duration = Duration::from_str(duration.as_str())
                 .map_err(|_| "Invalid duration string (try 3m, 10s, 2d)")?;
-            Some(duration)
+            let end_at = Utc::now().timestamp() + (duration.as_secs() as i64);
+            Some((duration, end_at))
         }
         None => None
     };
 
     if [CaseActionType::Mute, CaseActionType::Timeout].contains(&case_type) {
-        let duration = duration.ok_or("Duration is required to mute user")?;
-        let end_at = Utc::now().timestamp() + (duration.as_secs() as i64);
+        let (duration, end_at) = duration.ok_or("Duration is required to mute user")?;
         let timestamp = Timestamp::from_secs(end_at).ok();
 
         if case_type == CaseActionType::Timeout {
@@ -121,7 +122,7 @@ pub async fn run(
         action: case_type,
         reason,
         removed: false,
-        duration: duration.map(|d| d.as_secs() as i64),
+        duration: duration.map(|(d, _)| d.as_secs() as i64),
         index
     };
 
@@ -130,6 +131,13 @@ pub async fn run(
             discord_http.remove_guild_member(guild_id, target_id).exec().await.err()
         },
         "ban" => {
+            if let Some((_, end_at)) = duration {
+                mongodb.create_task(Task {
+                    execute_at: DateTime::from_millis(end_at * 1000),
+                    guild_id,
+                    action: TaskAction::RemoveBan(target_id)
+                }).await?;
+            };
             discord_http.create_ban(guild_id, target_id).exec().await.err()
         },
         _ => None
@@ -194,7 +202,9 @@ fn create_modal(command_name: String, target_id: Id<GenericMarker>) -> ModalBuil
     );
 
     let modal = if ["mute", "timeout"].contains(&&*command_name) {
-        modal.add_repetitive_component(RepetitiveTextInput::Duration)
+        modal.add_repetitive_component(RepetitiveTextInput::Duration(true))
+    } else if "ban" == &*command_name {
+        modal.add_repetitive_component(RepetitiveTextInput::Duration(false))
     } else { modal };
 
     modal.add_repetitive_component(RepetitiveTextInput::Reason)
