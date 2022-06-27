@@ -12,7 +12,7 @@ use crate::{Bucket, ScamLinks};
 use self::filters::filters_match;
 use self::checks::checks_match;
 
-fn is_ignored(message: &Message, ignores: &Vec<Ignore>) -> bool {
+fn is_ignored(message: &Message, ignores: &[Ignore]) -> bool {
 
     let member = match message.member.to_owned() {
         Some(member) => member,
@@ -51,28 +51,30 @@ pub async fn run(
 
     if is_ignored(&message, &guild_config.moderation.automod_ignore) { return Ok(()) }
 
-    for automod in guild_config.moderation.automod.to_owned() {
+    for automod in &guild_config.moderation.automod {
 
         if is_ignored(&message, &automod.ignore) { continue }
 
-        for filter in automod.filters {
-            let is_filtered = filters_match(filter, message.to_owned());
+        for filter in &automod.filters {
+            let is_filtered = filters_match(filter, &message);
             if is_filtered { return Ok(()) }
         }
 
-        for check in automod.checks {
-            let is_allowed = checks_match(check, message.content.to_owned(), scam_domains.to_owned()).await?;
+        for check in &automod.checks {
+            let is_allowed = checks_match(
+                check, &message.content, &scam_domains
+            ).await?;
             if !is_allowed { return Ok(()) }
         }
 
-        for action in automod.actions {
+        for action in &automod.actions {
             run_action(
                 action,
-                message.to_owned(),
-                discord_http.to_owned(),
-                bucket.to_owned(),
+                &message,
+                &discord_http,
+                &bucket,
                 &guild_config,
-                automod.reason.to_owned(),
+                &automod.reason,
             ).await.ok();
         }
 

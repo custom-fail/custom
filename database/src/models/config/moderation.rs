@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, RoleMarker, UserMarker};
 use crate::models::config::automod::AutoModeratorRule;
-use crate::models::config::automod::bucket::BucketActions;
+use crate::models::config::automod::bucket::BucketAction;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -29,7 +29,7 @@ pub struct Moderation {
     pub logs_channel: Option<Id<ChannelMarker>>,
     pub dm_case: bool,
     pub automod_logs: Option<Id<ChannelMarker>>,
-    pub bucket_actions: HashMap<String, BucketActions>,
+    pub bucket_actions: HashMap<String, BucketAction>,
     pub automod: Vec<AutoModeratorRule>,
     pub automod_ignore: Vec<Ignore>
 }
