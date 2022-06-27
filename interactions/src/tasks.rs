@@ -70,6 +70,9 @@ pub async fn run_action(task: Task, config: GuildConfig, discord_http: Arc<Clien
             discord_http.update_guild_member(config.guild_id, member_id)
                 .roles(&roles_without_mute_role).exec().await.map_err(|_| ())?;
         }
+        TaskAction::RemoveBan(member_id) => {
+            discord_http.delete_ban(config.guild_id, member_id).exec().await.map_err(|_| ())?;
+        }
     };
     Ok(())
 }

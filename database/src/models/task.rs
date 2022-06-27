@@ -12,5 +12,6 @@ pub struct Task {
 
 #[derive(Serialize, Deserialize)]
 pub enum TaskAction {
-    RemoveMuteRole(Id<UserMarker>)
+    RemoveMuteRole(Id<UserMarker>),
+    RemoveBan(Id<UserMarker>)
 }
