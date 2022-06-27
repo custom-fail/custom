@@ -28,22 +28,22 @@ fn text_lines(config: &TextLines, message_content: &str) -> bool {
     let split = message_content.len() / line_len;
     let lines = enters + split;
 
-    (if let Some(min) = config.min {
-        lines > (min as usize)
-    } else { true }) && (if let Some(max) = config.max {
-        lines < (max as usize)
-    } else { true })
+    min_max_checks(
+        config.min.map(usize::from),
+        config.max.map(usize::from),
+        lines
+    )
 }
 
 fn caps_lock(config: &CapsLock, message_content: &str) -> bool {
     let uppercase = message_content.chars().filter(|c| c.is_uppercase()).count();
     let uppercase_part = uppercase * 100 / message_content.len();
 
-    (if let Some(min) = config.min {
-        uppercase_part > (min as usize)
-    } else { true }) && (if let Some(max) = config.max {
-        uppercase_part < (max as usize)
-    } else { true })
+    min_max_checks(
+        config.min.map(usize::from),
+        config.max.map(usize::from),
+        uppercase_part
+    )
 }
 
 fn invites(config: &Invites, message_content: &str) -> Result<bool, ()> {
@@ -68,6 +68,14 @@ fn regex(config: &Regex, message_content: &str) -> Result<bool, ()> {
     let regex = regex::Regex::new(&*config.regex).map_err(|_| ())?;
     let is_matching = regex.is_match(message_content);
     Ok((is_matching && config.is_matching) || (!is_matching && !config.is_matching))
+}
+
+fn min_max_checks(min: Option<usize>, max: Option<usize>, count: usize) -> bool {
+    (if let Some(min) = min {
+        count > min
+    } else { true }) && (if let Some(max) = max {
+        count < max
+    } else { true })
 }
 
 #[cfg(test)]

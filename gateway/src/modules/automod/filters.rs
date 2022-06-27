@@ -10,7 +10,7 @@ pub fn filters_match(filter: &Filter, message: &Message) -> bool {
 }
 
 fn attachments(config: &Attachments, message: &Message) -> bool {
-    min_max(
+    min_max_filters(
         config.min.map(usize::from),
         config.max.map(usize::from),
         message.attachments.len()
@@ -18,7 +18,7 @@ fn attachments(config: &Attachments, message: &Message) -> bool {
 }
 
 fn message_length(config: &MessageLength, message: &Message) -> bool {
-    min_max(
+    min_max_filters(
         config.min.map(usize::from),
         config.max.map(usize::from),
         message.content.len()
@@ -27,7 +27,7 @@ fn message_length(config: &MessageLength, message: &Message) -> bool {
 
 fn stickers(message: &Message) -> bool { !message.sticker_items.is_empty() }
 
-fn min_max(min: Option<usize>, max: Option<usize>, count: usize) -> bool {
+fn min_max_filters(min: Option<usize>, max: Option<usize>, count: usize) -> bool {
     (if let Some(min) = min {
         (min as usize) > count
     } else { false }) || (if let Some(max) = max {
