@@ -1,5 +1,5 @@
 use chrono::Utc;
-use database::models::config::automod::actions::{Actions, Timeout};
+use database::models::config::automod::actions::{Action, Timeout};
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::channel::embed::{Embed, EmbedAuthor};
@@ -14,7 +14,7 @@ use crate::Bucket;
 const CUSTOM_AVATAR: &str = "https://cdn.discordapp.com/attachments/941277994935263302/951521815082180608/713880061635330110.gif";
 
 pub async fn run_action_bucket(
-    action: &Actions,
+    action: &Action,
     message: &Message,
     discord_http: &Arc<Client>,
     guild_config: &GuildConfig,
@@ -22,12 +22,12 @@ pub async fn run_action_bucket(
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
     match action {
-        Actions::DirectMessage => send_direct_message(message, discord_http, reason).await,
-        Actions::DeleteMessage => delete_message(message, discord_http).await,
-        Actions::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
-        Actions::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
-        Actions::Kick => kick(guild_id, message, discord_http).await,
-        Actions::Ban => ban(guild_id, message, discord_http).await,
+        Action::DirectMessage => send_direct_message(message, discord_http, reason).await,
+        Action::DeleteMessage => delete_message(message, discord_http).await,
+        Action::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
+        Action::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
+        Action::Kick => kick(guild_id, message, discord_http).await,
+        Action::Ban => ban(guild_id, message, discord_http).await,
         _ => Ok(())
     }?;
 
@@ -35,7 +35,7 @@ pub async fn run_action_bucket(
 }
 
 pub async fn run_action(
-    action: &Actions,
+    action: &Action,
     message: &Message,
     discord_http: &Arc<Client>,
     bucket: &Bucket,
@@ -44,13 +44,13 @@ pub async fn run_action(
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
     match action {
-        Actions::DirectMessage => send_direct_message(message, discord_http, reason).await,
-        Actions::IncreaseBucket(key) => increase_bucket(message, discord_http, bucket, guild_config, key).await,
-        Actions::DeleteMessage => delete_message(message, discord_http).await,
-        Actions::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
-        Actions::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
-        Actions::Kick => kick(guild_id, message, discord_http).await,
-        Actions::Ban => ban(guild_id, message, discord_http).await
+        Action::DirectMessage => send_direct_message(message, discord_http, reason).await,
+        Action::IncreaseBucket(key) => increase_bucket(message, discord_http, bucket, guild_config, key).await,
+        Action::DeleteMessage => delete_message(message, discord_http).await,
+        Action::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
+        Action::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
+        Action::Kick => kick(guild_id, message, discord_http).await,
+        Action::Ban => ban(guild_id, message, discord_http).await
     }?;
 
     Ok(())
@@ -153,7 +153,6 @@ async fn timeout(
     discord_http: &Arc<Client>,
     config: &Timeout
 ) -> Result<(), ()> {
-
     let timeout_end = Utc::now().timestamp() + config.duration;
     let timestamp = Timestamp::from_secs(timeout_end).map_err(|_| ())?;
 
@@ -163,7 +162,6 @@ async fn timeout(
         .map_err(|_| ())?.exec().await.map_err(|_| ())?;
 
     Ok(())
-
 }
 
 async fn kick(

@@ -1,19 +1,18 @@
-use database::models::config::automod::checks::{CapsLock, Checks, Invites, Regex, TextLines};
+use database::models::config::automod::checks::{CapsLock, Check, Invites, Regex, TextLines};
 use utils::ok_or_skip_without_clone;
 use crate::ScamLinks;
 
-pub async fn checks_match(check: &Checks, message_content: &str, scam_domains: &ScamLinks) -> Result<bool, ()> {
+pub async fn checks_match(check: &Check, message_content: &str, scam_domains: &ScamLinks) -> Result<bool, ()> {
     match check {
-        Checks::FlaggedScamLink => flagged_scam_link(message_content, scam_domains).await,
-        Checks::TextLines(config) => Ok(text_lines(config, message_content)),
-        Checks::CapsLock(config) => Ok(caps_lock(config, message_content)),
-        Checks::Invites(config) => invites(config, message_content),
-        Checks::Regex(config) => regex(config, message_content)
+        Check::FlaggedScamLink => flagged_scam_link(message_content, scam_domains).await,
+        Check::TextLines(config) => Ok(text_lines(config, message_content)),
+        Check::CapsLock(config) => Ok(caps_lock(config, message_content)),
+        Check::Invites(config) => invites(config, message_content),
+        Check::Regex(config) => regex(config, message_content)
     }
 }
 
 async fn flagged_scam_link(message_content: &str, scam_domains: &ScamLinks) -> Result<bool, ()> {
-
     let domains = regex::Regex::new(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]").map_err(|_| ())?;
 
     let message_content = message_content.to_lowercase();
@@ -21,11 +20,9 @@ async fn flagged_scam_link(message_content: &str, scam_domains: &ScamLinks) -> R
     let domains = domains.find_iter(message_content.as_str());
     let domains = domains.map(|domain| domain.as_str().to_string()).collect();
     Ok(scam_domains.contains(domains).await)
-
 }
 
 fn text_lines(config: &TextLines, message_content: &str) -> bool {
-
     let enters = message_content.lines().count();
     let line_len = if let Some(len) = config.line_len { len as usize } else { 120 };
     let split = message_content.len() / line_len;
@@ -36,11 +33,9 @@ fn text_lines(config: &TextLines, message_content: &str) -> bool {
     } else { true }) && (if let Some(max) = config.max {
         lines < (max as usize)
     } else { true })
-
 }
 
 fn caps_lock(config: &CapsLock, message_content: &str) -> bool {
-
     let uppercase = message_content.chars().filter(|c| c.is_uppercase()).count();
     let uppercase_part = uppercase * 100 / message_content.len();
 
@@ -49,11 +44,9 @@ fn caps_lock(config: &CapsLock, message_content: &str) -> bool {
     } else { true }) && (if let Some(max) = config.max {
         uppercase_part < (max as usize)
     } else { true })
-
 }
 
 fn invites(config: &Invites, message_content: &str) -> Result<bool, ()> {
-
     let invites = regex::Regex::new(r"(?i)(discord.gg|discordapp.com/invite|discord.com/invite)(?:/#)?/([a-zA-Z0-9-]+)").map_err(|_| ())?;
 
     let message_content = message_content.to_lowercase();
@@ -67,16 +60,14 @@ fn invites(config: &Invites, message_content: &str) -> Result<bool, ()> {
             break;
         }
     }
-    Ok(contains)
 
+    Ok(contains)
 }
 
 fn regex(config: &Regex, message_content: &str) -> Result<bool, ()> {
-
     let regex = regex::Regex::new(&*config.regex).map_err(|_| ())?;
     let is_matching = regex.is_match(message_content);
     Ok((is_matching && config.is_matching) || (!is_matching && !config.is_matching))
-
 }
 
 #[cfg(test)]

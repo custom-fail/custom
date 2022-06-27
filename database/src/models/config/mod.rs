@@ -55,6 +55,5 @@ impl GuildConfig {
     pub fn get_bucket_action(&self, key: &String) -> Option<BucketAction> {
         self.moderation.bucket_actions.get(key.as_str()).cloned()
     }
-
 }
 

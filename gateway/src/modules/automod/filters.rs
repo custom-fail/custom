@@ -1,11 +1,11 @@
 use twilight_model::channel::Message;
-use database::models::config::automod::filters::{Attachments, Filters, MessageLength};
+use database::models::config::automod::filters::{Attachments, Filter, MessageLength};
 
-pub fn filters_match(filter: &Filters, message: &Message) -> bool {
+pub fn filters_match(filter: &Filter, message: &Message) -> bool {
     match filter {
-        Filters::Attachments(config) => attachments(config, message),
-        Filters::MessageLength(config) => message_length(config, message),
-        Filters::Stickers => stickers(message)
+        Filter::Attachments(config) => attachments(config, message),
+        Filter::MessageLength(config) => message_length(config, message),
+        Filter::Stickers => stickers(message)
     }
 }
 

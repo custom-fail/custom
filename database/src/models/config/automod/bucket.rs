@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 use twilight_model::channel::Message;
-use crate::models::config::automod::actions::Actions;
+use crate::models::config::automod::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "count")]
@@ -20,7 +20,7 @@ pub struct MentionsCount {
 pub struct BucketAction {
     pub attached_rule_name: String,
     pub amount: IncreaseBucketAmount,
-    pub actions: Vec<Actions>,
+    pub actions: Vec<Action>,
     pub reason: String,
     /// minimal value required to run action
     pub min: u8

@@ -1,7 +1,7 @@
-use crate::models::config::automod::actions::Actions;
-use crate::models::config::automod::filters::Filters;
+use crate::models::config::automod::actions::Action;
+use crate::models::config::automod::filters::Filter;
 use serde::{Serialize, Deserialize};
-use crate::models::config::automod::checks::Checks;
+use crate::models::config::automod::checks::Check;
 use crate::models::config::moderation::Ignore;
 use serde_repr::{Serialize_repr, Deserialize_repr};
 
@@ -22,9 +22,9 @@ pub enum BasicAutoModerationRule {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AutoModeratorRule {
     pub basic_type: Option<BasicAutoModerationRule>,
-    pub filters: Vec<Filters>,
-    pub checks: Vec<Checks>,
-    pub actions: Vec<Actions>,
+    pub filters: Vec<Filter>,
+    pub checks: Vec<Check>,
+    pub actions: Vec<Action>,
     pub ignore: Vec<Ignore>,
     pub reason: String,
     pub name: String
