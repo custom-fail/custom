@@ -17,6 +17,9 @@ pub async fn on_event(
         Event::MemberAdd(event) => {
             crate::modules::restore::mutes::run(event, mongodb, discord_http).await.ok();
         }
+        Event::BanRemove(event) => {
+            crate::modules::restore::bans::run(event, mongodb).await.ok();
+        }
         Event::MessageCreate(event) => {
             let message = event.as_ref().0.to_owned();
             crate::modules::automod::run(message.clone(), mongodb.clone(), discord_http, scam_domains, bucket).await.ok();
