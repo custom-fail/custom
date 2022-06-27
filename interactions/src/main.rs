@@ -124,7 +124,10 @@ async fn main() {
         },
         Modal {
             options: vec![("member".to_string(), "User".to_string())],
-            inputs: HashMap::from([("reason".to_string(), "String".to_string())]),
+            inputs: HashMap::from([
+                ("duration".to_string(), "String".to_string()),
+                ("reason".to_string(), "String".to_string())
+            ]),
             command: "ban".to_string(),
             id: "ban".to_string()
         },
@@ -161,6 +164,7 @@ async fn main() {
             options: vec![],
             inputs: HashMap::from([
                 ("member".to_string(), "User".to_string()),
+                ("duration".to_string(), "String".to_string()),
                 ("reason".to_string(), "String".to_string())
             ]),
             command: "ban".to_string(),

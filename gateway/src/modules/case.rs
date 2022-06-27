@@ -37,9 +37,9 @@ pub async fn run(
     if action_target_id.to_string() != target_id.to_string() {
         return Err(());
     };
-
     let created_at = action.id.timestamp();
-    let ping = created_at / 1000 - event_at;
+    let ping = event_at - created_at / 1000;
+
     if ping > 2 {
         return Err(());
     }

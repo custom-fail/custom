@@ -25,7 +25,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
     } else if *action == "mute" {
         ModalBuilder::new("a:mute-d".to_string(), "Mute".to_string())
             .add_repetitive_component(RepetitiveTextInput::Member)
-            .add_repetitive_component(RepetitiveTextInput::Duration)
+            .add_repetitive_component(RepetitiveTextInput::Duration(true))
             .add_repetitive_component(RepetitiveTextInput::Reason)
     } else if *action == "kick" {
         ModalBuilder::new("a:kick-d".to_string(), "Kick".to_string())
@@ -34,6 +34,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
     } else if *action == "ban" {
         ModalBuilder::new("a:ban-d".to_string(), "Ban".to_string())
             .add_repetitive_component(RepetitiveTextInput::Member)
+            .add_repetitive_component(RepetitiveTextInput::Duration(false))
             .add_repetitive_component(RepetitiveTextInput::Reason)
     } else { return Err(Error::from("Unknown action")) };
 

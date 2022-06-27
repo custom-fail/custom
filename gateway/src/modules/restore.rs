@@ -1,4 +1,4 @@
-// Give mute role after rejoin
+/// Gives mute role after rejoin
 pub mod mutes {
     use std::sync::Arc;
     use database::mongodb::MongoDBConnection;
@@ -25,6 +25,21 @@ pub mod mutes {
 
         discord_http.update_guild_member(config.guild_id, member.user.id)
             .roles(&roles).exec().await.map_err(|_| ())?;
+        Ok(())
+    }
+}
+
+/// Remove task after unban
+pub mod bans {
+    use database::mongodb::MongoDBConnection;
+    use mongodb::bson::doc;
+    use twilight_model::gateway::payload::incoming::BanRemove;
+
+    pub async fn run(event: BanRemove, mongodb: MongoDBConnection) -> Result<(), ()> {
+        mongodb.tasks.delete_one(doc! {
+            "action": { "RemoveBan": event.user.id.to_string() },
+            "guild_id": event.guild_id.to_string()
+        }, None).await.map_err(|_| ())?;
         Ok(())
     }
 }

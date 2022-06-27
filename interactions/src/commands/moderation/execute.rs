@@ -48,14 +48,9 @@ pub async fn run(
         CommandOptionValue::User
     ).ok_or("Member id type not match")?;
 
-    let reason = match interaction.options.get("reason") {
-        Some(CommandOptionValue::String(value)) => {
-            if value.is_empty() { None }
-            else { Some(value) }
-        },
-        Some(_) => None,
-        None => None
-    }.cloned();
+    let reason = get_command_string_option(
+        interaction.options.get("reason")
+    ).cloned();
 
     let case_type = command_to_action_type(
         interaction.command_text.as_str(), &config
@@ -73,19 +68,21 @@ pub async fn run(
         }
     }
 
-    let mut case_duration = None;
+    let duration = get_command_string_option(interaction.options.get("duration"));
+
+    let duration = match duration {
+        Some(duration) => {
+            let duration = Duration::from_str(duration.as_str())
+                .map_err(|_| "Invalid duration string (try 3m, 10s, 2d)")?;
+            let end_at = Utc::now().timestamp() + (duration.as_secs() as i64);
+            Some((duration, end_at))
+        }
+        None => None
+    };
+
     if [CaseActionType::Mute, CaseActionType::Timeout].contains(&case_type) {
-        let duration = check_type!(
-            interaction.options.get("duration").ok_or("There is no duration")?,
-            CommandOptionValue::String
-        ).ok_or("Duration type not match")?.to_owned();
-
-        let duration = Duration::from_str(duration.as_str())
-            .map_err(|_| "Invalid duration string (try 3m, 10s, 2d)")?;
-        let end_at = Utc::now().timestamp() + (duration.as_secs() as i64);
-
+        let (duration, end_at) = duration.ok_or("Duration is required to mute user")?;
         let timestamp = Timestamp::from_secs(end_at).ok();
-        case_duration = Some(duration.as_secs() as i64);
 
         if case_type == CaseActionType::Timeout {
             discord_http
@@ -95,7 +92,6 @@ pub async fn run(
                 .exec().await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         } else {
-
             if !verify_mute_duration(duration) {
                 return Err(Error::from("Mutes in the role mode must be for min `1m` and max `90d`"))
             }
@@ -103,7 +99,6 @@ pub async fn run(
             let mut roles = target_member
                 .ok_or("You can mute only user server members (User left or didn't join this server)")?
                 .roles;
-
             roles.push(config.moderation.mute_role.ok_or("There is no role for muted users set")?);
 
             discord_http.update_guild_member(config.guild_id, target_id)
@@ -127,7 +122,7 @@ pub async fn run(
         action: case_type,
         reason,
         removed: false,
-        duration: case_duration,
+        duration: duration.map(|(d, _)| d.as_secs() as i64),
         index
     };
 
@@ -136,6 +131,13 @@ pub async fn run(
             discord_http.remove_guild_member(guild_id, target_id).exec().await.err()
         },
         "ban" => {
+            if let Some((_, end_at)) = duration {
+                mongodb.create_task(Task {
+                    execute_at: DateTime::from_millis(end_at * 1000),
+                    guild_id,
+                    action: TaskAction::RemoveBan(target_id)
+                }).await?;
+            };
             discord_http.create_ban(guild_id, target_id).exec().await.err()
         },
         _ => None
@@ -200,7 +202,9 @@ fn create_modal(command_name: String, target_id: Id<GenericMarker>) -> ModalBuil
     );
 
     let modal = if ["mute", "timeout"].contains(&&*command_name) {
-        modal.add_repetitive_component(RepetitiveTextInput::Duration)
+        modal.add_repetitive_component(RepetitiveTextInput::Duration(true))
+    } else if "ban" == &*command_name {
+        modal.add_repetitive_component(RepetitiveTextInput::Duration(false))
     } else { modal };
 
     modal.add_repetitive_component(RepetitiveTextInput::Reason)
@@ -230,7 +234,7 @@ async fn get_target_member(
 }
 
 /// Get the highest role from array by checking positions in the sorted array of guild roles
-pub fn get_highest_role_pos(
+fn get_highest_role_pos(
     sorted_roles: &[Id<RoleMarker>],
     target_roles: &[Id<RoleMarker>]
 ) -> usize {
@@ -245,7 +249,7 @@ pub fn get_highest_role_pos(
 }
 
 /// Checks is position of the moderator role higher then position of the target role
-pub fn check_position(
+fn check_position(
     redis: &RedisConnection,
     guild_id: Id<GuildMarker>,
     target_member: &Member,
@@ -264,4 +268,14 @@ pub fn check_position(
     );
 
     Ok(target_role_index < moderator_role_index)
+}
+
+fn get_command_string_option(value: Option<&CommandOptionValue>) -> Option<&String> {
+    match value {
+        Some(CommandOptionValue::String(value)) => {
+            if value.is_empty() { None } else { Some(value) }
+        },
+        Some(_) => None,
+        None => None
+    }
 }

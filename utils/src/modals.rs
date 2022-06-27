@@ -3,9 +3,9 @@ use twilight_model::application::component::{ActionRow, Component, TextInput};
 use twilight_model::http::interaction::InteractionResponseData;
 
 pub enum RepetitiveTextInput {
+    Duration(bool),
     Reason,
-    Member,
-    Duration
+    Member
 }
 
 pub struct ModalBuilder {
@@ -46,14 +46,14 @@ impl ModalBuilder {
                     value: None
                 })
             }
-            RepetitiveTextInput::Duration => {
+            RepetitiveTextInput::Duration(required) => {
                 self.add_custom_component(TextInput {
                     custom_id: "duration".to_string(),
                     label: "Duration".to_string(),
                     max_length: Some(21),
                     min_length: None,
                     placeholder: None,
-                    required: Some(true),
+                    required: Some(required),
                     style: TextInputStyle::Short,
                     value: None
                 })
