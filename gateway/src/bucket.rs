@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::ops::{Add};
 use std::sync::Arc;
 use std::time::Duration;
 use dashmap::DashMap;
@@ -37,7 +36,7 @@ pub async fn incr(
 
     tokio::spawn(
         timeout_at(
-            Instant::now().add(Duration::from_secs(1)),
+            Instant::now() + Duration::from_secs(bucket_data.incr_for),
             decr(bucket.to_owned(), guild_id, user_id, amount, key)
         )
     );
