@@ -22,6 +22,7 @@ pub struct BucketAction {
     pub amount: IncreaseBucketAmount,
     pub actions: Vec<Action>,
     pub reason: String,
+    pub incr_for: u64,
     /// minimal value required to run action
     pub min: u8
 }

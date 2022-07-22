@@ -118,7 +118,7 @@ async fn send_logs(
     guild_config: &GuildConfig,
     reason: &String
 ) -> Result<(), ()> {
-    let channel = guild_config.moderation.automod_logs.ok_or(())?;
+    let channel = guild_config.moderation.automod.logs_channel.ok_or(())?;
     let avatar = get_avatar_url(message.author.avatar, message.author.id);
     let embed = Embed {
         author: Some(EmbedAuthor {

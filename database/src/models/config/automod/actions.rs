@@ -14,5 +14,6 @@ pub enum Action {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Timeout {
+    /// Duration in secs
     pub duration: i64
 }
