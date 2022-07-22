@@ -3,11 +3,8 @@ use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use crate::models::config::activity::{Levels, Top};
-use crate::models::config::automod::{AutoModeration, AutoModeratorRule, BasicAutoModerationRule};
-use crate::models::config::automod::actions::{Action, Timeout};
+use crate::models::config::automod::AutoModeration;
 use crate::models::config::automod::bucket::BucketAction;
-use crate::models::config::automod::checks::Check;
-use crate::models::config::automod::ignore::{Ignore, IgnoreMode};
 use crate::models::config::moderation::{Moderation, MuteMode};
 
 pub mod moderation;
