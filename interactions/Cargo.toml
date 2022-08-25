@@ -20,3 +20,4 @@ mongodb = "2.1.0"
 utils = { path = "../utils" }
 humantime = "2.1.0"
 chrono = "0.4.19"
+async-trait = "0.1.57"
