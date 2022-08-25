@@ -28,10 +28,10 @@ async fn handle_command(
         .await.ok_or("Cannot find command")?;
 
     extract!(context.interaction, guild_id);
-    println!("{guild_id}");
+
     let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
     config.enabled.get(command.module.as_str()).ok_or("This module is disabled")?;
-    println!("nie");
+
     let execute_as_slower = application.is_slower(&command.name).await
         && context.interaction.target_id().is_none();
 

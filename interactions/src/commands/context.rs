@@ -52,7 +52,7 @@ impl TryFrom<Interaction> for InteractionContext {
         }.iter().map(|s| s.to_lowercase()).collect::<Vec<String>>();
 
         let command_text = command_vec.join(" ");
-        println!("{command_text}");
+
         Ok(Self {
             options: Default::default(),
             command_vec,
