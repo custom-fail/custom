@@ -9,24 +9,31 @@ use twilight_model::id::marker::MessageMarker;
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use utils::check_type;
 use utils::errors::Error;
 use crate::commands::ResponseData;
-use crate::InteractionContext;
+use crate::{extract, get_option, get_required_option, InteractionContext};
 
-pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
+pub async fn run(
+    context: InteractionContext,
+    _: MongoDBConnection,
+    _: RedisConnection,
+    discord_http: Arc<Client>,
+    _: GuildConfig
+) -> ResponseData {
 
-    let channel_id = interaction.channel_id;
-    let amount = check_type!(
-        interaction.options.get("amount").ok_or("There is no amount value")?,
-        CommandOptionValue::Integer
-    ).ok_or("")?;
+    extract!(context.interaction, channel_id);
 
-    let member = interaction.options.get("member")
-        .and_then(|member| check_type!(member, CommandOptionValue::User));
+    let amount = get_required_option!(
+        context.options.get("amount"), CommandOptionValue::Integer
+    );
 
-    let filter = interaction.options.get("filter")
-        .and_then(|filter| check_type!(filter, CommandOptionValue::String));
+    let member = get_option!(
+        context.options.get("member"), CommandOptionValue::User
+    ).copied();
+
+    let filter = get_option!(
+        context.options.get("member"), CommandOptionValue::String
+    );
 
     if !(&2..=&600).contains(&amount) {
         return Err(Error::from("You can clear up to 600 messages"))
@@ -56,7 +63,7 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, _: Redis
 
         if let Some(member) = member {
             messages = messages.iter()
-                .filter(|msg| &msg.author.id == member)
+                .filter(|msg| msg.author.id == member)
                 .cloned().collect::<Vec<Message>>();
         }
 
