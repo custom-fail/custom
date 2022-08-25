@@ -2,13 +2,12 @@ pub mod top;
 pub mod case;
 pub mod context;
 pub mod moderation;
+pub mod options;
 
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use twilight_http::Client;
-use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
-use twilight_model::application::interaction::application_command::{CommandData, CommandOptionValue};
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
