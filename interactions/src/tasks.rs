@@ -35,10 +35,10 @@ pub async fn interval(
             for task in tasks {
                 let guild_config = ok_or_skip!(mongodb.get_config(task.guild_id).await, Ok);
                 let guild_discord_http = guild_config.application_id
-                    .map(|id| {
+                    .and_then(|id| {
                         discord_clients.get(&id)
                             .map(|client| client.http.to_owned())
-                    }).flatten().unwrap_or_else(|| discord_http.to_owned());
+                    }).unwrap_or_else(|| discord_http.to_owned());
 
                 tokio::spawn(execute_task(task, guild_config, guild_discord_http));
             }

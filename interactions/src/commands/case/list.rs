@@ -12,13 +12,13 @@ use twilight_model::application::component::select_menu::SelectMenuOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use database::models::case::Case;
 use database::models::config::GuildConfig;
-use utils::check_type;
 use utils::errors::Error;
 use serde::{Serialize, Deserialize};
 use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedFooter};
 use utils::avatars::get_avatar_url;
-use crate::commands::context::InteractionContext;
+use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::commands::ResponseData;
+use crate::{extract, get_option, get_required_option};
 
 #[derive(Serialize, Deserialize)]
 struct ActionDocument {
@@ -33,27 +33,29 @@ struct CountActions {
 }
 
 pub async fn run(
-    interaction: InteractionContext,
+    context: InteractionContext,
     mongodb: MongoDBConnection,
     _: RedisConnection,
     _: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
-    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
-
-    let member_id = *check_type!(
-        interaction.options.get("member").ok_or("There is no member id")?,
-        CommandOptionValue::User
-    ).ok_or("Member id type not match")?;
+    let member_id = get_required_option!(
+        context.options.get("member"), CommandOptionValue::User
+    );
 
     let page = u64::try_from(
-        *check_type!(
-            interaction.options.get("page").unwrap_or(&CommandOptionValue::Integer(1)),
-            CommandOptionValue::Integer
-        ).ok_or("Case id type not match")?
+        get_option!(
+            context.options.get("page"), CommandOptionValue::Integer
+        ).copied().unwrap_or(1)
     ).map_err(|_| "Page must be u64")?;
 
-    let action_type = match interaction.options.get("type") {
+    let user_data = context.interaction.resolved()
+        .and_then(|resolved| resolved.users.get(member_id)).cloned();
+
+    extract!(context.interaction, guild_id, member);
+    extract!(member, user);
+
+    let action_type = match context.options.get("type") {
         Some(CommandOptionValue::String(value)) => {
             Some(match value.as_str() {
                 "mutes" => 7,
@@ -67,9 +69,18 @@ pub async fn run(
     };
 
     let filter = if let Some(action_type) = action_type {
-        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false, "action": (action_type as i64) }
+        doc! {
+            "member_id": member_id.to_string(),
+            "guild_id": guild_id.to_string(),
+            "removed": false,
+            "action": (action_type as i64)
+        }
     } else {
-        doc! { "member_id": member_id.to_string(), "guild_id": guild_id.to_string(), "removed": false }
+        doc! {
+            "member_id": member_id.to_string(),
+            "guild_id": guild_id.to_string(),
+            "removed": false
+        }
     };
 
     let case_list = mongodb.cases.find(
@@ -103,7 +114,6 @@ pub async fn run(
     let mut footer = vec![];
 
     while let Some(result) = count.next().await {
-
         let result = result.map_err(Error::from)?;
         let result: CountActions = bson::from_document(result).map_err(Error::from)?;
 
@@ -120,10 +130,9 @@ pub async fn run(
             6 => "Kicks",
             _ => "???"
         }, result.count));
-
     }
 
-    let author = if let Some(user) = interaction.resolved.users.get(&member_id) {
+    let author = if let Some(user) = user_data {
         let avatar = get_avatar_url(user.avatar, user.id);
         EmbedAuthor {
             icon_url: Some(avatar.to_owned()),
@@ -184,7 +193,7 @@ pub async fn run(
             Component::ActionRow(ActionRow {
                 components: vec![
                     Component::SelectMenu(SelectMenu {
-                        custom_id: format!("a:{}:cl:{member_id}", interaction.user.id),
+                        custom_id: format!("a:{}:cl:{member_id}", user.id),
                         disabled: false,
                         max_values: Some(1),
                         min_values: Some(1),

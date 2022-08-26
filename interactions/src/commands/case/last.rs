@@ -6,19 +6,24 @@ use twilight_model::application::interaction::application_command::CommandOption
 use database::models::config::GuildConfig;
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use utils::check_type;
 use utils::embeds::interaction_response_data_from_embed;
 use utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
+use crate::{extract, get_required_option, get_option};
 
-pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _: RedisConnection, discord_http: Arc<Client>, _: GuildConfig) -> ResponseData {
+pub async fn run(
+    context: InteractionContext,
+    mongodb: MongoDBConnection,
+    _: RedisConnection,
+    discord_http: Arc<Client>,
+    _: GuildConfig
+) -> ResponseData {
+    extract!(context.interaction, guild_id);
 
-    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
-    let member_id = *check_type!(
-        interaction.options.get("member").ok_or("There is no member id")?,
-        CommandOptionValue::User
-    ).ok_or("Member id type not match")?;
+    let member_id = *get_required_option!(
+        context.options.get("member"), CommandOptionValue::User
+    );
 
     let case = mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "member_id": member_id.to_string(), "removed": false },
@@ -28,5 +33,4 @@ pub async fn run(interaction: InteractionContext, mongodb: MongoDBConnection, _:
     Ok((interaction_response_data_from_embed(
         case.to_embed(discord_http).await?, false
     ), None))
-
 }

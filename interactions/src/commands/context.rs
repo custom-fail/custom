@@ -1,211 +1,111 @@
 use std::collections::HashMap;
-use std::str::FromStr;
-use twilight_model::application::interaction::application_command::{CommandDataOption, CommandInteractionDataResolved, CommandOptionValue};
-use twilight_model::application::interaction::application_command::CommandOptionValue::{SubCommand, SubCommandGroup};
-use twilight_model::application::interaction::{ApplicationCommand, MessageComponentInteraction};
-use twilight_model::application::interaction::modal::ModalSubmitInteraction;
-use twilight_model::guild::PartialMember;
+use twilight_model::application::interaction::application_command::{CommandDataOption, CommandInteractionDataResolved};
+use twilight_model::application::interaction::application_command::CommandOptionValue;
+use twilight_model::application::interaction::{Interaction, InteractionData};
 use twilight_model::id::Id;
-use twilight_model::id::marker::{ChannelMarker, GenericMarker, GuildMarker};
-use twilight_model::user::User;
-use utils::{ok_or_break, ok_or_skip};
+use twilight_model::id::marker::GenericMarker;
 use utils::errors::Error;
-use crate::Application;
 
-#[derive(Debug, Clone)]
+#[macro_export]
+macro_rules! extract {
+    (&$t: expr, $($value: ident),*) => {
+        $(
+            let $value = $t.$value.as_ref().ok_or(
+                format!("Missing value {}.{}", stringify!($t), stringify!($value))
+            )?;
+        )*
+    };
+    ($t: expr, $($value: ident),*) => {
+        $(
+            let $value = $t.$value.ok_or(
+                format!("Missing value {}.{}", stringify!($t), stringify!($value))
+            )?;
+        )*
+    };
+}
+
 pub struct InteractionContext {
-    pub options: HashMap<String, CommandOptionValue>,
     pub command_vec: Vec<String>,
     pub command_text: String,
-    pub custom_id: Option<String>,
-    pub channel_id: Id<ChannelMarker>,
-    pub member: Option<PartialMember>,
-    pub user: User,
-    pub resolved: CommandInteractionDataResolved,
-    pub target_id: Option<Id<GenericMarker>>,
-    pub guild_id: Option<Id<GuildMarker>>
+    pub options: HashMap<String, CommandOptionValue>,
+    pub interaction: Interaction
 }
 
-impl InteractionContext {
-    pub fn from_command_data(
-        command: Box<ApplicationCommand>,
-        subcommands: (Vec<String>, String)
-    ) -> Result<Self, Error> {
+impl TryFrom<Interaction> for InteractionContext {
+    type Error = Error;
 
-        let mut command_options = HashMap::new();
+    fn try_from(interaction: Interaction) -> Result<Self, Error> {
+        extract!(&interaction, data);
 
-        for (name, value) in parse_options_to_value(command.data.options) {
-            command_options.insert(name, value);
-        }
-
-        let user = command.member.as_ref()
-            .and_then(|member| member.user.to_owned())
-            .or(command.user)
-            .ok_or("Cannot get information about executor")?;
-
-        Ok(Self {
-            options: command_options,
-            command_vec: subcommands.0,
-            command_text: subcommands.1,
-            custom_id: None,
-            channel_id: command.channel_id,
-            member: command.member.clone(),
-            user,
-            resolved: command.data.resolved.unwrap_or(CommandInteractionDataResolved {
-                attachments: HashMap::new(),
-                channels: HashMap::new(),
-                members: HashMap::new(),
-                messages: HashMap::new(),
-                roles: HashMap::new(),
-                users: HashMap::new()
-            }),
-            target_id: command.data.target_id,
-            guild_id: command.guild_id
-        })
-
-    }
-
-    pub async fn from_message_component_interaction(
-        interaction: Box<MessageComponentInteraction>,
-        application: &Application
-    ) -> Result<Self, Error> {
-
-        let id_vec = interaction.data.custom_id.split(':').collect::<Vec<&str>>();
-        let command_id = id_vec.get(2).ok_or("There is no command data")?.to_string();
-
-        let application_component = application.find_component(&command_id).await
-            .ok_or("There is no component with matching id")?;
-
-        let name = application_component.command;
-
-        let mut options = HashMap::new();
-
-        for i in 0..application_component.options.len() {
-            let value = ok_or_break!(id_vec.get(i + 3), Some);
-            let (key, kind) = application_component.options[i].clone();
-            let value = convert_value_to_option(value.to_string(), kind)?;
-            options.insert(key, value);
-        }
-
-        for i in 0..application_component.values.len() {
-            let value = ok_or_break!(interaction.data.values.get(i), Some);
-            let (key, kind) = application_component.values[i].clone();
-            let value = convert_value_to_option(value.to_string(), kind)?;
-            options.insert(key, value);
-        }
-
-        let user = interaction.member.as_ref()
-            .and_then(|member| member.user.to_owned())
-            .or(interaction.user)
-            .ok_or("Cannot get information about executor")?;
-
-        if !interaction.data.custom_id.starts_with(
-            format!("a:{}", user.id).as_str()
-        ) && !interaction.data.custom_id.starts_with("a:*") {
-            return Err(Error::from("This place is not dedicated for you :eyes:"))
-        }
-
-        Ok(Self {
-            options,
-            command_vec: vec![name.clone()],
-            command_text: name,
-            custom_id: Some(interaction.data.custom_id),
-            channel_id: interaction.channel_id,
-            member: interaction.member,
-            user,
-            resolved: CommandInteractionDataResolved {
-                attachments: HashMap::new(),
-                channels: HashMap::new(),
-                members: HashMap::new(),
-                messages: HashMap::new(),
-                roles: HashMap::new(),
-                users: HashMap::new()
-            },
-            target_id: None,
-            guild_id: interaction.guild_id
-        })
-    }
-
-    pub async fn from_modal_submit_interaction(
-        interaction: Box<ModalSubmitInteraction>,
-        application: &Application
-    ) -> Result<Self, Error> {
-
-        let id_vec = interaction.data.custom_id.split(':').collect::<Vec<&str>>();
-        let name = id_vec.get(1).ok_or("Cannot extract command from custom_ids")?.to_string();
-
-        let modal = application.find_modal(&name).await.ok_or("Unknown modal")?;
-
-        let mut options = HashMap::new();
-
-        for i in 0..modal.options.len() {
-            let value = ok_or_break!(id_vec.get(i + 2), Some);
-            let (key, kind) = modal.options[i].clone();
-            let value = convert_value_to_option(value.to_string(), kind)?;
-            options.insert(key, value);
-        }
-
-        for action_row in interaction.data.components {
-            for text_input in action_row.components {
-                let kind = ok_or_skip!(modal.inputs.get(text_input.custom_id.as_str()), Some);
-                let value = convert_value_to_option(text_input.value, kind)?;
-                options.insert(text_input.custom_id, value);
+        let command_vec = match data {
+            InteractionData::ApplicationCommand(data) => {
+                get_command_vec_from_application_command(
+                    data.name.to_owned(), data.options.to_owned()
+                )
             }
-        }
+            InteractionData::MessageComponent(data) => {
+                vec![get_command_from_id(&data.custom_id).ok_or("Invalid custom_id")?]
+            }
+            InteractionData::ModalSubmit(data) => {
+                vec![get_command_from_id(&data.custom_id).ok_or("Invalid custom_id")?]
+            }
+        }.iter().map(|s| s.to_lowercase()).collect::<Vec<String>>();
 
-        let user = interaction.member.as_ref()
-            .and_then(|member| member.user.to_owned())
-            .or(interaction.user)
-            .ok_or("Cannot get information about executor")?;
+        let command_text = command_vec.join(" ");
 
         Ok(Self {
-            options,
-            command_vec: vec![modal.command.clone()],
-            command_text: modal.command,
-            custom_id: Some(interaction.data.custom_id),
-            channel_id: interaction.channel_id,
-            member: interaction.member,
-            user,
-            resolved: CommandInteractionDataResolved {
-                attachments: HashMap::new(),
-                channels: HashMap::new(),
-                members: HashMap::new(),
-                messages: HashMap::new(),
-                roles: HashMap::new(),
-                users: HashMap::new()
-            },
-            target_id: None,
-            guild_id: interaction.guild_id
+            options: Default::default(),
+            command_vec,
+            command_text,
+            interaction
         })
     }
 }
 
-fn convert_value_to_option(value: String, kind: String) -> Result<CommandOptionValue, Error> {
-    Ok(if kind == "String" {
-        CommandOptionValue::String(value)
-    } else if kind == "Boolean" {
-        CommandOptionValue::Boolean(value == "true")
-    } else if kind == "Integer" {
-        CommandOptionValue::Integer(
-            value.parse::<i64>().map_err(|_| "Invalid option type".to_string())?
-        )
-    } else if kind == "User" {
-        CommandOptionValue::User(
-            Id::from_str(value.as_str()).map_err(|_| "Invalid option type".to_string())?
-        )
-    } else { return Err(Error::from("Invalid option type")) })
+fn get_command_from_id(custom_id: &str) -> Option<String> {
+    let id_parts = custom_id.split(':').collect::<Vec<&str>>();
+    id_parts.get(2).map(|d| d.to_string())
 }
 
-fn parse_options_to_value(command_data_options: Vec<CommandDataOption>) -> Vec<(String, CommandOptionValue)> {
-    command_data_options.iter().map(|command_data_option| {
-        match command_data_option.value.clone() {
-            SubCommand(command) => {
-                parse_options_to_value(command)
-            }
-            SubCommandGroup(command) => {
-                parse_options_to_value(command)
-            }
-            _ => Vec::from([(command_data_option.name.clone(), command_data_option.value.clone())])
+fn get_command_vec_from_application_command(name: String, options: Vec<CommandDataOption>) -> Vec<String> {
+    options.get(0).map(|data| {
+        let mut command_vec = vec![name.to_owned()];
+        push_subcommands_names(&mut command_vec, data.to_owned());
+        command_vec
+    }).unwrap_or_else(|| vec![name.to_owned()])
+}
+
+fn push_subcommands_names(before: &mut Vec<String>, data: CommandDataOption) {
+    let subcommand_value = match data.value {
+        CommandOptionValue::SubCommandGroup(value) => Some(value),
+        CommandOptionValue::SubCommand(value) => Some(value),
+        _ => None
+    };
+
+    if let Some(options) = subcommand_value {
+        before.push(data.name);
+        let option = options.get(0).cloned();
+        if let Some(option) = option {
+            push_subcommands_names(before, option);
         }
-    }).collect::<Vec<Vec<(String, CommandOptionValue)>>>().concat()
+    }
+}
+
+pub trait InteractionHelpers {
+    fn resolved(&self) -> Option<&CommandInteractionDataResolved>;
+    fn target_id(&self) -> Option<Id<GenericMarker>>;
+}
+
+impl InteractionHelpers for Interaction {
+    fn resolved(&self) -> Option<&CommandInteractionDataResolved> {
+        if let Some(InteractionData::ApplicationCommand(data)) = &self.data {
+            data.resolved.as_ref()
+        } else { None }
+    }
+
+    fn target_id(&self) -> Option<Id<GenericMarker>> {
+        if let Some(InteractionData::ApplicationCommand(data)) = &self.data {
+            data.target_id.as_ref().copied()
+        } else { None }
+    }
 }

@@ -58,10 +58,10 @@ async fn route(
     let signature = request.headers().get("X-Signature-Ed25519");
 
     let timestamp = string_from_headers_option(timestamp)
-        .ok_or(MISSING_HEADERS.to_response())?;
+        .ok_or_else(|| MISSING_HEADERS.to_response())?;
 
     let signature = string_from_headers_option(signature)
-        .ok_or(MISSING_HEADERS.to_response())?;
+        .ok_or_else(|| MISSING_HEADERS.to_response())?;
 
     let whole_body = hyper::body::to_bytes(request.into_body()).await;
     let whole_body = whole_body.map_err(|_| INVALID_BODY.to_response())?;
@@ -72,9 +72,9 @@ async fn route(
     let interaction = serde_json::from_str::<Interaction>(body.as_str())
         .map_err(|_| INVALID_BODY.to_response())?;
 
-    let application_id = interaction.application_id();
-    let client = discord_clients.get(&application_id)
-        .ok_or(UNAUTHORIZED.to_response())?;
+    let client = discord_clients.get(
+        &interaction.application_id
+    ).ok_or_else(|| UNAUTHORIZED.to_response())?;
 
     let pbk_bytes = hex::decode(client.public_key.as_str())
         .map_err(|_| INTERNAL_SERVER_ERROR.to_response())?;

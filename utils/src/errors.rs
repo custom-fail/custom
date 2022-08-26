@@ -22,7 +22,7 @@ impl From<&str> for Error {
     }
 }
 
-impl From<redis::RedisError> for Error {
+impl From<RedisError> for Error {
     fn from(error: RedisError) -> Self {
         Self::Debug(vec![format!("{:?}", error)])
     }

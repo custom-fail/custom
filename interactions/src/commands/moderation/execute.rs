@@ -18,43 +18,44 @@ use database::models::config::moderation::MuteMode;
 use database::models::task::{Task, TaskAction};
 use database::mongodb::MongoDBConnection;
 use database::redis::RedisConnection;
-use utils::check_type;
 use utils::constants::duration::{DAY, MINUTE};
 use utils::errors::Error;
 use utils::modals::{ModalBuilder, RepetitiveTextInput};
 use utils::uppercase::FirstLetterToUpperCase;
 use crate::commands::ResponseData;
-use crate::InteractionContext;
+use crate::{extract, get_option, get_required_option, InteractionContext};
+use crate::commands::context::InteractionHelpers;
 
 pub async fn run(
-    interaction: InteractionContext,
+    context: InteractionContext,
     mongodb: MongoDBConnection,
     redis: RedisConnection,
     discord_http: Arc<Client>,
     config: GuildConfig
 ) -> ResponseData {
-    if let Some(target_user) = interaction.target_id {
+    if let Some(target_user) = context.interaction.target_id() {
         let response = create_modal(
-            interaction.command_text, target_user
+            context.command_text, target_user
         ).to_interaction_response_data();
         return Ok((response, Some(InteractionResponseType::Modal)))
     }
 
-    let guild_id = interaction.guild_id.ok_or("This command is guild only")?;
-    let member = interaction.member.ok_or("This command is guild only")?;
+    extract!(context.interaction, guild_id, member);
+    extract!(&member, user);
 
-    let target_id = *check_type!(
-        interaction.options.get("member").ok_or("There is no member id")?,
-        CommandOptionValue::User
-    ).ok_or("Member id type not match")?;
+    let user_id = user.id;
 
-    let reason = get_command_string_option(
-        interaction.options.get("reason")
+    let target_id = *get_required_option!(
+        context.options.get("member"), CommandOptionValue::User
+    );
+
+    let reason = get_option!(
+        context.options.get("reason"), CommandOptionValue::String
     ).cloned();
 
     let case_type = command_to_action_type(
-        interaction.command_text.as_str(), &config
-    ).ok_or("Cannot find action type matching command name")?;
+        context.command_text.as_str(), &config
+    ).ok_or("Cannot find any action type matching command name")?;
 
     let target_member = get_target_member(
         &discord_http, guild_id, target_id
@@ -68,7 +69,9 @@ pub async fn run(
         }
     }
 
-    let duration = get_command_string_option(interaction.options.get("duration"));
+    let duration = get_option!(
+        context.options.get("duration"), CommandOptionValue::String
+    );
 
     let duration = match duration {
         Some(duration) => {
@@ -115,7 +118,7 @@ pub async fn run(
     let index = mongodb.get_next_case_index(guild_id).await? as u16;
 
     let case = Case {
-        moderator_id: interaction.user.id,
+        moderator_id: user_id,
         created_at: DateTime::now(),
         guild_id,
         member_id: target_id,
@@ -126,7 +129,7 @@ pub async fn run(
         index
     };
 
-    let result_action = match interaction.command_text.as_str() {
+    let result_action = match context.command_text.as_str() {
         "kick" => {
             discord_http.remove_guild_member(guild_id, target_id).exec().await.err()
         },
@@ -268,14 +271,4 @@ fn check_position(
     );
 
     Ok(target_role_index < moderator_role_index)
-}
-
-fn get_command_string_option(value: Option<&CommandOptionValue>) -> Option<&String> {
-    match value {
-        Some(CommandOptionValue::String(value)) => {
-            if value.is_empty() { None } else { Some(value) }
-        },
-        Some(_) => None,
-        None => None
-    }
 }

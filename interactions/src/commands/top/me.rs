@@ -7,19 +7,26 @@ use utils::embeds::EmbedBuilder;
 use utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
+use crate::extract;
 
-pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: RedisConnection, _: Arc<Client>, _: GuildConfig) -> ResponseData {
+pub async fn run(
+    context: InteractionContext,
+    _: MongoDBConnection,
+    redis: RedisConnection,
+    _: Arc<Client>,
+    _: GuildConfig
+) -> ResponseData {
+    extract!(context.interaction, guild_id, member);
+    extract!(member, user);
 
-    let guild_id = interaction.guild_id.ok_or("Cannot find guild_id")?;
-
-    let week_or_day = interaction.command_vec.get(1).cloned()
+    let week_or_day = context.command_vec.get(1).cloned()
         .ok_or("Invalid command")?;
     if !["week", "day"].contains(&week_or_day.as_str()) {
         return Err(Error::from("Invalid command"))
     }
 
     let (user_score, user_position) = redis.get_by_user(
-        format!("top_{week_or_day}.{guild_id}"), interaction.user.id
+        format!("top_{week_or_day}.{guild_id}"), user.id
     ).map_err(Error::from)?;
 
     let mut result = format!("You are **{}** with **{user_score}** messages", user_position + 1);
@@ -53,11 +60,10 @@ pub async fn run(interaction: InteractionContext, _: MongoDBConnection, redis: R
     Ok((
         EmbedBuilder::new()
             .title(
-                format!("Top of the {week_or_day} for {}#{}", interaction.user.name, interaction.user.discriminator)
+                format!("Top of the {week_or_day} for {}#{}", user.name, user.discriminator)
             )
             .description(result)
             .to_interaction_response_data(false),
         None
     ))
-
 }
