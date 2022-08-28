@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use reqwest::Url;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::http::HeaderValue;
-use utils::ok_or_return;
+use crate::ok_or_return;
 
 const ALL_DOMAINS_ENDPOINT: &str = "https://phish.sinking.yachts/v2/all";
 const DOMAINS_FEED_ENDPOINT: &str = "wss://phish.sinking.yachts/feed";
@@ -68,17 +68,11 @@ impl ScamLinks {
     }
 
     pub async fn contains(&self, domains: Vec<String>) -> bool {
-
         let scam_domains = self.discord_scam_domains.lock().await;
-
         for domain in domains {
-            if scam_domains.contains(&domain) {
-                return true
-            }
+            if scam_domains.contains(&domain) { return true }
         }
-
         false
-
     }
 }
 

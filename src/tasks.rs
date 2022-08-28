@@ -1,15 +1,13 @@
 use std::sync::Arc;
 use std::time::Duration;
-use database::clients::DiscordClients;
-use database::models::config::GuildConfig;
-use database::models::task::{Task, TaskAction};
-use database::mongodb::MongoDBConnection;
 use mongodb::bson::DateTime;
 use tokio::time::Instant;
 use twilight_http::Client;
 use twilight_model::id::Id;
 use twilight_model::id::marker::RoleMarker;
-use utils::ok_or_skip;
+use crate::{DiscordClients, MongoDBConnection, ok_or_skip};
+use crate::models::config::GuildConfig;
+use crate::models::task::{Task, TaskAction};
 
 pub fn run(
     mongodb: MongoDBConnection,
@@ -37,7 +35,7 @@ pub async fn interval(
                 let guild_discord_http = guild_config.application_id
                     .and_then(|id| {
                         discord_clients.get(&id)
-                            .map(|client| client.http.to_owned())
+                            .map(|http| http.to_owned())
                     }).unwrap_or_else(|| discord_http.to_owned());
 
                 tokio::spawn(execute_task(task, guild_config, guild_discord_http));
