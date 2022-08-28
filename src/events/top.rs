@@ -1,6 +1,5 @@
 use twilight_model::channel::Message;
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
+use crate::{MongoDBConnection, RedisConnection};
 
 pub async fn run(
     message: Message,

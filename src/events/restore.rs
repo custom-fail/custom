@@ -1,9 +1,9 @@
 /// Gives mute role after rejoin
 pub mod mutes {
     use std::sync::Arc;
-    use database::mongodb::MongoDBConnection;
     use mongodb::bson::doc;
     use twilight_model::gateway::payload::incoming::MemberAdd;
+    use crate::MongoDBConnection;
 
     pub async fn run(
         member: Box<MemberAdd>,
@@ -31,9 +31,9 @@ pub mod mutes {
 
 /// Remove task after unban
 pub mod bans {
-    use database::mongodb::MongoDBConnection;
     use mongodb::bson::doc;
     use twilight_model::gateway::payload::incoming::BanRemove;
+    use crate::MongoDBConnection;
 
     pub async fn run(event: BanRemove, mongodb: MongoDBConnection) -> Result<(), ()> {
         mongodb.tasks.delete_one(doc! {

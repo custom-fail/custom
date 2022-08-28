@@ -1,14 +1,14 @@
 use chrono::Utc;
-use database::models::config::automod::actions::{Actions, Timeout};
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::channel::embed::{Embed, EmbedAuthor};
 use twilight_model::channel::Message;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
-use database::models::config::GuildConfig;
-use utils::avatars::get_avatar_url;
 use crate::Bucket;
+use crate::models::config::automod::actions::{Actions, Timeout};
+use crate::models::config::GuildConfig;
+use crate::utils::avatars::get_avatar_url;
 
 const CUSTOM_AVATAR: &str = "https://cdn.discordapp.com/attachments/941277994935263302/951521815082180608/713880061635330110.gif";
 

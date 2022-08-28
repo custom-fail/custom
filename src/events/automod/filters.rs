@@ -1,5 +1,5 @@
 use twilight_model::channel::Message;
-use database::models::config::automod::filters::{Attachments, Filters, MessageLength};
+use crate::models::config::automod::filters::{Attachments, Filters, MessageLength};
 
 pub fn filters_match(filter: Filters, message: Message) -> bool {
     match filter {

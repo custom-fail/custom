@@ -1,6 +1,5 @@
-use database::models::config::automod::checks::{CapsLock, Checks, Invites, Regex, TextLines};
-use utils::ok_or_skip_without_clone;
-use crate::ScamLinks;
+use crate::models::config::automod::checks::{CapsLock, Checks, Invites, Regex, TextLines};
+use crate::{ok_or_skip_without_clone, ScamLinks};
 
 pub async fn checks_match(check: Checks, message_content: String, scam_domains: ScamLinks) -> Result<bool, ()> {
     match check {
@@ -82,8 +81,8 @@ fn regex(config: Regex, message_content: String) -> Result<bool, ()> {
 #[cfg(test)]
 mod tests {
     use std::io::repeat;
-    use database::models::config::automod::checks::{CapsLock, Invites, Regex, TextLines};
-    use crate::modules::automod::checks::{caps_lock, invites, regex, text_lines};
+    use crate::models::config::automod::checks::{CapsLock, Invites, Regex, TextLines};
+    use crate::events::automod::checks::{caps_lock, invites, regex, text_lines};
     use crate::ScamLinks;
 
     #[test]

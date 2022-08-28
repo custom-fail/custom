@@ -9,9 +9,9 @@ use twilight_http::Client;
 use twilight_model::channel::Message;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
-use database::models::config::automod::bucket::IncreaseBucketAmount;
-use database::models::config::GuildConfig;
-use crate::modules::automod::actions::run_action_bucket;
+use crate::events::automod::actions::run_action_bucket;
+use crate::models::config::automod::bucket::IncreaseBucketAmount;
+use crate::models::config::GuildConfig;
 
 pub type Bucket = Arc<DashMap<Id<GuildMarker>, Mutex<HashMap<Id<UserMarker>, HashMap<String, usize>>>>>;
 
