@@ -1,16 +1,17 @@
 use std::sync::Arc;
 use std::time::Duration as StdDuration;
+use humantime::format_duration;
 use mongodb::bson::DateTime;
-use twilight_model::util::datetime::{Timestamp, TimestampParseError};
-use serde::{Serialize, Deserialize};
 use twilight_http::Client;
 use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedField, EmbedFooter};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
-use humantime::format_duration;
-use utils::avatars::{DEFAULT_AVATAR, get_avatar_url, get_guild_icon_url};
-use utils::errors::Error;
-use crate::redis::RedisConnection;
+use twilight_model::util::datetime::TimestampParseError;
+use twilight_model::util::Timestamp;
+use crate::RedisConnection;
+use crate::utils::avatars::{DEFAULT_AVATAR, get_avatar_url, get_guild_icon_url};
+use crate::utils::errors::Error;
+use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Case {
@@ -69,7 +70,6 @@ impl From<CaseActionType> for u8 {
 }
 
 impl Case {
-
     pub fn to_dm_embed(&self, redis: RedisConnection) -> Result<Embed, Error> {
         let guild = redis.get_guild(self.guild_id).map_err(Error::from)?;
         let guild_icon_url = get_guild_icon_url(guild.icon, self.guild_id);

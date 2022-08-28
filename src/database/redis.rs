@@ -4,7 +4,7 @@ use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
 use twilight_model::id::Id;
 use twilight_model::util::ImageHash;
 use serde::{Serialize, Deserialize};
-use utils::errors::Error;
+use crate::utils::errors::Error;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PartialGuild {

@@ -1,17 +1,17 @@
 use std::sync::Arc;
 use dashmap::DashMap;
-use futures::TryStreamExt;
+use futures_util::TryStreamExt;
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::{DateTime, doc};
 use twilight_model::channel::embed::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
-use utils::errors::Error;
-use crate::clients::ClientData;
+use crate::gateway::clients::ClientData;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 use crate::models::task::Task;
-use crate::redis::RedisConnection;
+use crate::database::redis::RedisConnection;
+use crate::utils::errors::Error;
 
 #[derive(Clone)]
 pub struct MongoDBConnection {
