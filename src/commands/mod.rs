@@ -9,11 +9,10 @@ use std::pin::Pin;
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
-use database::models::config::GuildConfig;
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
-use utils::errors::Error;
 use crate::commands::context::InteractionContext;
+use crate::{MongoDBConnection, RedisConnection};
+use crate::models::config::GuildConfig;
+use crate::utils::errors::Error;
 
 pub type ResponseData = Result<(InteractionResponseData, Option<InteractionResponseType>), Error>;
 pub type Response = Pin<Box<dyn Future<Output = ResponseData> + Send + 'static>>;
@@ -22,11 +21,11 @@ type Callback = fn(InteractionContext, MongoDBConnection, RedisConnection, Arc<C
 #[macro_export]
 macro_rules! command {
     ($name: expr, $module: expr, $function: expr) => {
-        Command::new(
-            $name,
-            $module,
-            |interaction: InteractionContext, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>, config: GuildConfig| ($function)(interaction, mongodb, redis, discord_http, config).boxed()
-        )
+        Command {
+            name: $name,
+            module: $module,
+            run: |interaction: InteractionContext, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>, config: GuildConfig| ($function)(interaction, mongodb, redis, discord_http, config).boxed()
+        }
     }
 }
 
@@ -36,14 +35,3 @@ pub struct Command {
     pub module: String,
     pub run: Callback,
 }
-
-impl Command {
-    pub fn new(name: &str, module: &str, run: Callback) -> Self {
-        Self {
-            name: name.to_string(),
-            module: module.to_string(),
-            run,
-        }
-    }
-}
-

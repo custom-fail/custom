@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use twilight_http::Client;
-use database::models::config::GuildConfig;
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
-use utils::embeds::EmbedBuilder;
-use utils::errors::Error;
+use crate::models::config::GuildConfig;
+use crate::database::mongodb::MongoDBConnection;
+use crate::database::redis::RedisConnection;
+use crate::utils::embeds::EmbedBuilder;
+use crate::utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 use crate::extract;

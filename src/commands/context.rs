@@ -4,7 +4,7 @@ use twilight_model::application::interaction::application_command::CommandOption
 use twilight_model::application::interaction::{Interaction, InteractionData};
 use twilight_model::id::Id;
 use twilight_model::id::marker::GenericMarker;
-use utils::errors::Error;
+use crate::utils::errors::Error;
 
 #[macro_export]
 macro_rules! extract {

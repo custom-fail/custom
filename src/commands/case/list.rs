@@ -1,24 +1,22 @@
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
 use mongodb::bson::doc;
 use mongodb::options::FindOptions;
 use std::sync::Arc;
-use futures::{StreamExt, TryStreamExt};
+use futures_util::{TryStreamExt, StreamExt};
 use mongodb::bson;
 use twilight_http::Client;
 use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::application::component::{ActionRow, Component, SelectMenu};
 use twilight_model::application::component::select_menu::SelectMenuOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
-use database::models::case::Case;
-use database::models::config::GuildConfig;
-use utils::errors::Error;
 use serde::{Serialize, Deserialize};
 use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedFooter};
-use utils::avatars::get_avatar_url;
 use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::commands::ResponseData;
-use crate::{extract, get_option, get_required_option};
+use crate::{extract, get_option, get_required_option, MongoDBConnection, RedisConnection};
+use crate::models::case::Case;
+use crate::models::config::GuildConfig;
+use crate::utils::avatars::get_avatar_url;
+use crate::utils::errors::Error;
 
 #[derive(Serialize, Deserialize)]
 struct ActionDocument {

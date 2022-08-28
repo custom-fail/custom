@@ -3,14 +3,12 @@ use mongodb::bson::doc;
 use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::channel::message::MessageFlags;
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
 use twilight_model::http::interaction::InteractionResponseData;
-use database::models::config::GuildConfig;
-use utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
-use crate::{extract, get_required_option, get_option};
+use crate::{extract, get_required_option, get_option, MongoDBConnection, RedisConnection};
+use crate::models::config::GuildConfig;
+use crate::utils::errors::Error;
 
 pub async fn run(
     context: InteractionContext,

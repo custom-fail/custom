@@ -6,12 +6,11 @@ use twilight_model::channel::message::{MessageFlags, MessageType};
 use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::id::Id;
 use twilight_model::id::marker::MessageMarker;
-use database::models::config::GuildConfig;
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
-use utils::errors::Error;
 use crate::commands::ResponseData;
-use crate::{extract, get_option, get_required_option, InteractionContext};
+use crate::{extract, get_option, get_required_option, MongoDBConnection, RedisConnection};
+use crate::commands::context::InteractionContext;
+use crate::models::config::GuildConfig;
+use crate::utils::errors::Error;
 
 pub async fn run(
     context: InteractionContext,

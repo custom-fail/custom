@@ -12,19 +12,17 @@ use twilight_model::guild::{Member, PartialMember};
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GenericMarker, GuildMarker, RoleMarker, UserMarker};
-use database::models::case::{Case, CaseActionType};
-use database::models::config::GuildConfig;
-use database::models::config::moderation::MuteMode;
-use database::models::task::{Task, TaskAction};
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
-use utils::constants::duration::{DAY, MINUTE};
-use utils::errors::Error;
-use utils::modals::{ModalBuilder, RepetitiveTextInput};
-use utils::uppercase::FirstLetterToUpperCase;
 use crate::commands::ResponseData;
-use crate::{extract, get_option, get_required_option, InteractionContext};
-use crate::commands::context::InteractionHelpers;
+use crate::{extract, get_option, get_required_option, MongoDBConnection, RedisConnection};
+use crate::commands::context::{InteractionContext, InteractionHelpers};
+use crate::models::case::{Case, CaseActionType};
+use crate::models::config::GuildConfig;
+use crate::models::config::moderation::MuteMode;
+use crate::models::task::{Task, TaskAction};
+use crate::utils::constants::duration::{DAY, MINUTE};
+use crate::utils::errors::Error;
+use crate::utils::modals::{ModalBuilder, RepetitiveTextInput};
+use crate::utils::uppercase::FirstLetterToUpperCase;
 
 pub async fn run(
     context: InteractionContext,

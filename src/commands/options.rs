@@ -1,12 +1,12 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 use twilight_model::application::interaction::application_command::{CommandData, CommandDataOption, CommandOptionValue};
 use twilight_model::application::interaction::InteractionData;
-use twilight_model::id::Id;
-use utils::errors::Error;
-use utils::{ok_or_break, ok_or_skip};
-use crate::{Application, extract, InteractionContext};
+use crate::{extract, ok_or_break, ok_or_skip};
 use async_trait::async_trait;
+use crate::application::{Application, ConvertableOptionsList};
+use crate::commands::context::InteractionContext;
+use crate::utils::errors::Error;
+use self::convert::convert_value_to_option;
 
 #[macro_export]
 macro_rules! get_option {
@@ -57,8 +57,13 @@ impl LoadOptions for InteractionContext {
 
                 for i in 0..data.values.len() {
                     let value = ok_or_break!(data.values.get(i), Some);
-                    let (name, kind) = ok_or_break!(component.values.get(i), Some);
-                    self.options.insert(name, convert_value_to_option(value.as_str(), &kind)?);
+                    let (name, kind) = ok_or_break!(
+                        component.values.get(i), Some
+                    );
+                    self.options.insert(
+                        name.to_owned(),
+                        convert_value_to_option(value.as_str(), &kind)?
+                    );
                 }
 
                 set_options_from_custom_id(&mut self.options, custom_id, component.options)?;
@@ -94,7 +99,7 @@ impl LoadOptions for InteractionContext {
 fn set_options_from_custom_id(
     options: &mut HashMap<String, CommandOptionValue>,
     custom_id: Vec<String>,
-    component: Vec<(String, String)>
+    component: ConvertableOptionsList
 ) -> Result<(), Error> {
     for i in 2..custom_id.len() {
         let value = ok_or_break!(custom_id.get(i), Some);
@@ -104,20 +109,42 @@ fn set_options_from_custom_id(
     Ok(())
 }
 
-fn convert_value_to_option(value: &str, kind: &String) -> Result<CommandOptionValue, Error> {
-    Ok(if kind == "String" {
-        CommandOptionValue::String(value.to_string())
-    } else if kind == "Boolean" {
-        CommandOptionValue::Boolean(value == "true")
-    } else if kind == "Integer" {
-        CommandOptionValue::Integer(
-            value.parse::<i64>().map_err(|_| "Invalid option type".to_string())?
-        )
-    } else if kind == "User" {
-        CommandOptionValue::User(
-            Id::from_str(value).map_err(|_| "Invalid option type".to_string())?
-        )
-    } else { return Err(Error::from("Invalid option type")) })
+pub mod convert {
+    use std::str::FromStr;
+    use twilight_model::application::interaction::application_command::CommandOptionValue;
+    use twilight_model::id::Id;
+    use crate::utils::errors::Error;
+
+    #[allow(dead_code)]
+
+    #[derive(Copy, Clone)]
+    pub enum ConvertableCommandOptionType {
+        String,
+        Boolean,
+        Integer,
+        User
+    }
+
+    /// Converts `String` value to `CommandOptionValue`
+    pub fn convert_value_to_option(
+        value: &str,
+        kind: &ConvertableCommandOptionType
+    ) -> Result<CommandOptionValue, Error> {
+        Ok(match kind {
+            ConvertableCommandOptionType::String => CommandOptionValue::String(value.to_string()),
+            ConvertableCommandOptionType::Boolean => CommandOptionValue::Boolean(value == "true"),
+            ConvertableCommandOptionType::Integer => {
+                CommandOptionValue::Integer(
+                    value.parse::<i64>().map_err(|_| "Invalid option type".to_string())?
+                )
+            }
+            ConvertableCommandOptionType::User => {
+                CommandOptionValue::User(
+                    Id::from_str(value).map_err(|_| "Invalid option type".to_string())?
+                )
+            }
+        })
+    }
 }
 
 fn parse_custom_id(custom_id: String) -> Vec<String> {
