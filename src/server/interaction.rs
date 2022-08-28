@@ -1,15 +1,14 @@
 use std::sync::Arc;
 use twilight_model::application::interaction::{Interaction, InteractionType};
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
 use twilight_http::Client;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
-use utils::errors::Error;
-use crate::{Application, extract};
+use crate::{extract, MongoDBConnection, RedisConnection};
+use crate::application::Application;
 use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::commands::ResponseData;
 use crate::commands::options::LoadOptions;
+use crate::utils::errors::Error;
 
 async fn handle_command(
     interaction: Interaction,

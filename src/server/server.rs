@@ -1,16 +1,15 @@
 use std::convert::Infallible;
-use database::clients::DiscordClients;
+use std::sync::Arc;
 use ed25519_dalek::PublicKey;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use hyper::http::HeaderValue;
 use hyper::service::{make_service_fn, service_fn};
 use serde_json::json;
+use twilight_http::Client;
 use twilight_model::application::interaction::Interaction;
-use database::mongodb::MongoDBConnection;
-use database::redis::RedisConnection;
-use crate::Application;
-use crate::authorize::verify_signature;
-use crate::interaction::handle_interaction;
+use crate::{Application, MongoDBConnection, RedisConnection};
+use crate::server::authorize::verify_signature;
+use crate::server::interaction::handle_interaction;
 
 fn string_from_headers_option(header: Option<&HeaderValue>) -> Option<String> {
     Some(match header {
@@ -47,9 +46,9 @@ async fn route(
     application: Application,
     mongodb: MongoDBConnection,
     redis: RedisConnection,
-    discord_clients: DiscordClients
+    discord_http: Arc<Client>,
+    public_key: PublicKey
 ) -> Result<Response<Body>, Response<Body>> {
-
     if request.method() != Method::POST {
         return Ok(METHOD_NOT_ALLOWED.to_response());
     };
@@ -72,21 +71,12 @@ async fn route(
     let interaction = serde_json::from_str::<Interaction>(body.as_str())
         .map_err(|_| INVALID_BODY.to_response())?;
 
-    let client = discord_clients.get(
-        &interaction.application_id
-    ).ok_or_else(|| UNAUTHORIZED.to_response())?;
-
-    let pbk_bytes = hex::decode(client.public_key.as_str())
-        .map_err(|_| INTERNAL_SERVER_ERROR.to_response())?;
-    let public_key = PublicKey::from_bytes(&pbk_bytes)
-        .map_err(|_| INTERNAL_SERVER_ERROR.to_response())?;
-
     if !verify_signature(public_key, signature, timestamp, body.clone()) {
         return Ok(UNAUTHORIZED.to_response());
     };
 
     let content = handle_interaction(
-        interaction, application, mongodb, redis, client.http.to_owned()
+        interaction, application, mongodb, redis, discord_http
     ).await;
     let content = json!(content).to_string();
 
@@ -95,7 +85,6 @@ async fn route(
         .body(Body::from(content));
 
     response.map_err(|_| INTERNAL_SERVER_ERROR.to_response())
-
 }
 
 pub async fn run_route(
@@ -103,10 +92,11 @@ pub async fn run_route(
     application: Application,
     mongodb: MongoDBConnection,
     redis: RedisConnection,
-    discord_clients: DiscordClients
+    discord_http: Arc<Client>,
+    public_key: PublicKey
 ) -> Result<Response<Body>, Infallible> {
     let response = route(
-        request, application, mongodb, redis, discord_clients
+        request, application, mongodb, redis, discord_http, public_key
     ).await;
 
     Ok(match response {
@@ -120,9 +110,9 @@ pub async fn listen(
     application: Application,
     mongodb: MongoDBConnection,
     redis: RedisConnection,
-    discord_http: DiscordClients
+    discord_http: Arc<Client>,
+    public_key: PublicKey
 ) {
-
     let service = make_service_fn(move |_| {
         let application = application.clone();
         let mongodb = mongodb.clone();
@@ -135,7 +125,8 @@ pub async fn listen(
                     application.to_owned(),
                     mongodb.to_owned(),
                     redis.to_owned(),
-                    discord_http.to_owned()
+                    discord_http.to_owned(),
+                    public_key
                 )
             }))
         }
@@ -147,5 +138,4 @@ pub async fn listen(
     println!("Listening on {address}");
 
     server.await.unwrap()
-
 }
