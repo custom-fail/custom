@@ -10,28 +10,11 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  gateway:
-
+  linter:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Check
-      working-directory: gateway
       run: cargo check
     - name: Tests
-      working-directory: gateway
-      run: cargo test
-  
-  interactions:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Check
-      working-directory: interactions
-      run: cargo check
-    - name: Tests
-      working-directory: interactions
       run: cargo test
