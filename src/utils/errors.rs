@@ -2,7 +2,7 @@ use redis::RedisError;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::util::datetime::TimestampParseError;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
-use crate::embeds::EmbedBuilder;
+use crate::utils::embeds::EmbedBuilder;
 
 #[derive(Debug)]
 pub enum Error {

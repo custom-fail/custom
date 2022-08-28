@@ -8,6 +8,8 @@ pub struct EmbedBuilder {
     fields: Vec<EmbedField>
 }
 
+#[allow(dead_code)]
+
 impl EmbedBuilder {
     pub fn new() -> Self {
         Self {
