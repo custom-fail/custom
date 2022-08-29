@@ -80,7 +80,6 @@ async fn main() {
         } else { run.await; }
     }
 
-
     const INVALID_PUBLIC_KEY: &str = "PUBLIC_KEY provided in .env is invalid";
 
     if args.contains(&"--http".to_string()) || args.contains(&"-A".to_string()) {
@@ -89,7 +88,7 @@ async fn main() {
         let pbk_bytes = hex::decode(public_key.as_str()).expect(INVALID_PUBLIC_KEY);
         let public_key = PublicKey::from_bytes(&pbk_bytes).expect(INVALID_PUBLIC_KEY);
         let application = Application::new();
-        crate::server::server::listen(
+        crate::server::listen(
             80, application, mongodb, redis, main_http, public_key
         ).await;
     }
