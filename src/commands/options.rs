@@ -90,6 +90,7 @@ impl LoadOptions for InteractionContext {
 
                 set_options_from_custom_id(&mut self.options, custom_id, component.options)?;
             }
+            _ => return Err(Error::from("Invalid interaction data"))
         };
 
         Ok(self)

@@ -104,7 +104,9 @@ impl Application {
             set_command!("top week all", "top", crate::commands::top::all::run),
             set_command!("top day all", "top", crate::commands::top::all::run),
             set_command!("top week me", "top", crate::commands::top::me::run),
-            set_command!("top day me", "top", crate::commands::top::me::run)
+            set_command!("top day me", "top", crate::commands::top::me::run),
+
+            set_command!("setup", "settings", crate::commands::settings::setup::run)
         ]));
 
         let components = Arc::new(HashMap::from([

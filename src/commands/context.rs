@@ -49,6 +49,7 @@ impl TryFrom<Interaction> for InteractionContext {
             InteractionData::ModalSubmit(data) => {
                 vec![get_command_from_id(&data.custom_id).ok_or("Invalid custom_id")?]
             }
+            _ => return Err(Error::from("Invalid interaction type"))
         }.iter().map(|s| s.to_lowercase()).collect::<Vec<String>>();
 
         let command_text = command_vec.join(" ");
