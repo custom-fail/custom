@@ -18,12 +18,14 @@ pub async fn run(
     config: GuildConfig
 ) -> ResponseData {
 
-    let case_id = *get_required_option!(context.options.get("id"), CommandOptionValue::Integer);
+    let case_index = *get_required_option!(
+        context.options.get("number"), CommandOptionValue::Integer
+    );
 
     let removed_case = mongodb.cases.find_one_and_update(
         doc! {
             "guild_id": config.guild_id.to_string(),
-            "index": case_id,
+            "index": case_index,
             "removed": false
         }, doc! { "$set": {"removed": true } }, None
     ).await.map_err(Error::from)?.ok_or("Cannot find case with selected id")?;

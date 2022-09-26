@@ -18,14 +18,14 @@ pub async fn run(
 ) -> ResponseData {
     extract!(context.interaction, guild_id);
 
-    let case_id = get_required_option!(
-        context.options.get("id"), CommandOptionValue::Integer
+    let case_index = get_required_option!(
+        context.options.get("number"), CommandOptionValue::Integer
     );
 
     let case = mongodb.cases.find_one(
         doc! {
             "guild_id": guild_id.to_string(),
-            "index": case_id,
+            "index": case_index,
             "removed": false
         }, None
     ).await.map_err(Error::from)?.ok_or("Cannot find case with selected id")?;

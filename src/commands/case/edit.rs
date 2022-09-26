@@ -21,8 +21,8 @@ pub async fn run(
     extract!(context.interaction, member, guild_id);
     extract!(member, user);
 
-    let case_id = get_required_option!(
-        context.options.get("id"), CommandOptionValue::Integer
+    let case_index = get_required_option!(
+        context.options.get("number"), CommandOptionValue::Integer
     );
 
     let reason = get_required_option!(
@@ -34,7 +34,7 @@ pub async fn run(
     }
 
     let mut case = mongodb.cases.find_one(
-        doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false }, None
+        doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false }, None
     ).await.map_err(Error::from)?.ok_or("There is no case with selected id")?;
 
     if case.moderator_id != user.id {
@@ -42,7 +42,7 @@ pub async fn run(
     }
 
     mongodb.cases.update_one(
-        doc! { "guild_id": guild_id.to_string(), "index": case_id, "removed": false },
+        doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false },
         doc! { "$set": {"reason": reason.to_owned() } }, None
     ).await.map_err(Error::from)?;
 
