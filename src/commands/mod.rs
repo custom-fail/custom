@@ -3,6 +3,7 @@ pub mod case;
 pub mod context;
 pub mod moderation;
 pub mod options;
+pub mod settings;
 
 use std::future::Future;
 use std::pin::Pin;

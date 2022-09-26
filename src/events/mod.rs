@@ -8,6 +8,7 @@ pub mod case;
 pub mod top;
 pub mod cache;
 pub mod restore;
+pub mod setup;
 
 pub async fn on_event(
     event: Event,
@@ -35,6 +36,7 @@ pub async fn on_event(
             self::case::on_timeout::run(event, mongodb, discord_http, redis).await.ok();
         },
         Event::GuildCreate(event) => {
+            tokio::spawn(self::setup::run(event.id, event.joined_at, discord_http));
             self::cache::on_guild_create(redis, event).ok();
         },
         Event::GuildUpdate(event) => {

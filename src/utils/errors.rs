@@ -2,6 +2,7 @@ use redis::RedisError;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::util::datetime::TimestampParseError;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
+use twilight_validate::command::CommandValidationError;
 use crate::utils::embeds::EmbedBuilder;
 
 #[derive(Debug)]
@@ -73,6 +74,12 @@ impl From<TimestampParseError> for Error {
 impl From<serde_json::Error> for Error {
     fn from(error: serde_json::Error) -> Self {
         Self::Debug(vec![format!("{:?}", error)])
+    }
+}
+
+impl From<twilight_validate::command::CommandValidationError> for Error {
+    fn from(error: CommandValidationError) -> Self {
+        Self::Debug(vec![error.to_string(), format!("{:?}", error)])
     }
 }
 
