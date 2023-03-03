@@ -50,7 +50,7 @@ async fn handle_command(
                 .expect("Interaction response serialization error");
 
             discord_http.execute_webhook(id, &token)
-                .payload_json(bytes_data.as_slice()).exec().await.ok();
+                .payload_json(bytes_data.as_slice()).await.ok();
         });
 
         Ok((InteractionResponseData {

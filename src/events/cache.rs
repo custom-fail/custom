@@ -12,7 +12,7 @@ pub async fn fetch_and_set(
     guild_id: Id<GuildMarker>
 ) -> Result<(), ()> {
     let mut guild = discord_http.guild(guild_id)
-        .exec().await.map_err(|_| ())?
+        .await.map_err(|_| ())?
         .model().await.map_err(|_| ())?;
     guild.roles.sort_by_cached_key(|role| role.position);
     set_guild(redis, guild_id, PartialGuild {

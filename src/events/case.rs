@@ -29,7 +29,7 @@ pub async fn run(
         .audit_log(guild_id)
         .action_type(event_type)
         .limit(1).map_err(|_| ())?
-        .exec().await.map_err(|_| ())?.model().await.map_err(|_| ())?;
+        .await.map_err(|_| ())?.model().await.map_err(|_| ())?;
 
     let action = audit_log.entries.first().ok_or(())?;
     let action_target_id = action.target_id.ok_or(())?;

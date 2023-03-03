@@ -1,7 +1,8 @@
 use chrono::Utc;
+use twilight_model::channel::message::Embed;
+use twilight_model::channel::message::embed::EmbedAuthor;
 use std::sync::Arc;
 use twilight_http::Client;
-use twilight_model::channel::embed::{Embed, EmbedAuthor};
 use twilight_model::channel::Message;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
@@ -19,7 +20,7 @@ async fn send_direct_message(
 ) -> Result<(), ()> {
     let channel = discord_http
         .create_private_channel(message.author.id)
-        .exec()
+        
         .await
         .map_err(|_| ())?
         .model()
@@ -49,7 +50,7 @@ async fn send_direct_message(
             video: None,
         }])
         .map_err(|_| ())?
-        .exec()
+        
         .await
         .map_err(|_| ())?;
 
@@ -82,7 +83,7 @@ async fn delete_message(
 ) -> Result<(), ()> {
     discord_http
         .delete_message(message.channel_id, message.id)
-        .exec()
+        
         .await
         .ok();
 
@@ -128,7 +129,7 @@ async fn send_logs(
         .create_message(channel)
         .embeds(&[embed])
         .map_err(|_| ())?
-        .exec()
+        
         .await
         .ok();
 
@@ -151,7 +152,7 @@ async fn timeout(
         .update_guild_member(guild_id, message.author.id)
         .communication_disabled_until(Some(timestamp))
         .map_err(|_| ())?
-        .exec()
+        
         .await
         .map_err(|_| ())?;
 
@@ -166,7 +167,7 @@ async fn kick(
 ) -> Result<(), ()> {
     discord_http
         .remove_guild_member(guild_id, message.author.id)
-        .exec()
+        
         .await
         .map_err(|_| ())?;
 
@@ -180,7 +181,7 @@ async fn ban(
 ) -> Result<(), ()> {
     discord_http
         .create_ban(guild_id, message.author.id)
-        .exec()
+        
         .await
         .map_err(|_| ())?;
 

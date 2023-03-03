@@ -1,5 +1,5 @@
-use twilight_model::application::component::text_input::TextInputStyle;
-use twilight_model::application::component::{ActionRow, Component, TextInput};
+use twilight_model::channel::message::Component;
+use twilight_model::channel::message::component::{TextInput, TextInputStyle, ActionRow};
 use twilight_model::http::interaction::InteractionResponseData;
 
 pub enum RepetitiveTextInput {
