@@ -1,6 +1,7 @@
-use crate::{database::{mongodb::MongoDBConnection, redis::RedisConnection}, links::ScamLinks, bucket::Bucket};
+use crate::{database::{mongodb::MongoDBConnection, redis::RedisConnection}, links::ScamLinks, bucket::Bucket, application::Application};
 
 pub struct Context {
+    pub application: Application,
     pub mongodb: MongoDBConnection,
     pub redis: RedisConnection,
     pub scam_domains: ScamLinks,
@@ -20,6 +21,8 @@ impl Context {
 
         let bucket: Bucket = Default::default();
 
-        Self { mongodb, redis, scam_domains, bucket }
+        let application = Application::new();
+
+        Self { mongodb, redis, scam_domains, bucket, application }
     }
 }

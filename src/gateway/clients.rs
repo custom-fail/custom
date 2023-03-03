@@ -7,7 +7,8 @@ use twilight_model::id::marker::ApplicationMarker;
 use serde::{Serialize, Deserialize};
 use async_trait::async_trait;
 use twilight_http::Client;
-use crate::{Bucket, MongoDBConnection, RedisConnection, ScamLinks};
+use crate::context::Context;
+use crate::MongoDBConnection;
 use crate::utils::errors::Error;
 use crate::gateway::shard::create_shard;
 
@@ -21,10 +22,7 @@ pub trait LoadDiscordClients {
 
     fn start(
         &self,
-        mongodb: MongoDBConnection,
-        redis: RedisConnection,
-        scam_domains: ScamLinks,
-        bucket: Bucket
+        context: Arc<Context>
     );
 }
 
@@ -54,18 +52,12 @@ impl LoadDiscordClients for DiscordClients {
 
     fn start(
         &self,
-        mongodb: MongoDBConnection,
-        redis: RedisConnection,
-        scam_domains: ScamLinks,
-        bucket: Bucket
+        context: Arc<Context>
     ) {
         for value in self.iter() {
             tokio::spawn(create_shard(
                 (value.key().to_string(), value.to_owned()),
-                mongodb.to_owned(),
-                redis.to_owned(),
-                scam_domains.to_owned(),
-                bucket.to_owned()
+                context.to_owned()
             ));
         }
     }

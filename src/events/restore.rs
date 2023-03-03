@@ -3,17 +3,17 @@ pub mod mutes {
     use std::sync::Arc;
     use mongodb::bson::doc;
     use twilight_model::gateway::payload::incoming::MemberAdd;
-    use crate::MongoDBConnection;
+    use crate::context::Context;
 
     pub async fn run(
         member: Box<MemberAdd>,
-        mongodb: MongoDBConnection,
-        discord_http: Arc<twilight_http::Client>
+        discord_http: Arc<twilight_http::Client>,
+        context: Arc<Context>
     ) -> Result<(), ()> {
-        let config = mongodb.get_config(member.guild_id).await.map_err(|_| ())?;
+        let config = context.mongodb.get_config(member.guild_id).await.map_err(|_| ())?;
         let mute_role = config.moderation.mute_role.ok_or(())?;
 
-        let task = mongodb.tasks.find_one(doc! {
+        let task = context.mongodb.tasks.find_one(doc! {
             "action": { "RemoveMuteRole": member.user.id.to_string() },
             "guild_id": config.guild_id.to_string()
         }, None).await.map_err(|_| ())?;
@@ -35,7 +35,7 @@ pub mod bans {
     use twilight_model::gateway::payload::incoming::BanRemove;
     use crate::MongoDBConnection;
 
-    pub async fn run(event: BanRemove, mongodb: MongoDBConnection) -> Result<(), ()> {
+    pub async fn run(event: BanRemove, mongodb: &MongoDBConnection) -> Result<(), ()> {
         mongodb.tasks.delete_one(doc! {
             "action": { "RemoveBan": event.user.id.to_string() },
             "guild_id": event.guild_id.to_string()

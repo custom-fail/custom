@@ -7,7 +7,7 @@ use crate::database::redis::PartialGuild;
 use crate::RedisConnection;
 
 pub async fn fetch_and_set(
-    redis: RedisConnection,
+    redis: &RedisConnection,
     discord_http: Arc<Client>,
     guild_id: Id<GuildMarker>
 ) -> Result<(), ()> {
@@ -22,7 +22,7 @@ pub async fn fetch_and_set(
     })
 }
 
-pub fn on_guild_create(redis: RedisConnection, event: Box<GuildCreate>) -> Result<(), ()> {
+pub fn on_guild_create(redis: &RedisConnection, event: Box<GuildCreate>) -> Result<(), ()> {
     let mut roles = event.roles.to_owned();
     roles.sort_by_cached_key(|role| role.position);
     set_guild(redis, event.id, PartialGuild {
@@ -32,7 +32,7 @@ pub fn on_guild_create(redis: RedisConnection, event: Box<GuildCreate>) -> Resul
     })
 }
 
-pub fn on_guild_update(redis: RedisConnection, event: Box<GuildUpdate>) -> Result<(), ()> {
+pub fn on_guild_update(redis: &RedisConnection, event: Box<GuildUpdate>) -> Result<(), ()> {
     let mut roles = event.roles.to_owned();
     roles.sort_by_cached_key(|role| role.position);
     set_guild(redis, event.id, PartialGuild {
@@ -42,10 +42,10 @@ pub fn on_guild_update(redis: RedisConnection, event: Box<GuildUpdate>) -> Resul
     })
 }
 
-pub fn set_guild(redis: RedisConnection, id: Id<GuildMarker>, guild: PartialGuild) -> Result<(), ()> {
+pub fn set_guild(redis: &RedisConnection, id: Id<GuildMarker>, guild: PartialGuild) -> Result<(), ()> {
     redis.set_guild(id, guild).map_err(|_| ())
 }
 
-pub fn delete_guild(redis: RedisConnection, id: Id<GuildMarker>) -> Result<(), ()> {
+pub fn delete_guild(redis: &RedisConnection, id: Id<GuildMarker>) -> Result<(), ()> {
     redis.delete_guild(id).map_err(|_| ())
 }

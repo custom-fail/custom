@@ -70,7 +70,7 @@ impl From<CaseActionType> for u8 {
 }
 
 impl Case {
-    pub fn to_dm_embed(&self, redis: RedisConnection) -> Result<Embed, Error> {
+    pub fn to_dm_embed(&self, redis: &RedisConnection) -> Result<Embed, Error> {
         let guild = redis.get_guild(self.guild_id).map_err(Error::from)?;
         let guild_icon_url = get_guild_icon_url(guild.icon, self.guild_id);
 

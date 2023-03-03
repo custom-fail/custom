@@ -30,10 +30,10 @@ pub struct Modal {
 
 #[derive(Clone)]
 pub struct Application {
-    commands: Arc<HashMap<String, Command>>,
-    components: Arc<HashMap<String, Component>>,
-    modals: Arc<HashMap<String, Modal>>,
-    slower_commands: Arc<Vec<String>>
+    commands: HashMap<String, Command>,
+    components: HashMap<String, Component>,
+    modals: HashMap<String, Modal>,
+    slower_commands: Vec<String>
 }
 
 fn get_modal_input(duration: bool, dashboard: bool) -> ConvertableOptionsHashMap {
@@ -85,7 +85,7 @@ macro_rules! set_command {
 
 impl Application {
     pub fn new() -> Self {
-        let commands = Arc::new(HashMap::from([
+        let commands = HashMap::from([
             set_command!("case details", "moderation", crate::commands::case::details::run),
             set_command!("case remove", "moderation", crate::commands::case::remove::run),
             set_command!("case edit", "moderation", crate::commands::case::edit::run),
@@ -107,9 +107,9 @@ impl Application {
             set_command!("top day me", "top", crate::commands::top::me::run),
 
             set_command!("setup", "settings", crate::commands::settings::setup::run)
-        ]));
+        ]);
 
-        let components = Arc::new(HashMap::from([
+        let components = HashMap::from([
             ("cl".to_string(), Component {
                 options: vec![("member".to_string(), ConvertableCommandOptionType::User)],
                 values: vec![("page".to_string(), ConvertableCommandOptionType::Integer)],
@@ -122,16 +122,12 @@ impl Application {
                 command: "mod-dash".to_string(),
                 id: "mod-panel".to_string()
             })
-        ]));
+        ]);
 
-        let modals = Arc::new(
-            moderation_modal!(["warn", "kick", "ban"], ["timeout", "mute"])
-        );
+        let modals = moderation_modal!(["warn", "kick", "ban"], ["timeout", "mute"]);
 
-        let slower_commands = Arc::new(
-            vec!["kick", "mute", "warn", "ban", "clear", "case list"]
-                .iter().map(|c| c.to_string()).collect()
-        );
+        let slower_commands = vec!["kick", "mute", "warn", "ban", "clear", "case list"]
+                .iter().map(|c| c.to_string()).collect();
 
         Self {
             commands,
