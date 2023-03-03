@@ -27,7 +27,10 @@ pub async fn connect_shards(
         let event = match event {
             Ok(event) => event,
             Err(err) => {
-                eprintln!("error while reciving events on shard {shard} with {id} client\n{err}", shard = shard.id());
+                eprintln!(
+                    "error while reciving events on shard {shard} with {id} client\n{err}",
+                    shard = shard.id().number()
+                );
                 if err.is_fatal() { break }
                 continue;
             }
