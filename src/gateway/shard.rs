@@ -7,7 +7,7 @@ use crate::context::Context;
 use crate::events::on_event;
 use twilight_http::Client;
 
-pub async fn create_shard(
+pub async fn connect_shards(
     (id, http): (String, Arc<Client>),
     context: Arc<Context>
 ) {

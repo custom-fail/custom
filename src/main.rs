@@ -4,7 +4,7 @@ use crate::context::Context;
 use crate::database::mongodb::MongoDBConnection;
 use crate::database::redis::RedisConnection;
 use crate::gateway::clients::{DiscordClients, LoadDiscordClients};
-use crate::gateway::shard::create_shard;
+use crate::gateway::shard::connect_shards;
 use crate::links::ScamLinks;
 use dotenv::dotenv;
 use ed25519_dalek::PublicKey;
@@ -49,7 +49,7 @@ async fn main() {
             discord_clients.start(context.to_owned());
         }
 
-        let run = create_shard(
+        let run = connect_shards(
             ("main".to_string(), Arc::new(
                 Client::new(discord_token.to_owned())
             )),
