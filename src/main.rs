@@ -71,7 +71,7 @@ async fn main() {
         let public_key = PublicKey::from_bytes(&pbk_bytes).expect(INVALID_PUBLIC_KEY);
 
         crate::server::listen(
-            80, context, public_key
+            80, context, main_http, public_key
         ).await;
     }
 }

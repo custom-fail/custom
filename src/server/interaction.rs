@@ -3,43 +3,41 @@ use twilight_model::application::interaction::{Interaction, InteractionType};
 use twilight_http::Client;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
-use crate::{extract, MongoDBConnection, RedisConnection};
-use crate::application::Application;
+use crate::context::Context;
 use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::commands::ResponseData;
 use crate::commands::options::LoadOptions;
+use crate::extract;
 use crate::utils::errors::Error;
 
 async fn handle_command(
     interaction: Interaction,
-    application: Application,
-    mongodb: MongoDBConnection,
-    redis: RedisConnection,
-    discord_http: Arc<Client>
+    discord_http: Arc<Client>,
+    context: Arc<Context>
 ) -> ResponseData {
     let token = interaction.token.to_owned();
     let id = interaction.application_id.cast();
 
-    let context: InteractionContext = interaction.try_into()?;
-    let context = context.load_options(&application).await?;
+    let interaction_ctx: InteractionContext = interaction.try_into()?;
+    let interaction_ctx = interaction_ctx.load_options(&context.application).await?;
 
-    let command = application.find_command(&context.command_text)
+    let command = context.application.find_command(&interaction_ctx.command_text)
         .await.ok_or("Cannot find command")?;
 
-    extract!(context.interaction, guild_id);
+    extract!(interaction_ctx.orginal, guild_id);
 
-    let config = mongodb.get_config(guild_id).await.map_err(Error::from)?;
+    let config = context.mongodb.get_config(guild_id).await.map_err(Error::from)?;
     if command.module != "settings" {
         config.enabled.get(command.module.as_str()).ok_or("This module is disabled")?;
     }
 
-    let execute_as_slower = application.is_slower(&command.name).await
-        && context.interaction.target_id().is_none();
+    let execute_as_slower = interaction_ctx.orginal.target_id().is_none()
+        && context.application.is_slower(&command.name).await;
 
     if execute_as_slower {
         tokio::spawn(async move {
             let response = (command.run)(
-                context, mongodb, redis, discord_http.to_owned(), config
+                    interaction_ctx, context, discord_http.to_owned(), config
             ).await;
 
             // into_ok_or_err is unstable :/
@@ -69,16 +67,14 @@ async fn handle_command(
         }, Some(InteractionResponseType::DeferredChannelMessageWithSource)))
 
     } else {
-        (command.run)(context, mongodb, redis, discord_http, config).await
+        (command.run)(interaction_ctx, context, discord_http, config).await
     }
 }
 
 pub async fn handle_interaction(
     interaction: Interaction,
-    application: Application,
-    mongodb: MongoDBConnection,
-    redis: RedisConnection,
-    discord_http: Arc<Client>
+    discord_http: Arc<Client>,
+    context: Arc<Context>
 ) -> InteractionResponse {
     if interaction.kind == InteractionType::Ping {
         return InteractionResponse {
@@ -92,9 +88,7 @@ pub async fn handle_interaction(
             InteractionResponseType::UpdateMessage
         } else { InteractionResponseType::ChannelMessageWithSource };
 
-    let response = handle_command(
-        interaction, application, mongodb, redis, discord_http
-    ).await;
+        let response = handle_command(interaction, discord_http, context).await;
 
     match response {
         Ok((response, response_type)) => {

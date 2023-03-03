@@ -5,25 +5,25 @@ use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
-use crate::{extract, get_required_option, get_option, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::{extract, get_required_option, get_option};
 use crate::models::config::GuildConfig;
 use crate::utils::embeds::interaction_response_data_from_embed;
 use crate::utils::errors::Error;
 
 pub async fn run(
-    context: InteractionContext,
-    mongodb: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    context: Arc<Context>,
     discord_http: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
-    extract!(context.interaction, guild_id);
+    extract!(interaction.orginal, guild_id);
 
     let member_id = *get_required_option!(
-        context.options.get("member"), CommandOptionValue::User
+            interaction.options.get("member"), CommandOptionValue::User
     );
 
-    let case = mongodb.cases.find_one(
+    let case = context.mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "member_id": member_id.to_string(), "removed": false },
         FindOneOptions::builder().sort(doc! { "created_at": (-1_i32) }).build()
     ).await.map_err(Error::from)?.ok_or("This user has no cases")?;

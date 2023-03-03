@@ -5,7 +5,7 @@ use crate::commands::Command;
 use futures_util::FutureExt;
 use crate::models::config::GuildConfig;
 use twilight_http::Client;
-use crate::{MongoDBConnection, RedisConnection};
+use crate::context::Context;
 use crate::commands::context::InteractionContext;
 use crate::commands::options::convert::ConvertableCommandOptionType;
 

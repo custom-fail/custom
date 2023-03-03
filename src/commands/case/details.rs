@@ -4,25 +4,25 @@ use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
+use crate::context::Context;
 use crate::{extract, get_required_option, get_option, MongoDBConnection, RedisConnection};
 use crate::models::config::GuildConfig;
 use crate::utils::embeds::interaction_response_data_from_embed;
 use crate::utils::errors::Error;
 
 pub async fn run(
-    context: InteractionContext,
-    mongodb: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    context: Arc<Context>,
     discord_http: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
-    extract!(context.interaction, guild_id);
+    extract!(interaction.orginal, guild_id);
 
     let case_index = get_required_option!(
-        context.options.get("number"), CommandOptionValue::Integer
+            interaction.options.get("number"), CommandOptionValue::Integer
     );
 
-    let case = mongodb.cases.find_one(
+    let case = context.mongodb.cases.find_one(
         doc! {
             "guild_id": guild_id.to_string(),
             "index": case_index,

@@ -11,13 +11,13 @@ use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
 use crate::commands::context::InteractionContext;
-use crate::{MongoDBConnection, RedisConnection};
+use crate::context::Context;
 use crate::models::config::GuildConfig;
 use crate::utils::errors::Error;
 
 pub type ResponseData = Result<(InteractionResponseData, Option<InteractionResponseType>), Error>;
 pub type Response = Pin<Box<dyn Future<Output = ResponseData> + Send + 'static>>;
-type Callback = fn(InteractionContext, MongoDBConnection, RedisConnection, Arc<Client>, GuildConfig) -> Response;
+type Callback = fn(InteractionContext, Arc<Context>, Arc<Client>, GuildConfig) -> Response;
 
 #[macro_export]
 macro_rules! command {
@@ -25,7 +25,7 @@ macro_rules! command {
         Command {
             name: $name,
             module: $module,
-            run: |interaction: InteractionContext, mongodb: MongoDBConnection, redis: RedisConnection, discord_http: Arc<Client>, config: GuildConfig| ($function)(interaction, mongodb, redis, discord_http, config).boxed()
+            run: |interaction: InteractionContext, context: Arc<Context>, discord_http: Arc<Client>, config: GuildConfig| ($function)(interaction, context, discord_http, config).boxed()
         }
     }
 }

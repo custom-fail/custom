@@ -12,7 +12,8 @@ use serde::{Serialize, Deserialize};
 use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedFooter};
 use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::commands::ResponseData;
-use crate::{extract, get_option, get_required_option, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::{extract, get_option, get_required_option};
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 use crate::utils::avatars::get_avatar_url;
@@ -31,29 +32,28 @@ struct CountActions {
 }
 
 pub async fn run(
-    context: InteractionContext,
-    mongodb: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    context: Arc<Context>,
     _: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
     let member_id = get_required_option!(
-        context.options.get("member"), CommandOptionValue::User
+        interaction.options.get("member"), CommandOptionValue::User
     );
 
     let page = u64::try_from(
         get_option!(
-            context.options.get("page"), CommandOptionValue::Integer
+            interaction.options.get("page"), CommandOptionValue::Integer
         ).copied().unwrap_or(1)
     ).map_err(|_| "Page must be u64")?;
 
-    let user_data = context.interaction.resolved()
+    let user_data = interaction.orginal.resolved()
         .and_then(|resolved| resolved.users.get(member_id)).cloned();
 
-    extract!(context.interaction, guild_id, member);
+    extract!(interaction.orginal, guild_id, member);
     extract!(member, user);
 
-    let action_type = match context.options.get("type") {
+    let action_type = match interaction.options.get("type") {
         Some(CommandOptionValue::String(value)) => {
             Some(match value.as_str() {
                 "mutes" => 7,
@@ -81,7 +81,7 @@ pub async fn run(
         }
     };
 
-    let case_list = mongodb.cases.find(
+    let case_list = context.mongodb.cases.find(
         filter.clone(),
         FindOptions::builder()
             .limit(6).skip(Some((page - 1) * 6))
@@ -94,7 +94,7 @@ pub async fn run(
         return Err(Error::from("This user has no cases"))
     }
 
-    let mut count = mongodb.cases.aggregate(
+    let mut count = context.mongodb.cases.aggregate(
         [
             doc! { "$match": filter },
             doc! {

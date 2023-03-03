@@ -6,34 +6,34 @@ use twilight_model::channel::message::MessageFlags;
 use twilight_model::http::interaction::InteractionResponseData;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
-use crate::{extract, get_required_option, get_option, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::{extract, get_required_option, get_option};
 use crate::models::config::GuildConfig;
 use crate::utils::errors::Error;
 
 pub async fn run(
-    context: InteractionContext,
-    mongodb: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    context: Arc<Context>,
     discord_http: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
 
-    extract!(context.interaction, member, guild_id);
+    extract!(interaction.orginal, member, guild_id);
     extract!(member, user);
 
     let case_index = get_required_option!(
-        context.options.get("number"), CommandOptionValue::Integer
+            interaction.options.get("number"), CommandOptionValue::Integer
     );
 
     let reason = get_required_option!(
-        context.options.get("reason"), CommandOptionValue::String
+            interaction.options.get("reason"), CommandOptionValue::String
     ).to_owned();
 
     if reason.len() > 512 {
         return Err(Error::from("Reason is too long"))
     }
 
-    let mut case = mongodb.cases.find_one(
+    let mut case = context.mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false }, None
     ).await.map_err(Error::from)?.ok_or("There is no case with selected id")?;
 
@@ -41,7 +41,7 @@ pub async fn run(
         return Err(Error::from("You can't edit cases created by someone else"))
     }
 
-    mongodb.cases.update_one(
+    context.mongodb.cases.update_one(
         doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false },
         doc! { "$set": {"reason": reason.to_owned() } }, None
     ).await.map_err(Error::from)?;
