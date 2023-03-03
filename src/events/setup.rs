@@ -17,11 +17,11 @@ pub async fn run(
     } else { return Ok(()); };
 
     let application_id = twilight_http.current_user()
-        .exec().await.map_err(Error::from)?.model().await.map_err(Error::from)?.id;
+        .await.map_err(Error::from)?.model().await.map_err(Error::from)?.id;
     twilight_http
         .interaction(application_id.cast())
         .create_guild_command(guild_id)
         .chat_input(
             "setup", "Shows where you can setup the bot"
-        ).map_err(Error::from)?.exec().await.map_err(Error::from).map(|_| ())
+        ).map_err(Error::from)?.await.map_err(Error::from).map(|_| ())
 }

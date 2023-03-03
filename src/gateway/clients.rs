@@ -10,7 +10,7 @@ use twilight_http::Client;
 use crate::context::Context;
 use crate::MongoDBConnection;
 use crate::utils::errors::Error;
-use crate::gateway::shard::create_shard;
+use crate::gateway::shard::connect_shards;
 
 pub type DiscordClients = Arc<DashMap<Id<ApplicationMarker>, Arc<Client>>>;
 
@@ -55,7 +55,7 @@ impl LoadDiscordClients for DiscordClients {
         context: Arc<Context>
     ) {
         for value in self.iter() {
-            tokio::spawn(create_shard(
+            tokio::spawn(connect_shards(
                 (value.key().to_string(), value.to_owned()),
                 context.to_owned()
             ));

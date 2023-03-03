@@ -90,7 +90,7 @@ pub async fn run(
                 .update_guild_member(guild_id, target_id)
                 .communication_disabled_until(timestamp)
                 .map_err(Error::from)?
-                .exec().await.map_err(Error::from)?
+                .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         } else {
             if !verify_mute_duration(duration) {
@@ -103,7 +103,7 @@ pub async fn run(
             roles.push(config.moderation.mute_role.ok_or("There is no role for muted users set")?);
 
             discord_http.update_guild_member(config.guild_id, target_id)
-                .roles(&roles).exec().await.map_err(Error::from)?;
+                .roles(&roles).await.map_err(Error::from)?;
 
             context.mongodb.create_task(Task {
                 execute_at: DateTime::from_millis(end_at * 1000),
@@ -129,7 +129,7 @@ pub async fn run(
 
     let result_action = match interaction.command_text.as_str() {
         "kick" => {
-            discord_http.remove_guild_member(guild_id, target_id).exec().await.err()
+            discord_http.remove_guild_member(guild_id, target_id).await.err()
         },
         "ban" => {
             if let Some((_, end_at)) = duration {
@@ -139,7 +139,7 @@ pub async fn run(
                     action: TaskAction::RemoveBan(target_id)
                 }).await?;
             };
-            discord_http.create_ban(guild_id, target_id).exec().await.err()
+            discord_http.create_ban(guild_id, target_id).await.err()
         },
         _ => None
     };
@@ -217,7 +217,7 @@ async fn get_target_member(
     guild_id: Id<GuildMarker>,
     member_id: Id<UserMarker>
 ) -> Result<Option<Member>, Error> {
-    match discord_http.guild_member(guild_id, member_id).exec().await {
+    match discord_http.guild_member(guild_id, member_id).await {
         Ok(value) => {
             Ok(Some(
                 value.model().await.map_err(Error::from)?

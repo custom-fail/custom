@@ -1,23 +1,41 @@
 use std::sync::Arc;
 use futures_util::StreamExt;
-use twilight_gateway::Shard;
+use twilight_gateway::stream::ShardEventStream;
+use twilight_gateway::{Config, stream};
 use twilight_model::gateway::Intents;
 use crate::context::Context;
 use crate::events::on_event;
 use twilight_http::Client;
 
-pub async fn create_shard(
+pub async fn connect_shards(
     (id, http): (String, Arc<Client>),
     context: Arc<Context>
 ) {
     let token = if let Some(token) = http.token() { token.to_string() }
     else { eprintln!("Cannot get token of client {id}"); return };
 
-    let (shard, mut events) = Shard::new(token, Intents::MESSAGE_CONTENT | Intents::GUILD_MESSAGES | Intents::GUILDS | Intents::GUILD_BANS | Intents::GUILD_MEMBERS);
-    shard.start().await.expect("Failed to start shard");
-    println!("Created shard for {}", id);
+    let intents = Intents::MESSAGE_CONTENT | Intents::GUILD_MESSAGES | Intents::GUILDS | Intents::GUILD_MODERATION | Intents::GUILD_MEMBERS;
 
-    while let Some(event) = events.next().await {
+    let config = Config::new(token, intents);
+
+    let mut shards = stream::create_recommended(&http, config, |_, builder| builder.build())
+        .await.unwrap().collect::<Vec<_>>();
+
+    let mut stream = ShardEventStream::new(shards.iter_mut());
+
+    while let Some((shard, event)) = stream.next().await {
+        let event = match event {
+            Ok(event) => event,
+            Err(err) => {
+                eprintln!(
+                    "error while reciving events on shard {shard} with {id} client\n{err}",
+                    shard = shard.id().number()
+                );
+                if err.is_fatal() { break }
+                continue;
+            }
+        };
+
         tokio::spawn(on_event(
             event,
             context.to_owned(),

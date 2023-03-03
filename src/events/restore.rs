@@ -24,7 +24,7 @@ pub mod mutes {
         roles.push(mute_role);
 
         discord_http.update_guild_member(config.guild_id, member.user.id)
-            .roles(&roles).exec().await.map_err(|_| ())?;
+            .roles(&roles).await.map_err(|_| ())?;
         Ok(())
     }
 }

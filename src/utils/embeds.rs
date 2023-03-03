@@ -1,5 +1,5 @@
-use twilight_model::channel::embed::{Embed, EmbedField};
-use twilight_model::channel::message::MessageFlags;
+use twilight_model::channel::message::{MessageFlags, Embed};
+use twilight_model::channel::message::embed::EmbedField;
 use twilight_model::http::interaction::InteractionResponseData;
 
 pub struct EmbedBuilder {

@@ -3,7 +3,7 @@ use dashmap::DashMap;
 use futures_util::TryStreamExt;
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::{DateTime, doc};
-use twilight_model::channel::embed::Embed;
+use twilight_model::channel::message::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
 use crate::gateway::clients::ClientData;
@@ -82,18 +82,18 @@ impl MongoDBConnection {
         if let Some(channel_id) = logs {
             discord_http.create_message(channel_id)
                 .embeds(&[case_embed.clone()]).map_err(Error::from)?
-                .exec().await.map_err(Error::from)?
+                .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
 
         if let Some(member_id) = dm_case {
             let channel = discord_http.create_private_channel(member_id)
-                .exec().await.map_err(Error::from)?
+                .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
             let embed = case.to_dm_embed(redis).map_err(Error::from)?;
             discord_http.create_message(channel.id)
                 .embeds(&[embed]).map_err(Error::from)?
-                .exec().await.map_err(Error::from)?
+                .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
 

@@ -59,17 +59,17 @@ pub async fn run_action(task: Task, config: GuildConfig, discord_http: Arc<Clien
     match task.action {
         TaskAction::RemoveMuteRole(member_id) => {
             let member = discord_http.guild_member(config.guild_id, member_id)
-                .exec().await.map_err(|_| ())?.model().await.map_err(|_| ())?;
+                .await.map_err(|_| ())?.model().await.map_err(|_| ())?;
 
             let mute_role = config.moderation.mute_role.ok_or(())?;
             let roles_without_mute_role = member.roles.iter()
                 .filter(|role| role != &&mute_role).cloned().collect::<Vec<Id<RoleMarker>>>();
 
             discord_http.update_guild_member(config.guild_id, member_id)
-                .roles(&roles_without_mute_role).exec().await.map_err(|_| ())?;
+                .roles(&roles_without_mute_role).await.map_err(|_| ())?;
         }
         TaskAction::RemoveBan(member_id) => {
-            discord_http.delete_ban(config.guild_id, member_id).exec().await.map_err(|_| ())?;
+            discord_http.delete_ban(config.guild_id, member_id).await.map_err(|_| ())?;
         }
     };
     Ok(())

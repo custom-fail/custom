@@ -65,6 +65,12 @@ impl From<twilight_validate::message::MessageValidationError> for Error {
     }
 }
 
+impl From<twilight_validate::channel::ChannelValidationError> for Error {
+    fn from(error: twilight_validate::channel::ChannelValidationError) -> Self {
+        Self::Debug(vec![error.to_string(), format!("{:?}", error)])
+    }
+}
+
 impl From<TimestampParseError> for Error {
     fn from(error: TimestampParseError) -> Self {
         Self::Debug(vec![error.to_string(), format!("{:?}", error)])

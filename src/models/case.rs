@@ -3,7 +3,8 @@ use std::time::Duration as StdDuration;
 use humantime::format_duration;
 use mongodb::bson::DateTime;
 use twilight_http::Client;
-use twilight_model::channel::embed::{Embed, EmbedAuthor, EmbedField, EmbedFooter};
+use twilight_model::channel::message::Embed;
+use twilight_model::channel::message::embed::{EmbedFooter, EmbedField, EmbedAuthor};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
 use twilight_model::util::datetime::TimestampParseError;
@@ -87,7 +88,7 @@ impl Case {
     }
 
     pub async fn to_embed(&self, discord_http: Arc<Client>) -> Result<Embed, Error> {
-        let moderator = match discord_http.user(self.moderator_id).exec().await {
+        let moderator = match discord_http.user(self.moderator_id).await {
             Ok(moderator) => moderator.model().await.ok(),
             Err(_) => None
         };
