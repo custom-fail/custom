@@ -95,7 +95,7 @@ impl Case {
         let embed_author = moderator.map(|moderator| {
             let avatar = get_avatar_url(moderator.avatar, moderator.id);
             EmbedAuthor {
-                icon_url: Some(avatar.clone()),
+                icon_url: Some(avatar),
                 name: format!("{}#{} {}", moderator.name, moderator.discriminator, moderator.id),
                 proxy_icon_url: None,
                 url: None

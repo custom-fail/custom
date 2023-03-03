@@ -15,7 +15,7 @@ use crate::utils::errors::Error;
 
 pub async fn run(
     interaction: InteractionContext,
-    context: Arc<Context>,
+    _: Arc<Context>,
     discord_http: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {

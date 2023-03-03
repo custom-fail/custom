@@ -5,7 +5,7 @@ use crate::utils::embeds::EmbedBuilder;
 use crate::utils::errors::Error;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
-use crate::{extract, MongoDBConnection, RedisConnection};
+use crate::extract;
 use crate::models::config::GuildConfig;
 
 pub async fn run(

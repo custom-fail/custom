@@ -5,7 +5,7 @@ use twilight_model::application::interaction::application_command::CommandOption
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
 use crate::context::Context;
-use crate::{extract, get_required_option, get_option, MongoDBConnection, RedisConnection};
+use crate::{extract, get_required_option, get_option};
 use crate::models::config::GuildConfig;
 use crate::utils::embeds::interaction_response_data_from_embed;
 use crate::utils::errors::Error;

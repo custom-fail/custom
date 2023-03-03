@@ -2,8 +2,6 @@ use std::sync::Arc;
 use twilight_http::Client;
 use crate::context::Context;
 use crate::models::config::GuildConfig;
-use crate::database::mongodb::MongoDBConnection;
-use crate::database::redis::RedisConnection;
 use crate::utils::embeds::EmbedBuilder;
 use crate::utils::errors::Error;
 use crate::commands::context::InteractionContext;

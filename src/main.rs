@@ -9,7 +9,6 @@ use crate::links::ScamLinks;
 use dotenv::dotenv;
 use ed25519_dalek::PublicKey;
 use twilight_http::Client;
-use crate::application::Application;
 
 mod context;
 mod events;

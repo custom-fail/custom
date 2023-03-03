@@ -8,7 +8,6 @@ use serde_json::json;
 use twilight_http::Client;
 use twilight_model::application::interaction::Interaction;
 use crate::context::Context;
-use crate::{Application, MongoDBConnection, RedisConnection};
 use crate::server::authorize::verify_signature;
 use crate::server::interaction::handle_interaction;
 
