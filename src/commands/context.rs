@@ -28,7 +28,7 @@ pub struct InteractionContext {
     pub command_vec: Vec<String>,
     pub command_text: String,
     pub options: HashMap<String, CommandOptionValue>,
-    pub interaction: Interaction
+    pub orginal: Interaction
 }
 
 impl TryFrom<Interaction> for InteractionContext {
@@ -58,7 +58,7 @@ impl TryFrom<Interaction> for InteractionContext {
             options: Default::default(),
             command_vec,
             command_text,
-            interaction
+            orginal: interaction
         })
     }
 }

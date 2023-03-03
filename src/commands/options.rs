@@ -42,7 +42,7 @@ pub trait LoadOptions {
 #[async_trait]
 impl LoadOptions for InteractionContext {
     async fn load_options(mut self, application: &Application) -> Result<Self, Error> {
-        extract!(&self.interaction, data);
+        extract!(&self.orginal, data);
         match data {
             InteractionData::ApplicationCommand(command) => {
                 self.options = get_options_from_command_data(command.to_owned());

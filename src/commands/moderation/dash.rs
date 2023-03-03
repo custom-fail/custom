@@ -3,21 +3,21 @@ use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::http::interaction::InteractionResponseType;
 use crate::commands::ResponseData;
-use crate::{get_required_option, get_option, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::{get_required_option, get_option};
 use crate::commands::context::InteractionContext;
 use crate::models::config::GuildConfig;
 use crate::utils::errors::Error;
 use crate::utils::modals::{ModalBuilder, RepetitiveTextInput};
 
 pub async fn run(
-    context: InteractionContext,
-    _: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    _: Arc<Context>,
     _: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
     let action = get_required_option!(
-        context.options.get("action"), CommandOptionValue::String
+        interaction.options.get("action"), CommandOptionValue::String
     );
 
     let modal = if *action == "warn" {

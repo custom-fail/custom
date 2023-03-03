@@ -3,18 +3,18 @@ use twilight_http::Client;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::http::interaction::InteractionResponseData;
 use crate::commands::context::InteractionContext;
-use crate::{extract, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::extract;
 use crate::commands::ResponseData;
 use crate::models::config::GuildConfig;
 
 pub async fn run(
-    context: InteractionContext,
-    _: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    _: Arc<Context>,
     _: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
-    extract!(context.interaction, guild_id);
+    extract!(interaction.orginal, guild_id);
     Ok((InteractionResponseData {
         allowed_mentions: None,
         attachments: None,

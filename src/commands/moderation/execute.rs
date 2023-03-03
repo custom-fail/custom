@@ -13,7 +13,8 @@ use twilight_model::http::interaction::{InteractionResponseData, InteractionResp
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GenericMarker, GuildMarker, RoleMarker, UserMarker};
 use crate::commands::ResponseData;
-use crate::{extract, get_option, get_required_option, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::{extract, get_option, get_required_option, RedisConnection};
 use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::models::case::{Case, CaseActionType};
 use crate::models::config::GuildConfig;
@@ -25,34 +26,33 @@ use crate::utils::modals::{ModalBuilder, RepetitiveTextInput};
 use crate::utils::uppercase::FirstLetterToUpperCase;
 
 pub async fn run(
-    context: InteractionContext,
-    mongodb: MongoDBConnection,
-    redis: RedisConnection,
+    interaction: InteractionContext,
+    context: Arc<Context>,
     discord_http: Arc<Client>,
     config: GuildConfig
 ) -> ResponseData {
-    if let Some(target_user) = context.interaction.target_id() {
+    if let Some(target_user) = interaction.orginal.target_id() {
         let response = create_modal(
-            context.command_text, target_user
+            interaction.command_text, target_user
         ).to_interaction_response_data();
         return Ok((response, Some(InteractionResponseType::Modal)))
     }
 
-    extract!(context.interaction, guild_id, member);
+    extract!(interaction.orginal, guild_id, member);
     extract!(&member, user);
 
     let user_id = user.id;
 
     let target_id = *get_required_option!(
-        context.options.get("member"), CommandOptionValue::User
+        interaction.options.get("member"), CommandOptionValue::User
     );
 
     let reason = get_option!(
-        context.options.get("reason"), CommandOptionValue::String
+        interaction.options.get("reason"), CommandOptionValue::String
     ).cloned();
 
     let case_type = command_to_action_type(
-        context.command_text.as_str(), &config
+        interaction.command_text.as_str(), &config
     ).ok_or("Cannot find any action type matching command name")?;
 
     let target_member = get_target_member(
@@ -60,7 +60,7 @@ pub async fn run(
     ).await.map_err(Error::from)?;
 
     if let Some(target_member) = &target_member {
-        if !check_position(&redis, guild_id, target_member, member)? {
+        if !check_position(&context.redis, guild_id, target_member, member)? {
             return Err(
                 Error::from("Missing Permissions: Cannot execute moderation action on user with higher role")
             )
@@ -68,7 +68,7 @@ pub async fn run(
     }
 
     let duration = get_option!(
-        context.options.get("duration"), CommandOptionValue::String
+        interaction.options.get("duration"), CommandOptionValue::String
     );
 
     let duration = match duration {
@@ -105,7 +105,7 @@ pub async fn run(
             discord_http.update_guild_member(config.guild_id, target_id)
                 .roles(&roles).exec().await.map_err(Error::from)?;
 
-            mongodb.create_task(Task {
+            context.mongodb.create_task(Task {
                 execute_at: DateTime::from_millis(end_at * 1000),
                 guild_id,
                 action: TaskAction::RemoveMuteRole(target_id)
@@ -113,7 +113,7 @@ pub async fn run(
         }
     };
 
-    let index = mongodb.get_next_case_index(guild_id).await? as u16;
+    let index = context.mongodb.get_next_case_index(guild_id).await? as u16;
 
     let case = Case {
         moderator_id: user_id,
@@ -127,13 +127,13 @@ pub async fn run(
         index
     };
 
-    let result_action = match context.command_text.as_str() {
+    let result_action = match interaction.command_text.as_str() {
         "kick" => {
             discord_http.remove_guild_member(guild_id, target_id).exec().await.err()
         },
         "ban" => {
             if let Some((_, end_at)) = duration {
-                mongodb.create_task(Task {
+                context.mongodb.create_task(Task {
                     execute_at: DateTime::from_millis(end_at * 1000),
                     guild_id,
                     action: TaskAction::RemoveBan(target_id)
@@ -146,8 +146,8 @@ pub async fn run(
 
     let case_embed = case.to_embed(discord_http.to_owned()).await?;
 
-    let result_case = mongodb.create_case(
-        discord_http.to_owned(), redis, case,
+    let result_case = context.mongodb.create_case(
+        discord_http.to_owned(), &context.redis, case,
         case_embed.to_owned(),
         if config.moderation.dm_case { Some(target_id) } else { None },
         config.moderation.logs_channel

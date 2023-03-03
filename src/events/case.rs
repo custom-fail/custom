@@ -10,9 +10,9 @@ use crate::{MongoDBConnection, RedisConnection};
 use crate::models::case::{Case, CaseActionType};
 
 pub async fn run(
-    mongodb: MongoDBConnection,
+    mongodb: &MongoDBConnection,
     discord_http: Arc<Client>,
-    redis: RedisConnection,
+    redis: &RedisConnection,
     guild_id: Id<GuildMarker>,
     target_id: Id<UserMarker>,
     (event_type, action_type): (AuditLogEventType, CaseActionType)
@@ -93,16 +93,15 @@ pub mod on_kick {
     use twilight_http::Client;
     use twilight_model::gateway::payload::incoming::MemberRemove;
     use twilight_model::guild::audit_log::AuditLogEventType;
-    use crate::{MongoDBConnection, RedisConnection};
+    use crate::context::Context;
     use crate::models::case::CaseActionType;
 
     pub async fn run(
         event: MemberRemove,
-        mongodb: MongoDBConnection,
         discord_http: Arc<Client>,
-        redis: RedisConnection
+        context: Arc<Context>
     ) -> Result<(), ()> {
-        crate::events::case::run(mongodb, discord_http, redis, event.guild_id, event.user.id, (AuditLogEventType::MemberKick, CaseActionType::Kick)).await
+        crate::events::case::run(&context.mongodb, discord_http, &context.redis, event.guild_id, event.user.id, (AuditLogEventType::MemberKick, CaseActionType::Kick)).await
     }
 }
 
@@ -111,16 +110,15 @@ pub mod on_ban {
     use twilight_http::Client;
     use twilight_model::gateway::payload::incoming::BanAdd;
     use twilight_model::guild::audit_log::AuditLogEventType;
-    use crate::{MongoDBConnection, RedisConnection};
+    use crate::context::Context;
     use crate::models::case::CaseActionType;
 
     pub async fn run(
         event: BanAdd,
-        mongodb: MongoDBConnection,
         discord_http: Arc<Client>,
-        redis: RedisConnection
+        context: Arc<Context>
     ) -> Result<(), ()> {
-        crate::events::case::run(mongodb, discord_http, redis, event.guild_id, event.user.id, (AuditLogEventType::MemberBanAdd, CaseActionType::Ban)).await
+        crate::events::case::run(&context.mongodb, discord_http, &context.redis, event.guild_id, event.user.id, (AuditLogEventType::MemberBanAdd, CaseActionType::Ban)).await
     }
 }
 
@@ -129,15 +127,14 @@ pub mod on_timeout {
     use twilight_http::Client;
     use twilight_model::gateway::payload::incoming::MemberUpdate;
     use twilight_model::guild::audit_log::AuditLogEventType;
-    use crate::{MongoDBConnection, RedisConnection};
+    use crate::context::Context;
     use crate::models::case::CaseActionType;
 
     pub async fn run(
         event: Box<MemberUpdate>,
-        mongodb: MongoDBConnection,
         discord_http: Arc<Client>,
-        redis: RedisConnection
+        context: Arc<Context>
     ) -> Result<(), ()> {
-        crate::events::case::run(mongodb, discord_http, redis, event.guild_id, event.user.id, (AuditLogEventType::MemberUpdate, CaseActionType::Timeout)).await
+        crate::events::case::run(&context.mongodb, discord_http, &context.redis, event.guild_id, event.user.id, (AuditLogEventType::MemberUpdate, CaseActionType::Timeout)).await
     }
 }

@@ -7,7 +7,7 @@ use hyper::service::{make_service_fn, service_fn};
 use serde_json::json;
 use twilight_http::Client;
 use twilight_model::application::interaction::Interaction;
-use crate::{Application, MongoDBConnection, RedisConnection};
+use crate::context::Context;
 use crate::server::authorize::verify_signature;
 use crate::server::interaction::handle_interaction;
 
@@ -46,10 +46,8 @@ const INVALID_BODY: HttpResponse = HttpResponse { body: "Invalid/Missing body", 
 
 async fn route(
     request: Request<Body>,
-    application: Application,
-    mongodb: MongoDBConnection,
-    redis: RedisConnection,
     discord_http: Arc<Client>,
+    context: Arc<Context>,
     public_key: PublicKey
 ) -> Result<Response<Body>, Response<Body>> {
     if request.method() != Method::POST {
@@ -78,9 +76,7 @@ async fn route(
         return Ok(UNAUTHORIZED.to_response());
     };
 
-    let content = handle_interaction(
-        interaction, application, mongodb, redis, discord_http
-    ).await;
+    let content = handle_interaction(interaction, discord_http, context).await;
     let content = json!(content).to_string();
 
     let response = Response::builder()
@@ -92,14 +88,12 @@ async fn route(
 
 pub async fn run_route(
     request: Request<Body>,
-    application: Application,
-    mongodb: MongoDBConnection,
-    redis: RedisConnection,
+    public_key: PublicKey,
     discord_http: Arc<Client>,
-    public_key: PublicKey
+    context: Arc<Context>
 ) -> Result<Response<Body>, Infallible> {
     let response = route(
-        request, application, mongodb, redis, discord_http, public_key
+            request, discord_http, context, public_key
     ).await;
 
     Ok(match response {
@@ -110,26 +104,20 @@ pub async fn run_route(
 
 pub async fn listen(
     port: u8,
-    application: Application,
-    mongodb: MongoDBConnection,
-    redis: RedisConnection,
+    context: Arc<Context>,
     discord_http: Arc<Client>,
     public_key: PublicKey
 ) {
     let service = make_service_fn(move |_| {
-        let application = application.clone();
-        let mongodb = mongodb.clone();
-        let redis = redis.clone();
-        let discord_http = discord_http.clone();
+        let discord_http = discord_http.to_owned();
+        let context = context.to_owned();
         async move {
             Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
                 run_route(
                     req,
-                    application.to_owned(),
-                    mongodb.to_owned(),
-                    redis.to_owned(),
+                    public_key,
                     discord_http.to_owned(),
-                    public_key
+                    context.to_owned()
                 )
             }))
         }

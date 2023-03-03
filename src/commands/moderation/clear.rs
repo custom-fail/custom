@@ -7,31 +7,31 @@ use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::id::Id;
 use twilight_model::id::marker::MessageMarker;
 use crate::commands::ResponseData;
-use crate::{extract, get_option, get_required_option, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::{extract, get_option, get_required_option};
 use crate::commands::context::InteractionContext;
 use crate::models::config::GuildConfig;
 use crate::utils::errors::Error;
 
 pub async fn run(
-    context: InteractionContext,
-    _: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    _: Arc<Context>,
     discord_http: Arc<Client>,
     _: GuildConfig
 ) -> ResponseData {
 
-    extract!(context.interaction, channel_id);
+    extract!(interaction.orginal, channel_id);
 
     let amount = get_required_option!(
-        context.options.get("amount"), CommandOptionValue::Integer
+        interaction.options.get("amount"), CommandOptionValue::Integer
     );
 
     let member = get_option!(
-        context.options.get("member"), CommandOptionValue::User
+        interaction.options.get("member"), CommandOptionValue::User
     ).copied();
 
     let filter = get_option!(
-        context.options.get("member"), CommandOptionValue::String
+        interaction.options.get("member"), CommandOptionValue::String
     );
 
     if !(&2..=&600).contains(&amount) {

@@ -5,10 +5,9 @@ mod filters;
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::channel::Message;
+use crate::context::Context;
 use crate::models::config::moderation::Ignore;
-use crate::database::mongodb::MongoDBConnection;
 use crate::events::automod::actions::run_action;
-use crate::{Bucket, ScamLinks};
 use self::filters::filters_match;
 use self::checks::checks_match;
 
@@ -36,14 +35,11 @@ fn is_ignored(message: &Message, ignores: &Vec<Ignore>) -> bool {
 
 pub async fn run(
     message: Message,
-    mongodb: MongoDBConnection,
     discord_http: Arc<Client>,
-    scam_domains: ScamLinks,
-    bucket: Bucket
+    context: Arc<Context>
 ) -> Result<(), ()> {
-
     let guild_id = message.guild_id.ok_or(())?;
-    let guild_config = mongodb.get_config(guild_id).await.map_err(|_| ())?;
+    let guild_config = context.mongodb.get_config(guild_id).await.map_err(|_| ())?;
 
     if message.content.is_empty() || message.author.bot {
         return Ok(())
@@ -61,7 +57,7 @@ pub async fn run(
         }
 
         for check in automod.checks {
-            let is_allowed = checks_match(check, message.content.to_owned(), scam_domains.to_owned()).await?;
+            let is_allowed = checks_match(check, message.content.to_owned(), context.scam_domains.to_owned()).await?;
             if !is_allowed { return Ok(()) }
         }
 
@@ -70,7 +66,7 @@ pub async fn run(
                 action,
                 message.to_owned(),
                 discord_http.to_owned(),
-                bucket.to_owned(),
+                context.bucket.to_owned(),
                 &guild_config,
                 automod.reason.to_owned(),
             ).await.ok();
@@ -79,5 +75,4 @@ pub async fn run(
     }
 
     Ok(())
-
 }

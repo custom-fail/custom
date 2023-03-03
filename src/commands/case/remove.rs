@@ -6,23 +6,23 @@ use twilight_model::http::interaction::InteractionResponseData;
 use twilight_model::channel::message::MessageFlags;
 use crate::commands::context::InteractionContext;
 use crate::commands::ResponseData;
-use crate::{get_required_option, get_option, MongoDBConnection, RedisConnection};
+use crate::context::Context;
+use crate::{get_required_option, get_option};
 use crate::models::config::GuildConfig;
 use crate::utils::errors::Error;
 
 pub async fn run(
-    context: InteractionContext,
-    mongodb: MongoDBConnection,
-    _: RedisConnection,
+    interaction: InteractionContext,
+    context: Arc<Context>,
     discord_http: Arc<Client>,
     config: GuildConfig
 ) -> ResponseData {
 
     let case_index = *get_required_option!(
-        context.options.get("number"), CommandOptionValue::Integer
+        interaction.options.get("number"), CommandOptionValue::Integer
     );
 
-    let removed_case = mongodb.cases.find_one_and_update(
+    let removed_case = context.mongodb.cases.find_one_and_update(
         doc! {
             "guild_id": config.guild_id.to_string(),
             "index": case_index,

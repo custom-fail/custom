@@ -70,7 +70,7 @@ impl MongoDBConnection {
     pub async fn create_case(
         &self,
         discord_http: Arc<twilight_http::Client>,
-        redis: RedisConnection,
+        redis: &RedisConnection,
         case: Case,
         case_embed: Embed,
         dm_case: Option<Id<UserMarker>>,
