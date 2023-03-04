@@ -27,11 +27,6 @@ pub async fn on_event(
             self::automod::run(message.to_owned(), discord_http, context.to_owned()).await.ok();
             self::top::run(message, context).await.ok();
         }
-        Event::BanAdd(event) => { self::case::on_ban::run(event, discord_http, context).await.ok(); },
-        Event::MemberRemove(event) => { self::case::on_kick::run(event, discord_http, context).await.ok(); },
-        Event::MemberUpdate(event) => {
-            self::case::on_timeout::run(event, discord_http, context).await.ok();
-        },
         Event::GuildCreate(event) => {
             tokio::spawn(self::setup::run(event.id, event.joined_at, discord_http));
             self::cache::on_guild_create(&context.redis, event).ok();
@@ -50,6 +45,9 @@ pub async fn on_event(
         },
         Event::RoleDelete(event) => {
             self::cache::fetch_and_set(&context.redis, discord_http, event.guild_id).await.ok();
+        },
+        Event::GuildAuditLogEntryCreate(event) => {
+            self::case::run(event, discord_http, context).await.ok();
         }
         _ => return Err(()),
     };
