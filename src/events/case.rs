@@ -34,6 +34,8 @@ pub async fn run(event: Box<GuildAuditLogEntryCreate>, discord_http: Arc<Client>
         } else {
             return Err(())
         }
+    } else if event.action_type == AuditLogEventType::MemberUpdate {
+        return Ok(()) // its not a timeout
     } else { None };
 
     let moderator = discord_http.user(moderator_id).await.map_err(|_| ())?.model().await.map_err(|_| ())?;
