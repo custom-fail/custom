@@ -24,12 +24,12 @@ macro_rules! get_option {
 macro_rules! get_required_option {
     ($value: expr, CommandOptionValue::String) => {
         get_option!($value, CommandOptionValue::String).ok_or(
-            format!("Missing option: context.options.{}", stringify!($value))
+            format!("Missing option: {}", stringify!($value))
         )?
     };
     ($value: expr, $t: path) => {
         get_option!($value, $t).ok_or(
-            format!("Missing option: context.options.{}", stringify!($value))
+            format!("Missing option: {}", stringify!($value))
         )?
     };
 }

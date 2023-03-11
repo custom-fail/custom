@@ -53,7 +53,7 @@ macro_rules! moderation_modal {
                 command: $name.to_string(),
                 id: $name.to_string(),
             }),
-            ($name.to_string(), Modal {
+            (format!("{}-d", $name), Modal {
                 options: vec![],
                 inputs: get_modal_input(false, true),
                 command: $name.to_string(),
@@ -67,7 +67,7 @@ macro_rules! moderation_modal {
                 command: $duration_command_name.to_string(),
                 id: $duration_command_name.to_string(),
             }),
-            ($duration_command_name.to_string(), Modal {
+            (format!("{}-d", $duration_command_name), Modal {
                 options: vec![],
                 inputs: get_modal_input(true, true),
                 command: $duration_command_name.to_string(),

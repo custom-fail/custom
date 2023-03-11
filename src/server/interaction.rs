@@ -40,11 +40,7 @@ async fn handle_command(
                     interaction_ctx, context, discord_http.to_owned(), config
             ).await;
 
-            // into_ok_or_err is unstable :/
-            let response_data = match response {
-                Ok((response, _)) => response,
-                Err(error) => error.to_interaction_data_response()
-            };
+            let response_data = response.map(|(v, _)| v).unwrap_or_else(|e| e.to_interaction_data_response());
 
             let bytes_data = serde_json::to_vec(&response_data)
                 .expect("Interaction response serialization error");
