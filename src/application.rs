@@ -20,7 +20,7 @@ pub struct Component {
     pub id: String
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Modal {
     pub options: ConvertableOptionsList,
     pub inputs: ConvertableOptionsHashMap,

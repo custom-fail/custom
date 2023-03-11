@@ -4,12 +4,12 @@ use twilight_model::gateway::event::Event;
 use crate::context::Context;
 
 pub mod automod;
-pub mod case;
-pub mod top;
-pub mod cache;
-pub mod restore;
-pub mod setup;
-pub mod interaction;
+mod case;
+mod top;
+mod cache;
+mod restore;
+mod setup;
+mod interaction;
 
 pub async fn on_event(
     event: Event,
