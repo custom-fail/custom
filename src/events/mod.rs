@@ -9,6 +9,7 @@ pub mod top;
 pub mod cache;
 pub mod restore;
 pub mod setup;
+pub mod interaction;
 
 pub async fn on_event(
     event: Event,
@@ -48,6 +49,9 @@ pub async fn on_event(
         },
         Event::GuildAuditLogEntryCreate(event) => {
             self::case::run(event, discord_http, context).await.ok();
+        }
+        Event::InteractionCreate(interaction) => {
+            self::interaction::run(interaction, discord_http, context).await.ok();
         }
         _ => return Err(()),
     };
