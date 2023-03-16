@@ -7,8 +7,8 @@ use twilight_model::channel::Message;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
 use crate::Bucket;
-use crate::models::config::automod::actions::{Actions, Timeout};
 use crate::models::config::GuildConfig;
+use crate::models::config::automod::actions::{Timeout, Action};
 use crate::utils::avatars::get_avatar_url;
 
 const CUSTOM_AVATAR: &str = "https://cdn.discordapp.com/attachments/941277994935263302/951521815082180608/713880061635330110.gif";
@@ -20,7 +20,6 @@ async fn send_direct_message(
 ) -> Result<(), ()> {
     let channel = discord_http
         .create_private_channel(message.author.id)
-        
         .await
         .map_err(|_| ())?
         .model()
@@ -50,7 +49,6 @@ async fn send_direct_message(
             video: None,
         }])
         .map_err(|_| ())?
-        
         .await
         .map_err(|_| ())?;
 
@@ -61,7 +59,7 @@ async fn increase_bucket(
     message: Message,
     discord_http: Arc<Client>,
     bucket: Bucket,
-    guild_config: &GuildConfig,
+    guild_config: Arc<GuildConfig>,
     key: String
 ) -> Result<(), ()> {
     let user_id = message.author.id.to_owned();
@@ -83,22 +81,19 @@ async fn delete_message(
 ) -> Result<(), ()> {
     discord_http
         .delete_message(message.channel_id, message.id)
-        
         .await
         .ok();
 
     Ok(())
-    
 }
 
 async fn send_logs(
     message: Message,
     discord_http: Arc<Client>,
-    guild_config: &GuildConfig,
+    guild_config: Arc<GuildConfig>,
     reason: String
 ) -> Result<(), ()> {
-
-    let channel = guild_config.moderation.automod_logs.ok_or(())?;
+    let channel = guild_config.moderation.automod.logs_channel.ok_or(())?;
 
     let avatar = get_avatar_url(message.author.avatar, message.author.id);
     let embed = Embed {
@@ -129,7 +124,6 @@ async fn send_logs(
         .create_message(channel)
         .embeds(&[embed])
         .map_err(|_| ())?
-        
         .await
         .ok();
 
@@ -143,7 +137,6 @@ async fn timeout(
     discord_http: Arc<Client>,
     config: Timeout
 ) -> Result<(), ()> {
-
     let timeout_end = Utc::now().timestamp() + config.duration;
     let timestamp =
         twilight_model::util::datetime::Timestamp::from_secs(timeout_end).map_err(|_| ())?;
@@ -152,12 +145,10 @@ async fn timeout(
         .update_guild_member(guild_id, message.author.id)
         .communication_disabled_until(Some(timestamp))
         .map_err(|_| ())?
-        
         .await
         .map_err(|_| ())?;
 
     Ok(())
-
 }
 
 async fn kick(
@@ -167,7 +158,6 @@ async fn kick(
 ) -> Result<(), ()> {
     discord_http
         .remove_guild_member(guild_id, message.author.id)
-        
         .await
         .map_err(|_| ())?;
 
@@ -189,20 +179,20 @@ async fn ban(
 }
 
 pub async fn run_action_bucket(
-    action: Actions,
+    action: Action,
     message: Message,
     discord_http: Arc<Client>,
-    guild_config: &GuildConfig,
+    guild_config: Arc<GuildConfig>,
     reason: String
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
     match action {
-        Actions::DirectMessage => send_direct_message(message, discord_http, reason).await,
-        Actions::DeleteMessage => delete_message(message, discord_http).await,
-        Actions::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
-        Actions::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
-        Actions::Kick => kick(guild_id, message, discord_http).await,
-        Actions::Ban => ban(guild_id, message, discord_http).await,
+        Action::DirectMessage => send_direct_message(message, discord_http, reason).await,
+        Action::DeleteMessage => delete_message(message, discord_http).await,
+        Action::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
+        Action::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
+        Action::Kick => kick(guild_id, message, discord_http).await,
+        Action::Ban => ban(guild_id, message, discord_http).await,
         _ => {
             eprint!("ok");
             Ok(())
@@ -215,22 +205,22 @@ pub async fn run_action_bucket(
 
 
 pub async fn run_action(
-    action: Actions,
+    action: Action,
     message: Message,
     discord_http: Arc<Client>,
     bucket: Bucket,
-    guild_config: &GuildConfig,
+    guild_config: Arc<GuildConfig>,
     reason: String
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
     match action {
-        Actions::DirectMessage => send_direct_message(message, discord_http, reason).await,
-        Actions::IncreaseBucket(key) => increase_bucket(message, discord_http, bucket, guild_config, key).await,
-        Actions::DeleteMessage => delete_message(message, discord_http).await,
-        Actions::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
-        Actions::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
-        Actions::Kick => kick(guild_id, message, discord_http).await,
-        Actions::Ban => ban(guild_id, message, discord_http).await
+        Action::DirectMessage => send_direct_message(message, discord_http, reason).await,
+        Action::IncreaseBucket(key) => increase_bucket(message, discord_http, bucket, guild_config, key).await,
+        Action::DeleteMessage => delete_message(message, discord_http).await,
+        Action::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
+        Action::Timeout(config) => timeout(guild_id, message, discord_http, config).await,
+        Action::Kick => kick(guild_id, message, discord_http).await,
+        Action::Ban => ban(guild_id, message, discord_http).await
     }?;
 
     Ok(())

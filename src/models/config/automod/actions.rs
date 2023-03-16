@@ -1,8 +1,14 @@
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ActionMetadata {
+    pub action: Action,
+    pub sync: bool
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "key")]
-pub enum Actions {
+pub enum Action {
     DirectMessage,
     IncreaseBucket(String),
     DeleteMessage,
