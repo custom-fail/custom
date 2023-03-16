@@ -18,7 +18,7 @@ pub type Bucket = Arc<DashMap<Id<GuildMarker>, Mutex<HashMap<Id<UserMarker>, Has
 pub async fn incr(
     discord_http: Arc<Client>,
     message: Message,
-    guild_config: &GuildConfig,
+    guild_config: Arc<GuildConfig>,
     bucket: Bucket,
     user_id: Id<UserMarker>,
     key: String
@@ -54,7 +54,7 @@ pub async fn incr(
                 action,
                 message.to_owned(),
                 discord_http.to_owned(),
-                guild_config,
+                guild_config.to_owned(),
                 bucket_data.reason.to_owned()
             ).await.ok();
         }

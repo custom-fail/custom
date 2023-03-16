@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use crate::models::config::automod::actions::Actions;
+use crate::models::config::automod::actions::Action;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", content = "count")]
@@ -11,9 +11,9 @@ pub enum IncreaseBucketAmount {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BucketActions {
+pub struct BucketAction {
     pub amount: IncreaseBucketAmount,
-    pub actions: Vec<Actions>,
+    pub actions: Vec<Action>,
     pub reason: String,
     // minimal value required to run action
     pub min: u8
