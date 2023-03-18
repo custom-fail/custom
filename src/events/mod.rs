@@ -2,6 +2,8 @@ use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::gateway::event::Event;
 use crate::context::Context;
+use crate::models::config::automod::TrigerEvent;
+use crate::utils::message::ConvertToMessage;
 
 pub mod automod;
 mod case;
@@ -25,8 +27,12 @@ pub async fn on_event(
         }
         Event::MessageCreate(event) => {
             let message = event.as_ref().0.to_owned();
-            self::automod::run(message.to_owned(), discord_http, context.to_owned()).await.ok();
+            self::automod::run(message.to_owned(), discord_http, context.to_owned(), TrigerEvent::MessageCreate).await.ok();
             self::top::run(message, context).await.ok();
+        }
+        Event::MessageUpdate(event) => {
+            let message = event.convert()?;
+            self::automod::run(message, discord_http, context, TrigerEvent::MessageCreate).await.ok();
         }
         Event::GuildCreate(event) => {
             tokio::spawn(self::setup::run(event.id, event.joined_at, discord_http));

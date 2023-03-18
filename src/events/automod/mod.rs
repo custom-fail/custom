@@ -7,6 +7,7 @@ use twilight_http::Client;
 use twilight_model::channel::Message;
 use crate::context::Context;
 use crate::events::automod::actions::run_action;
+use crate::models::config::automod::TrigerEvent;
 use crate::models::config::automod::ignore::{Ignore, IgnoreMode};
 
 fn is_ignored(message: &Message, ignore_rule: &Option<Ignore>) -> bool {
@@ -35,7 +36,8 @@ fn is_ignored(message: &Message, ignore_rule: &Option<Ignore>) -> bool {
 pub async fn run(
     message: Message,
     discord_http: Arc<Client>,
-    context: Arc<Context>
+    context: Arc<Context>,
+    triger: TrigerEvent
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
     let guild_config = Arc::new(context.mongodb.get_config(guild_id).await.map_err(|_| ())?);
@@ -47,7 +49,7 @@ pub async fn run(
     if is_ignored(&message, &guild_config.moderation.automod.ignore) { return Ok(()) }
 
     for automod_rule in &guild_config.moderation.automod.rules {
-
+        if triger == TrigerEvent::MessageUpdate && !automod_rule.check_on_edit { continue }
         if is_ignored(&message, &automod_rule.ignore) { continue }
 
         for filter in &automod_rule.filters {
