@@ -14,8 +14,8 @@ pub struct Ignore {
 #[derive(Serialize_repr, Deserialize_repr, Debug, Clone, PartialEq)]
 #[repr(u8)]
 pub enum IgnoreMode {
-    /// Automod checks only channels from list
+    /// Automod check only channels from list
     WhileList = 1,
-    /// Automod don't checks channels from list
+    /// Automod don't check channels from list
     BlackList = 2
 }
