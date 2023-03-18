@@ -4,7 +4,7 @@ use twilight_model::id::Id;
 
 use crate::models::config::{GuildConfig, moderation::{Moderation, MuteMode}, automod::{AutoModeration, AutoModerationRule, ignore::{Ignore, IgnoreMode}, actions::{ActionMetadata, Action, IncreaseBucket, IncreaseBucketAmount, BucketAction, Timeout}}, activity::{Levels, Top}};
 
-#[alow(dead_code)]
+#[allow(dead_code)]
 
 /// Creates config for warns
 pub fn create_debug_config() -> GuildConfig {

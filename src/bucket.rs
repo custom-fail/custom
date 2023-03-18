@@ -59,7 +59,7 @@ pub async fn incr(
             *count = value
         }
     }).await;
-    println!("{count}");
+
     // TODO: implement async actions
     if count > bucket_data.limit {
         for action in bucket_data.actions {
