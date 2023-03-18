@@ -38,11 +38,10 @@ pub async fn incr(
     let guild_id = guild_config.guild_id;
     let user_id = message.author.id;
 
-    // TODO: replace u8 with overflow safe methods
     let amount = match data.amount {
-        IncreaseBucketAmount::Stickers => message.sticker_items.len() as u8,
-        IncreaseBucketAmount::Attachments => message.attachments.len() as u8,
-        IncreaseBucketAmount::Mentions => message.mentions.len() as u8,
+        IncreaseBucketAmount::Stickers => u8::try_from(message.sticker_items.len()).unwrap_or(u8::MAX),
+        IncreaseBucketAmount::Attachments => u8::try_from(message.attachments.len()).unwrap_or(u8::MAX),
+        IncreaseBucketAmount::Mentions => u8::try_from(message.mentions.len()).unwrap_or(u8::MAX),
         IncreaseBucketAmount::Static(value) => value,
     };
 
@@ -60,16 +59,19 @@ pub async fn incr(
         }
     }).await;
 
-    // TODO: implement async actions
     if count > bucket_data.limit {
-        for action in bucket_data.actions {
-            run_action_bucket(
-                action.action,
+        for action in &bucket_data.actions {
+            let run = run_action_bucket(
+                action.action.to_owned(),
                 message.to_owned(),
                 discord_http.to_owned(),
                 guild_config.to_owned(),
-                bucket_data.reason.to_owned()
-            ).await.ok();
+                bucket_data.reason.to_owned(),
+            );
+
+            if action.sync {
+                run.await.ok();
+            } else { tokio::spawn(run); }
         }
     }
 
