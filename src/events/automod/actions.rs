@@ -155,7 +155,7 @@ async fn ban(
     Ok(())
 }
 
-pub async fn run_action_bucket(
+pub async fn run_bucket_action(
     action: Action,
     message: Arc<Message>,
     discord_http: Arc<Client>,

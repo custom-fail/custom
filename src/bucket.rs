@@ -6,7 +6,7 @@ use twilight_http::Client;
 use twilight_model::channel::Message;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker, ChannelMarker};
-use crate::events::automod::actions::run_action_bucket;
+use crate::events::automod::actions::run_bucket_action;
 use crate::models::config::GuildConfig;
 use crate::models::config::automod::actions::{IncreaseBucket, IncreaseBucketAmount};
 
@@ -61,7 +61,7 @@ pub async fn incr(
 
     if count > bucket_data.limit {
         for action in &bucket_data.actions {
-            let run = run_action_bucket(
+            let run = run_bucket_action(
                 action.action.to_owned(),
                 message.to_owned(),
                 discord_http.to_owned(),
