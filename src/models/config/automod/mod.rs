@@ -4,15 +4,13 @@ use crate::models::config::automod::filters::Filter;
 use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::ChannelMarker;
-use self::actions::ActionMetadata;
-use self::bucket::BucketAction;
+use self::actions::{ActionMetadata, BucketAction};
 use self::ignore::Ignore;
 use crate::models::config::automod::checks::Check;
 
 pub mod actions;
 pub mod checks;
 pub mod filters;
-pub mod bucket;
 pub mod ignore;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,10 +32,17 @@ pub enum BasicAutoModerationRule {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AutoModerationRule {
     pub basic_type: Option<BasicAutoModerationRule>,
+    pub check_on_edit: bool,
     pub filters: Vec<Filter>,
     pub checks: Vec<Check>,
     pub actions: Vec<ActionMetadata>,
     pub ignore: Option<Ignore>,
     pub reason: String,
-    pub name: String
+    pub name: String,
+}
+
+#[derive(PartialEq)]
+pub enum TrigerEvent {
+    MessageCreate,
+    MessageUpdate
 }

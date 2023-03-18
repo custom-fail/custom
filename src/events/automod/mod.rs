@@ -30,7 +30,7 @@ fn is_ignored(message: &Message, ignore_rule: &Option<Ignore>) -> bool {
     let is_whitelist = ignore_rule.channels_ignore_mode == IgnoreMode::WhileList;
     let contains_channel = ignore_rule.channels.contains(&message.channel_id);
 
-    is_whitelist && contains_channel || !(is_whitelist || contains_channel)
+    (is_whitelist && !contains_channel) || (!is_whitelist && contains_channel)
 }
 
 pub async fn run(
@@ -47,6 +47,8 @@ pub async fn run(
     }
 
     if is_ignored(&message, &guild_config.moderation.automod.ignore) { return Ok(()) }
+
+    let message = Arc::new(message);
 
     for automod_rule in &guild_config.moderation.automod.rules {
         if triger == TrigerEvent::MessageUpdate && !automod_rule.check_on_edit { continue }
