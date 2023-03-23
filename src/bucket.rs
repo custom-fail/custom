@@ -101,3 +101,28 @@ async fn update<T>(
 
     count.to_owned()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Bucket, update, create_key};
+    use twilight_model::id::Id;
+
+    #[tokio::test]
+    async fn test_update() {
+        let bucket = Bucket::default();
+        let key = create_key(Id::new(1), None, Id::new(1));
+        let name = "test".to_string();
+
+        let count = update(&bucket, key, name.to_owned(), |count| {
+            *count = 1;
+        }).await;
+
+        assert_eq!(count, 1);
+
+        let count = update(&bucket, key, name, |count| {
+            *count = 3;
+        }).await;
+
+        assert_eq!(count, 3);
+    }
+}
