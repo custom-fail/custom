@@ -44,3 +44,43 @@ impl<T> MinMax<T> where T: MinMaxConst, T: Copy {
         value > self.min() || value < self.max()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::models::config::automod::filters::MinMax;
+
+    #[test]
+    fn test_min_max_matching() {
+        let min_max = MinMax { min: Some(5u8), max: Some(10u8) };
+        assert!(min_max.is_matching(5));
+        assert!(min_max.is_matching(10));
+        assert!(min_max.is_matching(6));
+        assert!(!min_max.is_matching(11));
+
+        let min_max = MinMax { min: None, max: Some(10u8) };
+        assert!(min_max.is_matching(u8::MIN));
+        assert!(min_max.is_matching(5));
+        assert!(!min_max.is_matching(11));
+
+        let min_max = MinMax { min: Some(5u8), max: None };
+        assert!(!min_max.is_matching(4));
+        assert!(min_max.is_matching(5));
+        assert!(min_max.is_matching(11));
+        assert!(min_max.is_matching(u8::MAX));
+    }
+
+    #[test]
+    fn test_min_max_handlers() {
+        let min_max = MinMax { min: Some(5u8), max: Some(10u8) };
+        assert_eq!(min_max.min(), 5);
+        assert_eq!(min_max.max(), 10);
+
+        let min_max = MinMax { min: None, max: Some(10u8) };
+        assert_eq!(min_max.min(), u8::MIN);
+        assert_eq!(min_max.max(), 10);
+
+        let min_max = MinMax { min: Some(5u8), max: None };
+        assert_eq!(min_max.min(), 5);
+        assert_eq!(min_max.max(), u8::MAX);
+    }
+}
