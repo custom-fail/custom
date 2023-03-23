@@ -1,33 +1,46 @@
 use twilight_model::channel::Message;
-use crate::models::config::automod::filters::{Attachments, Filter, MessageLength};
+use crate::models::config::automod::filters::{Filter, MinMax};
 
 impl Filter {
+    /// Returns `true` when value matches provided rule
     pub fn is_matching(&self, message: &Message) -> bool {
         match &self {
-            Filter::Attachments(config) => Self::attachments(config, message),
-            Filter::MessageLength(config) => Self::message_length(config, message),
-            Filter::Stickers => Self::stickers(message)
+            Filter::MessageType(kind) => &message.kind == kind,
+            Filter::MessageLength(data) => data.is_matching(message.content.len() as u16),
+            Filter::Attachments(data) => data.is_matching(message.attachments.len() as u8),
+            Filter::AuthorIsBot => message.author.bot,
+            Filter::AuthorIsWebhook => message.webhook_id.is_some(),
+            Filter::HasSticker => !message.sticker_items.is_empty(),
+            Filter::Embeds(data) => data.is_matching(message.embeds.len() as u8),
+            Filter::IsTTS => message.tts,
+            Filter::IsInThread => message.thread.is_some(),
         }
     }
-
-    fn attachments(config: &Attachments, message: &Message) -> bool {
-        let message_attachments_count = message.attachments.len();
-        (if let Some(min) = config.min {
-            (min as usize) > message_attachments_count
-        } else { false }) || (if let Some(max) = config.max {
-            (max as usize) < message_attachments_count
-        } else { false })
-    }
-
-    fn message_length(config: &MessageLength, message: &Message) -> bool {
-        let message_content_len = message.content.len();
-        (if let Some(min) = config.min {
-            (min as usize) > message_content_len
-        } else { false }) || (if let Some(max) = config.max {
-            (max as usize) < message_content_len
-        } else { false })
-    }
-
-    fn stickers(message: &Message) -> bool { !message.sticker_items.is_empty() }
 }
 
+pub trait MinMaxConst {
+    const MIN: Self;
+    const MAX: Self;
+}
+
+macro_rules! impl_min_max {
+    ($($name: ty),*) => {
+        $(
+            impl MinMaxConst for $name {
+                const MIN: Self = Self::MIN;
+                const MAX: Self = Self::MAX;
+            }
+        )*
+    };
+}
+
+impl_min_max!(u8, u16);
+
+impl<T> MinMax<T> where T: MinMaxConst, T: Copy {
+    fn min(&self) -> T { self.min.unwrap_or(T::MIN).to_owned() }
+    fn max(&self) -> T { self.max.unwrap_or(T::MAX).to_owned() }
+
+    pub fn is_matching(&self, value: T) -> bool where T: PartialOrd {
+        value > self.min() || value < self.max()
+    }
+}

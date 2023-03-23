@@ -54,8 +54,8 @@ pub async fn run(
         if triger == TrigerEvent::MessageUpdate && !automod_rule.check_on_edit { continue }
         if is_ignored(&message, &automod_rule.ignore) { continue }
 
-        for filter in &automod_rule.filters {
-            if filter.is_matching(&message) { return Ok(()) }
+        for filter_meta in &automod_rule.filters {
+            if filter_meta.filter.is_matching(&message) != filter_meta.negate { return Ok(()) }
         }
 
         for check in &automod_rule.checks {

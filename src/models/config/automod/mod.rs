@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::models::config::automod::filters::Filter;
+use crate::models::config::automod::filters::FilterMetadata;
 use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::ChannelMarker;
@@ -33,7 +33,7 @@ pub enum BasicAutoModerationRule {
 pub struct AutoModerationRule {
     pub basic_type: Option<BasicAutoModerationRule>,
     pub check_on_edit: bool,
-    pub filters: Vec<Filter>,
+    pub filters: Vec<FilterMetadata>,
     pub checks: Vec<Check>,
     pub actions: Vec<ActionMetadata>,
     pub ignore: Option<Ignore>,
