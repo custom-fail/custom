@@ -41,7 +41,7 @@ impl<T> MinMax<T> where T: MinMaxConst, T: Copy {
     fn max(&self) -> T { self.max.unwrap_or(T::MAX).to_owned() }
 
     pub fn is_matching(&self, value: T) -> bool where T: PartialOrd {
-        value > self.min() || value < self.max()
+        value >= self.min() || value <= self.max()
     }
 }
 
