@@ -187,7 +187,10 @@ pub async fn run_action(
     let guild_id = message.guild_id.ok_or(())?;
     match action {
         Action::DirectMessage => send_direct_message(message, discord_http, reason).await,
-        Action::IncreaseBucket(data) => Ok(crate::bucket::incr(discord_http, message, guild_config, bucket, data).await),
+        Action::IncreaseBucket(data) => {
+            crate::bucket::incr(discord_http, message, guild_config, bucket, data).await;
+            Ok(())
+        }
         Action::DeleteMessage => delete_message(message, discord_http).await,
         Action::SendLogs => send_logs(message, discord_http, guild_config, reason).await,
         Action::Timeout(config) => timeout(guild_id, message, discord_http, config).await,

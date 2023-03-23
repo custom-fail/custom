@@ -12,7 +12,7 @@ impl Check {
         }
     }
 
-    async fn flagged_scam_link(message_content: &String, scam_domains: &ScamLinks) -> Result<bool, ()> {
+    async fn flagged_scam_link(message_content: &str, scam_domains: &ScamLinks) -> Result<bool, ()> {
         let domains = regex::Regex::new(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]").map_err(|_| ())?;
 
         let message_content = message_content.to_lowercase();
@@ -46,7 +46,7 @@ impl Check {
         } else { true })
     }
 
-    fn invites(config: &Invites, message_content: &String) -> Result<bool, ()> {
+    fn invites(config: &Invites, message_content: &str) -> Result<bool, ()> {
         let invites = regex::Regex::new(r"(?i)(discord.gg|discordapp.com/invite|discord.com/invite)(?:/#)?/([a-zA-Z0-9-]+)").map_err(|_| ())?;
 
         let message_content = message_content.to_lowercase();
@@ -64,9 +64,9 @@ impl Check {
         Ok(contains)
     }
 
-    fn regex(config: &Regex, message_content: &String) -> Result<bool, ()> {
+    fn regex(config: &Regex, message_content: &str) -> Result<bool, ()> {
         let regex = regex::Regex::new(&config.regex).map_err(|_| ())?;
-        let is_matching = regex.is_match(message_content.as_str());
+        let is_matching = regex.is_match(message_content);
         Ok((is_matching && config.is_matching) || (!is_matching && !config.is_matching))
     }
 }

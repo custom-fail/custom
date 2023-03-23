@@ -9,8 +9,8 @@ pub async fn run(
         interaction: Box<InteractionCreate>, discord_http: Arc<Client>, context: Arc<Context>
 ) -> Result<(), ()> {
     let interaction = interaction.as_ref().0.to_owned();
-    println!("{interaction:?}");
-    let application_id = interaction.application_id.clone();
+
+    let application_id = interaction.application_id;
     let interaction_id = interaction.id.cast();
     let token = interaction.token.to_owned();
 
