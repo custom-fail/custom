@@ -13,7 +13,7 @@ pub fn create_debug_config() -> GuildConfig {
         application_id: None,
         enabled: HashMap::from([("moderation".to_string(), true)]),
         moderation: Moderation {
-            automod: AutoModeration {
+            automod: Some(AutoModeration {
                 rules: vec![AutoModerationRule {
                     basic_type: None,
                     check_on_edit: true,
@@ -21,14 +21,14 @@ pub fn create_debug_config() -> GuildConfig {
                     checks: vec![],
                     actions: vec![
                         ActionMetadata {
-                            action: Action::IncreaseBucket(IncreaseBucket {
-                                key: "mentions".to_owned(),
-                                amount: IncreaseBucketAmount::Mentions,
-                                per_channel: false,
-                                duration: 5
-                            }),
+                        action: Action::IncreaseBucket(IncreaseBucket {
+                            key: "mentions".to_owned(),
+                            amount: IncreaseBucketAmount::Mentions,
+                            per_channel: false,
+                            duration: 5
+                        }),
                             sync: false
-                        }
+                    }
                     ],
                     ignore: Some(Ignore {
                         channels: vec![Id::new(981950096801406979)],
@@ -56,7 +56,7 @@ pub fn create_debug_config() -> GuildConfig {
                 ]),
                 logs_channel: Some(Id::new(981950096801406979)),
                 ignore: None,
-            },
+            }),
             mute_mode: MuteMode::DependOnCommand,
             mute_role: None,
             native_support: true,

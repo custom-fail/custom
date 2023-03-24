@@ -41,7 +41,7 @@ impl<T> MinMax<T> where T: MinMaxConst, T: Copy {
     fn max(&self) -> T { self.max.unwrap_or(T::MAX).to_owned() }
 
     pub fn is_matching(&self, value: T) -> bool where T: PartialOrd {
-        value >= self.min() || value <= self.max()
+        value >= self.min() && value <= self.max()
     }
 }
 
@@ -55,6 +55,7 @@ mod tests {
         assert!(min_max.is_matching(5));
         assert!(min_max.is_matching(10));
         assert!(min_max.is_matching(6));
+        assert!(!min_max.is_matching(4));
         assert!(!min_max.is_matching(11));
 
         let min_max = MinMax { min: None, max: Some(10u8) };

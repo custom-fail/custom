@@ -15,7 +15,7 @@ pub enum MuteMode {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Moderation {
-    pub automod: AutoModeration,
+    pub automod: Option<AutoModeration>,
     pub mute_mode: MuteMode,
     pub mute_role: Option<Id<RoleMarker>>,
     pub native_support: bool,

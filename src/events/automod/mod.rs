@@ -41,16 +41,17 @@ pub async fn run(
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
     let guild_config = Arc::new(context.mongodb.get_config(guild_id).await.map_err(|_| ())?);
+    let automod_config = guild_config.moderation.automod.as_ref().ok_or(())?;
 
     if message.content.is_empty() || message.author.bot {
         return Ok(())
     }
 
-    if is_ignored(&message, &guild_config.moderation.automod.ignore) { return Ok(()) }
+    if is_ignored(&message, &automod_config.ignore) { return Ok(()) }
 
     let message = Arc::new(message);
 
-    for automod_rule in &guild_config.moderation.automod.rules {
+    for automod_rule in &automod_config.rules {
         if triger == TrigerEvent::MessageUpdate && !automod_rule.check_on_edit { continue }
         if is_ignored(&message, &automod_rule.ignore) { continue }
 

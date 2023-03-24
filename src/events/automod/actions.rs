@@ -72,7 +72,7 @@ async fn send_logs(
     guild_config: Arc<GuildConfig>,
     reason: String
 ) -> Result<(), ()> {
-    let channel = guild_config.moderation.automod.logs_channel.ok_or(())?;
+    let channel = guild_config.moderation.automod.as_ref().ok_or(())?.logs_channel.ok_or(())?;
 
     let avatar = get_avatar_url(message.author.avatar, message.author.id);
     let embed = Embed {
