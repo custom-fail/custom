@@ -6,72 +6,78 @@ use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::channel::Message;
 use crate::context::Context;
-use crate::models::config::moderation::Ignore;
 use crate::events::automod::actions::run_action;
-use self::filters::filters_match;
-use self::checks::checks_match;
+use crate::models::config::automod::TrigerEvent;
+use crate::models::config::automod::ignore::{Ignore, IgnoreMode};
 
-fn is_ignored(message: &Message, ignores: &Vec<Ignore>) -> bool {
+fn is_ignored(message: &Message, ignore_rule: &Option<Ignore>) -> bool {
+    let ignore_rule = match ignore_rule {
+        Some(rule) => rule,
+        None => return false
+    };
 
-    let member = match message.member.to_owned() {
+    let member = match &message.member {
         Some(member) => member,
         None => return false
     };
 
-    for role in member.roles {
-        if ignores.contains(&Ignore::Role(role)) {
-            return true
-        }
+    for role in &member.roles {
+        if ignore_rule.roles.contains(role) { return true }
     }
 
-    if ignores.contains(&Ignore::Channel(message.channel_id))
-        || ignores.contains(&Ignore::User(message.author.id)) {
-        return true
-    }
+    if ignore_rule.users.contains(&message.author.id) { return true }
 
-    false
+    let is_whitelist = ignore_rule.channels_ignore_mode == IgnoreMode::WhileList;
+    let contains_channel = ignore_rule.channels.contains(&message.channel_id);
 
+    (is_whitelist && !contains_channel) || (!is_whitelist && contains_channel)
 }
 
 pub async fn run(
     message: Message,
     discord_http: Arc<Client>,
-    context: Arc<Context>
+    context: Arc<Context>,
+    triger: TrigerEvent
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
-    let guild_config = context.mongodb.get_config(guild_id).await.map_err(|_| ())?;
+    let guild_config = Arc::new(context.mongodb.get_config(guild_id).await.map_err(|_| ())?);
+    let automod_config = guild_config.moderation.automod.as_ref().ok_or(())?;
 
     if message.content.is_empty() || message.author.bot {
         return Ok(())
     }
 
-    if is_ignored(&message, &guild_config.moderation.automod_ignore) { return Ok(()) }
+    if is_ignored(&message, &automod_config.ignore) { return Ok(()) }
 
-    for automod in guild_config.moderation.automod.to_owned() {
+    let message = Arc::new(message);
 
-        if is_ignored(&message, &automod.ignore) { continue }
+    for automod_rule in &automod_config.rules {
+        if triger == TrigerEvent::MessageUpdate && !automod_rule.check_on_edit { continue }
+        if is_ignored(&message, &automod_rule.ignore) { continue }
 
-        for filter in automod.filters {
-            let is_filtered = filters_match(filter, message.to_owned());
-            if is_filtered { return Ok(()) }
+        for filter_meta in &automod_rule.filters {
+            if filter_meta.filter.is_matching(&message) != filter_meta.negate { return Ok(()) }
         }
 
-        for check in automod.checks {
-            let is_allowed = checks_match(check, message.content.to_owned(), context.scam_domains.to_owned()).await?;
+        for check in &automod_rule.checks {
+            let is_allowed = check.is_matching(&message.content, &context.scam_domains).await?;
             if !is_allowed { return Ok(()) }
         }
 
-        for action in automod.actions {
-            run_action(
-                action,
+        for action in &automod_rule.actions {
+            let run = run_action(
+                action.action.to_owned(),
                 message.to_owned(),
                 discord_http.to_owned(),
                 context.bucket.to_owned(),
-                &guild_config,
-                automod.reason.to_owned(),
-            ).await.ok();
-        }
+                guild_config.to_owned(),
+                automod_rule.reason.to_owned(),
+            );
 
+            if action.sync {
+                run.await.ok();
+            } else { tokio::spawn(run); }
+        }
     }
 
     Ok(())

@@ -3,8 +3,9 @@ use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use crate::models::config::activity::{Levels, Top};
-use crate::models::config::automod::bucket::BucketActions;
 use crate::models::config::moderation::{Moderation, MuteMode};
+
+use self::automod::actions::BucketAction;
 
 pub mod moderation;
 pub mod activity;
@@ -33,10 +34,7 @@ impl GuildConfig {
                 native_support: false,
                 logs_channel: None,
                 dm_case: false,
-                automod_logs: None,
-                bucket_actions: HashMap::new(),
-                automod: vec![],
-                automod_ignore: vec![]
+                automod: None
             },
             premium: false,
             levels: Levels {
@@ -52,9 +50,7 @@ impl GuildConfig {
         }
     }
 
-    pub fn get_bucket_action(&self, key: String) -> Option<BucketActions> {
-        self.moderation.bucket_actions.get(key.as_str()).cloned()
+    pub fn get_bucket_action(&self, key: &str) -> Option<BucketAction> {
+        self.moderation.automod.as_ref().map(|a| a.bucket_actions.get(key).cloned())?
     }
-
 }
-

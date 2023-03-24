@@ -5,3 +5,5 @@ pub mod errors;
 pub mod avatars;
 pub mod uppercase;
 pub mod constants;
+pub mod message;
+pub mod config;
