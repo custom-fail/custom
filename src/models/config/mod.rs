@@ -23,7 +23,7 @@ pub struct GuildConfig {
 }
 
 impl GuildConfig {
-    pub fn default(guild_id: Id<GuildMarker>) -> Self {
+    pub fn new(guild_id: Id<GuildMarker>) -> Self {
         Self {
             guild_id,
             application_id: None,
