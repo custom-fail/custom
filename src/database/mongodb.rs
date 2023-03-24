@@ -57,7 +57,7 @@ impl MongoDBConnection {
                     doc! {
                         "guild_id": guild_id.to_string()
                     }, None
-                ).await?.unwrap_or_else(|| GuildConfig::default(guild_id));
+                ).await?.unwrap_or_else(|| GuildConfig::new(guild_id));
 
                 self.configs_cache.insert(guild_id, config.to_owned());
 
