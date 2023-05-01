@@ -1,11 +1,12 @@
-use crate::{database::{mongodb::MongoDBConnection, redis::RedisConnection}, links::ScamLinks, bucket::Bucket, application::Application};
+use crate::{database::{mongodb::MongoDBConnection, redis::RedisConnection}, links::ScamLinks, bucket::Bucket, application::Application, assets::AssetsManager};
 
 pub struct Context {
     pub application: Application,
     pub mongodb: MongoDBConnection,
     pub redis: RedisConnection,
     pub scam_domains: ScamLinks,
-    pub bucket: Bucket
+    pub bucket: Bucket,
+    pub assets: AssetsManager
 }
 
 impl Context {
@@ -18,11 +19,10 @@ impl Context {
 
         let scam_domains = ScamLinks::new().await.expect("Cannot load scam links manager");
         scam_domains.connect();
-
         let bucket: Bucket = Default::default();
-
         let application = Application::new();
+        let assets = AssetsManager::new().await;
 
-        Self { mongodb, redis, scam_domains, bucket, application }
+        Self { mongodb, redis, scam_domains, bucket, application, assets }
     }
 }

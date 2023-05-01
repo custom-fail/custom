@@ -22,6 +22,7 @@ mod tasks;
 mod models;
 mod gateway;
 mod application;
+mod assets;
 
 #[tokio::main]
 async fn main() {
