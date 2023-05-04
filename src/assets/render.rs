@@ -1,3 +1,4 @@
+
 use std::str::FromStr;
 
 use tera::{Tera, Context, Error as TeraError};
@@ -8,8 +9,20 @@ use super::{message::{Message, Embed, EmbedField, TextIcon}, AssetsManager, Guil
 #[derive(Debug)]
 pub enum RenderErrorKind {
     Tera(TeraError),
-    InvalidMessage,
+    InvalidMessage(String),
     BoolConvertion
+}
+
+impl ToString for RenderError {
+    fn to_string(&self) -> String {
+        match &self.0 {
+            RenderErrorKind::Tera(err) => {
+                format!("{err:#?}")
+            }
+            RenderErrorKind::InvalidMessage(name) => format!("Cannot find matching message asset for {name}"),
+            RenderErrorKind::BoolConvertion => "".to_string(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -32,7 +45,7 @@ impl GuildAssets {
             }
         }
         
-        let message = manager.default.get(name).ok_or(RenderError(RenderErrorKind::InvalidMessage))?;
+        let message = manager.default.get(name).ok_or(RenderError(RenderErrorKind::InvalidMessage(name.to_string())))?;
         message.render(data)
     }
 }
