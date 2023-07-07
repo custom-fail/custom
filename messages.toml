@@ -1,0 +1,37 @@
+["commands.setup"]
+content = """
+**The server setup is not completed yet or commands are not synced**
+
+To complete a setup open the dashboard https://custom.fail/setup?guild={{ interaction.guild_id }}
+To sync commands open a server settings https://custom.fail/servers/{{ interaction.guild_id} }
+"""
+ephemeral = true
+
+["commands.clear"]
+content = "Succesfully cleared {{ cleared }} from {{ amount }} messages"
+ephemeral = true
+
+[["commands.top.all".embeds]]
+title = "Top of the {{ weekOrDay }} users"
+description = """
+{% set emotes = [":first_place:", ":second_place:", ":third_place:"] %}
+{% for rank in leaderboard %}
+    {% set i = loop.index - 1 %}
+    {{ emotes[i] }} > <@{{rank[0]}}> ({{ rank[1] }})
+{% endfor %}
+"""
+
+[["commands.top.me".embeds]]
+title = "Top of the {{ weekOrDay }} for {{ interaction.user.name }}"
+description = """
+You are **{{ userPosition + 1 }}** with **{{ userScore }}**
+{% for rank in leaderboard %}
+    {% set i = loop.index - 1 %}
+    {% set rankScore = rank[1] %}
+    {% set toRank = userScore - rankScore %}
+    {%
+{% endfor %}
+"""
+
+[["case.non-server".embeds]]
+title = "test"

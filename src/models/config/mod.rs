@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
+use crate::assets::GuildAssets;
 use crate::models::config::activity::{Levels, Top};
 use crate::models::config::moderation::{Moderation, MuteMode};
 
@@ -15,6 +16,7 @@ pub mod automod;
 pub struct GuildConfig {
     pub guild_id: Id<GuildMarker>,
     pub application_id: Option<Id<ApplicationMarker>>,
+    pub assets: GuildAssets,
     pub enabled: HashMap<String, bool>,
     pub moderation: Moderation,
     pub premium: bool,
@@ -46,7 +48,8 @@ impl GuildConfig {
                 week: false,
                 day: false,
                 webhook_url: "".to_string()
-            }
+            },
+            assets: GuildAssets(vec![]),
         }
     }
 
