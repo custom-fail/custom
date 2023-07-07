@@ -1,5 +1,13 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use twilight_model::channel::message::embed::{EmbedAuthor, EmbedFooter};
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub enum CaseMessageType {
+    #[serde(rename = "non-server")]
+    NonServer,
+    #[serde(rename = "moderation-log")]
+    ModerationLog,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Message {
@@ -9,7 +17,7 @@ pub struct Message {
     #[serde(default)]
     pub embeds: Vec<Embed>,
     #[serde(default, rename = "add-case")]
-    pub add_case: bool
+    pub add_case: Option<CaseMessageType>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -24,20 +32,20 @@ pub struct Embed {
     pub color: Option<u32>,
     pub image: Option<String>,
     pub video: Option<String>,
-    pub url: Option<String>
+    pub url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct EmbedField {
     pub inline: Option<String>,
     pub name: String,
-    pub value: String
+    pub value: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TextIcon {
     pub text: String,
-    pub icon_url: Option<String>
+    pub icon_url: Option<String>,
 }
 
 impl Into<EmbedAuthor> for TextIcon {
