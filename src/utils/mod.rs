@@ -7,3 +7,4 @@ pub mod uppercase;
 pub mod constants;
 pub mod message;
 pub mod config;
+pub mod cli;
