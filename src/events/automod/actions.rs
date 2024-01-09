@@ -6,7 +6,7 @@ use twilight_http::Client;
 use twilight_model::channel::Message;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
-use crate::Bucket;
+use crate::bucket::Bucket;
 use crate::models::config::GuildConfig;
 use crate::models::config::automod::actions::{Timeout, Action};
 use crate::utils::avatars::get_avatar_url;

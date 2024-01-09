@@ -9,10 +9,10 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
 use twilight_model::util::datetime::TimestampParseError;
 use twilight_model::util::Timestamp;
-use crate::RedisConnection;
 use crate::utils::avatars::{DEFAULT_AVATAR, get_avatar_url, get_guild_icon_url};
 use crate::utils::errors::Error;
 use serde::{Serialize, Deserialize};
+use crate::database::redis::RedisConnection;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Case {

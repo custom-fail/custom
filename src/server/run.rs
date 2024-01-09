@@ -11,9 +11,6 @@ use crate::context::Context;
 use crate::server::authorize::verify_signature;
 use crate::server::interaction::handle_interaction;
 
-pub mod interaction;
-pub mod authorize;
-
 fn string_from_headers_option(header: Option<&HeaderValue>) -> Option<String> {
     Some(match header {
         Some(header) => match header.to_str() {
@@ -93,7 +90,7 @@ pub async fn run_route(
     context: Arc<Context>
 ) -> Result<Response<Body>, Infallible> {
     let response = route(
-            request, discord_http, context, public_key
+        request, discord_http, context, public_key
     ).await;
 
     Ok(match response {
