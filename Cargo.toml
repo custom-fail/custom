@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-twilight-gateway = "0.15"
+twilight-gateway = { version = "0.15", optional = true }
 twilight-model = "0.15"
 twilight-http = "0.15"
 twilight-util = { version = "0.15", features = ["full"] }
@@ -24,13 +24,22 @@ mongodb = "2.1.0"
 redis = "0.21.6"
 
 tokio-tungstenite = { version = "0.17.1", features = ["native-tls"] }
-hyper = { version = "0.14.20", features = ["full"] }
+hyper = { version = "0.14.20", optional = true }
 
-ed25519-dalek = "1.0.1"
 humantime = "2.1.0"
-dotenv = "0.15.0"
 chrono = "0.4.19"
+
+ed25519-dalek = { version = "1.0.1", optional = true }
+dotenv = "0.15.0"
 reqwest = "0.11.9"
-regex = "1.5.4"
+regex = { version = "1.5.4", optional = true }
 dashmap = "5.2.0"
-hex = "0.4.3"
+hex = { version = "0.4.3", optional = true }
+
+[features]
+all = ["custom-clients", "tasks", "http-interactions", "gateway"]
+custom-clients = []
+tasks = []
+http-interactions = ["dep:hyper", "dep:hex", "dep:ed25519-dalek", "hyper/full"]
+gateway = ["dep:regex", "dep:twilight-gateway"]
+

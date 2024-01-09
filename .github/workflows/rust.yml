@@ -13,8 +13,10 @@ jobs:
   linter:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    - name: Update toolchain
+      run: rustup update stable
     - name: Check
-      run: cargo check
+      run: cargo check --features all
     - name: Tests
-      run: cargo test
+      run: cargo test --features all

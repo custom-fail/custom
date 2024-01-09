@@ -1,20 +1,23 @@
 use std::sync::Arc;
 use std::time::Duration;
 use mongodb::bson::DateTime;
+use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use twilight_http::Client;
 use twilight_model::id::Id;
 use twilight_model::id::marker::RoleMarker;
-use crate::{DiscordClients, MongoDBConnection, ok_or_skip};
+use crate::database::mongodb::MongoDBConnection;
+use crate::ok_or_skip;
 use crate::models::config::GuildConfig;
 use crate::models::task::{Task, TaskAction};
+use crate::gateway::clients::DiscordClients;
 
 pub fn run(
     mongodb: MongoDBConnection,
     discord_clients: DiscordClients,
     discord_http: Arc<Client>
-) {
-    tokio::spawn(interval(mongodb, discord_clients, discord_http));
+) -> JoinHandle<()> {
+    tokio::spawn(interval(mongodb, discord_clients, discord_http))
 }
 
 pub async fn interval(

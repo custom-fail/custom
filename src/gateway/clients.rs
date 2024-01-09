@@ -5,25 +5,26 @@ use mongodb::bson::doc;
 use twilight_model::id::Id;
 use twilight_model::id::marker::ApplicationMarker;
 use serde::{Serialize, Deserialize};
-use async_trait::async_trait;
+use tokio::task::JoinHandle;
 use twilight_http::Client;
 use crate::context::Context;
-use crate::MongoDBConnection;
-use crate::utils::errors::Error;
+use crate::database::mongodb::MongoDBConnection;
+#[cfg(any(feature = "gateway", feature = "custom-clients"))]
 use crate::gateway::shard::connect_shards;
+use crate::utils::errors::Error;
 
 pub type DiscordClients = Arc<DashMap<Id<ApplicationMarker>, Arc<Client>>>;
 
-#[async_trait]
 pub trait LoadDiscordClients {
     async fn load(
         mongodb: &MongoDBConnection
     ) -> Result<DiscordClients, Error>;
 
+    #[cfg(any(feature = "gateway", feature = "custom-clients"))]
     fn start(
         &self,
         context: Arc<Context>
-    );
+    ) -> Vec<JoinHandle<()>>;
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -32,7 +33,6 @@ pub struct ClientData {
     pub token: String,
 }
 
-#[async_trait]
 impl LoadDiscordClients for DiscordClients {
     async fn load(
         mongodb: &MongoDBConnection
@@ -50,15 +50,19 @@ impl LoadDiscordClients for DiscordClients {
         Ok(Arc::new(DashMap::from_iter(clients)))
     }
 
+
+    #[cfg(any(feature = "gateway", feature = "custom-clients"))]
     fn start(
         &self,
         context: Arc<Context>
-    ) {
+    ) -> Vec<JoinHandle<()>> {
+        let mut clients = vec![];
         for value in self.iter() {
-            tokio::spawn(connect_shards(
+            clients.push(tokio::spawn(connect_shards(
                 (value.key().to_string(), value.to_owned()),
                 context.to_owned()
-            ));
+            )));
         }
+        clients
     }
 }

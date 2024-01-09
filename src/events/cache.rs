@@ -3,8 +3,7 @@ use twilight_http::Client;
 use twilight_model::gateway::payload::incoming::{GuildCreate, GuildUpdate};
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
-use crate::database::redis::PartialGuild;
-use crate::RedisConnection;
+use crate::database::redis::{PartialGuild, RedisConnection};
 
 pub async fn fetch_and_set(
     redis: &RedisConnection,

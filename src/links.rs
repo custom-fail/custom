@@ -78,7 +78,7 @@ impl ScamLinks {
 
 #[cfg(test)]
 mod tests {
-    use crate::ScamLinks;
+    use crate::links::ScamLinks;
 
     #[tokio::test]
     async fn test_contains_method() {
@@ -92,5 +92,4 @@ mod tests {
             false
         );
     }
-
 }

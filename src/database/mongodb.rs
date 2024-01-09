@@ -2,10 +2,13 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use futures_util::TryStreamExt;
 use mongodb::{Client, Collection, Database};
-use mongodb::bson::{DateTime, doc};
+use mongodb::bson::doc;
+#[cfg(feature = "tasks")]
+use mongodb::bson::DateTime;
 use twilight_model::channel::message::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
+#[cfg(any(feature = "tasks", feature = "custom-clients"))]
 use crate::gateway::clients::ClientData;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
@@ -19,6 +22,7 @@ pub struct MongoDBConnection {
     pub database: Database,
     pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
+    #[cfg(any(feature = "tasks", feature = "custom-clients"))]
     pub clients: Collection<ClientData>,
     pub tasks: Collection<Task>,
     pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>
@@ -32,6 +36,7 @@ impl MongoDBConnection {
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
         let cases = db.collection("cases");
+        #[cfg(any(feature = "tasks", feature = "custom-clients"))]
         let clients = db.collection("clients");
         let tasks = db.collection("tasks");
 
@@ -40,6 +45,7 @@ impl MongoDBConnection {
             database: db,
             cases,
             client,
+            #[cfg(any(feature = "tasks", feature = "custom-clients"))]
             clients,
             configs,
             tasks
@@ -111,6 +117,7 @@ impl MongoDBConnection {
         self.tasks.insert_one(task, None).await.map(|_| ()).map_err(Error::from)
     }
 
+    #[cfg(feature = "tasks")]
     pub async fn get_and_delete_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
         let time = DateTime::from_millis(DateTime::now().timestamp_millis() + after as i64);
         let filter = doc! { "execute_at": { "$lt": time } };

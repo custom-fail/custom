@@ -33,7 +33,7 @@ pub mod mutes {
 pub mod bans {
     use mongodb::bson::doc;
     use twilight_model::gateway::payload::incoming::BanRemove;
-    use crate::MongoDBConnection;
+    use crate::database::mongodb::MongoDBConnection;
 
     pub async fn run(event: BanRemove, mongodb: &MongoDBConnection) -> Result<(), ()> {
         mongodb.tasks.delete_one(doc! {

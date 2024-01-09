@@ -1,5 +1,6 @@
 use crate::models::config::automod::checks::{CapsLock, Check, Invites, Regex, TextLines};
-use crate::{ok_or_skip_without_clone, ScamLinks};
+use crate::ok_or_skip_without_clone;
+use crate::links::ScamLinks;
 
 impl Check {
     pub async fn is_matching(&self, message_content: &String, scam_domains: &ScamLinks) -> Result<bool, ()> {
