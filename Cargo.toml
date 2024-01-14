@@ -3,8 +3,6 @@ name = "custom"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 twilight-gateway = { version = "0.15", optional = true }
 twilight-model = "0.15"
@@ -12,9 +10,10 @@ twilight-http = "0.15"
 twilight-util = { version = "0.15", features = ["full"] }
 twilight-validate = "0.15"
 
-serde_json = "1.0.78"
-serde_repr = "0.1.9"
-serde = "1.0.136"
+serde_urlencoded = { version = "0.7", optional = true }
+serde_json = "1.0"
+serde_repr = "0.1"
+serde = "1.0"
 
 async-trait = "0.1.57"
 futures-util = "0.3.19"
@@ -23,23 +22,26 @@ tokio = "1.16.1"
 mongodb = "2.1.0"
 redis = "0.21.6"
 
-tokio-tungstenite = { version = "0.17.1", features = ["native-tls"] }
-hyper = { version = "0.14.20", optional = true }
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
 
-humantime = "2.1.0"
-chrono = "0.4.19"
+humantime = "2.1"
+chrono = "0.4"
 
-ed25519-dalek = { version = "1.0.1", optional = true }
-dotenv = "0.15.0"
-reqwest = "0.11.9"
-regex = { version = "1.5.4", optional = true }
-dashmap = "5.2.0"
-hex = { version = "0.4.3", optional = true }
+ed25519-dalek = { version = "1.0", optional = true }
+dotenv = "0.15"
+reqwest = { version = "0.11" }
+regex = { version = "1.5", optional = true }
+dashmap = "5.2"
+hex = { version = "0.4", optional = true }
+
+warp = { version = "0.3", optional = true }
+rusty_paseto = { version = "0.6", features = ["core", "v4_local"], optional = true }
+anyhow = { version = "1.0", optional = true }
 
 [features]
-all = ["custom-clients", "tasks", "http-interactions", "gateway"]
+all = ["custom-clients", "tasks", "http-interactions", "api", "gateway"]
 custom-clients = []
 tasks = []
-http-interactions = ["dep:hyper", "dep:hex", "dep:ed25519-dalek", "hyper/full"]
+http-interactions = ["dep:warp", "dep:hex", "dep:ed25519-dalek"]
 gateway = ["dep:regex", "dep:twilight-gateway"]
-
+api = ["dep:warp", "dep:rusty_paseto", "dep:serde_urlencoded", "dep:anyhow", "reqwest/json"]
