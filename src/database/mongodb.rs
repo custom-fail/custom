@@ -30,9 +30,8 @@ pub struct MongoDBConnection {
 
 impl MongoDBConnection {
 
-    pub async fn connect(url: String) -> Result<Self, mongodb::error::Error> {
-
-        let client = Client::with_uri_str(url).await?;
+    pub async fn connect(uri: String) -> Result<Self, mongodb::error::Error> {
+        let client = Client::with_uri_str(uri).await?;
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
         let cases = db.collection("cases");

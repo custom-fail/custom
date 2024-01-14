@@ -23,3 +23,12 @@ macro_rules! all_macro {
     )*
   }
 }
+
+#[macro_export]
+macro_rules! env_unwrap {
+    ($name: expr) => {
+        std::env::var($name).unwrap_or_else(|_|
+            panic!("There is no {} environment viable", $name)
+        )
+    };
+}
