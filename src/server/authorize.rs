@@ -8,7 +8,7 @@ use warp::Filter;
 use warp::hyper::body::Bytes;
 use warp::path::Exact;
 use warp::reject::Reject;
-use crate::server::error::Rejection;
+use crate::server::error::{MapErrorIntoInternalRejection, Rejection};
 use crate::{err, reject, with_value};
 
 pub fn verify_signature(
@@ -44,9 +44,7 @@ pub fn filter(public_key: PublicKey)
 }
 
 async fn f(public_key: PublicKey, timestamp: String, signature: String, body: Bytes) -> Result<(), warp::Rejection> {
-    let body = String::from_utf8(body.to_vec()).map_err(|_|
-        reject!(Rejection::BodyNotConvertableToString)
-    )?;
+    let body = String::from_utf8(body.to_vec()).map_rejection()?;
 
     if !verify_signature(
         public_key,
