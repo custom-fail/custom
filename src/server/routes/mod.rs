@@ -10,6 +10,11 @@ mod interactions;
 #[cfg(feature = "api")]
 mod login;
 
+#[cfg(feature = "api")]
+mod users {
+    pub mod me;
+}
+
 pub fn get_all_routes(
     discord_http: Arc<Client>,
     context: Arc<Context>,
@@ -33,7 +38,9 @@ pub fn get_all_routes(
     };
 
     #[cfg(feature = "api")]
-    let filter = filter.or(login::login(authenticator, sessions));
+    let filter = filter
+        .or(login::login(authenticator.to_owned(), sessions.to_owned()))
+        .or(users::me::run(authenticator.to_owned(), sessions.to_owned()))
 
     filter
 }
