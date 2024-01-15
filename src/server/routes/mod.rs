@@ -3,13 +3,16 @@ use reqwest::StatusCode;
 use twilight_http::Client;
 use warp::Filter;
 use crate::context::Context;
-use crate::response_type;
+use crate::{all_macro, response_type};
 
 #[cfg(feature = "http-interactions")]
 mod interactions;
-#[cfg(feature = "api")]
-mod login;
-mod guilds;
+
+all_macro!(
+    cfg(feature = "api");
+    mod login;
+    mod guilds;
+);
 
 #[cfg(feature = "api")]
 mod users {

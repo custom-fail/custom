@@ -16,7 +16,7 @@ pub struct PartialGuild {
 
 #[derive(Clone)]
 pub struct RedisConnection {
-    client: Client,
+    pub client: Client,
 }
 
 impl RedisConnection {
