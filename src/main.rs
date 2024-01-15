@@ -16,29 +16,14 @@ mod context;
 #[cfg(any(feature = "gateway", feature = "custom-clients", feature = "tasks"))]
 mod gateway;
 
-mod server {
-    use crate::all_macro;
-    #[cfg(any(
-        feature = "gateway",
-        feature = "custom-clients",
-        feature = "http-interactions"
-    ))]
-    pub mod interaction;
-
-    all_macro!(
-        cfg(feature = "http-interactions");
-        mod authorize;
-        pub mod run;
-    );
-}
-
 #[cfg(feature = "tasks")]
 mod tasks;
 mod application;
 mod commands;
 mod database;
 mod models;
-mod utils;
+pub mod utils;
+mod server;
 
 #[tokio::main]
 async fn main() {
@@ -46,8 +31,7 @@ async fn main() {
 
     let context = Arc::new(Context::new().await);
 
-    let discord_token = std::env::var("DISCORD_TOKEN")
-        .expect("Cannot load DISCORD_TOKEN from .env");
+    let discord_token = env_unwrap!("DISCORD_TOKEN");
     let main_http = Arc::new(Client::new(discord_token.to_owned()));
 
     let mut threads: Vec<JoinHandle<()>> = vec![];
@@ -84,22 +68,27 @@ async fn main() {
         threads.push(run);
     }
 
-    #[cfg(feature = "http-interactions")]
+
+    #[cfg(any(feature = "api", feature = "http-interactions"))]
     {
-        use ed25519_dalek::PublicKey;
         const INVALID_PUBLIC_KEY: &str = "PUBLIC_KEY provided in .env is invalid";
 
-        let public_key = std::env::var("PUBLIC_KEY").expect(INVALID_PUBLIC_KEY);
-        let pbk_bytes = hex::decode(public_key.as_str()).expect(INVALID_PUBLIC_KEY);
-        let public_key = PublicKey::from_bytes(&pbk_bytes).expect(INVALID_PUBLIC_KEY);
+        #[cfg(feature = "http-interactions")]
+        let public_key = {
+            use ed25519_dalek::PublicKey;
+            let public_key = env_unwrap!("PUBLIC_KEY");
+            let pbk_bytes = hex::decode(public_key.as_str()).expect(INVALID_PUBLIC_KEY);
+            PublicKey::from_bytes(&pbk_bytes).expect(INVALID_PUBLIC_KEY)
+        };
 
-        let run = tokio::spawn(crate::server::run::listen(
-            80, context, main_http, public_key
+        let run = tokio::spawn(crate::server::listen(
+            80, context, main_http, #[cfg(feature = "http-interactions")] public_key
         ));
         threads.push(run);
     }
 
     for thread in threads {
-        thread.await.unwrap();
+        // When threads panic runtime shows reasons in stdout so unwrap would only make output less readable
+        thread.await.unwrap_or_else(|_| std::process::exit(1));
     }
 }

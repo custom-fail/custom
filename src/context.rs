@@ -1,4 +1,9 @@
-use crate::{all_macro, application::Application, database::{mongodb::MongoDBConnection, redis::RedisConnection}};
+use crate::{
+    all_macro,
+    env_unwrap,
+    application::Application,
+    database::{mongodb::MongoDBConnection, redis::RedisConnection},
+};
 
 all_macro!(
     cfg(feature = "gateway");
@@ -18,10 +23,10 @@ pub struct Context {
 
 impl Context {
     pub async fn new() -> Self {
-        let mongodb_url = std::env::var("MONGODB_URL").expect("Cannot load MONGODB_URL from .env");
-        let redis_url = std::env::var("REDIS_URL").expect("Cannot load REDIS_URL from .env");
+        let mongodb_uri = env_unwrap!("MONGODB_URI");
+        let redis_url = env_unwrap!("REDIS_URL");
 
-        let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
+        let mongodb = MongoDBConnection::connect(mongodb_uri).await.unwrap();
         let redis = RedisConnection::connect(redis_url).unwrap();
 
         #[cfg(feature = "gateway")]
