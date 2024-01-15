@@ -9,6 +9,7 @@ use crate::response_type;
 mod interactions;
 #[cfg(feature = "api")]
 mod login;
+mod guilds;
 
 #[cfg(feature = "api")]
 mod users {
@@ -26,7 +27,7 @@ pub fn get_all_routes(
 
     #[cfg(feature = "http-interactions")]
     let filter = filter.or(interactions::filter(
-        discord_http, context, public_key
+        discord_http, context.to_owned(), public_key
     ));
 
     #[cfg(feature = "api")]
@@ -41,6 +42,7 @@ pub fn get_all_routes(
     let filter = filter
         .or(login::login(authenticator.to_owned(), sessions.to_owned()))
         .or(users::me::run(authenticator.to_owned(), sessions.to_owned()))
+        .or(guilds::list(context, authenticator, sessions));
 
     filter
 }

@@ -83,4 +83,10 @@ impl RedisConnection {
         connection.zincr(path, user_id.to_string(), count).await
     }
 
+    #[cfg(feature = "api")]
+    pub async fn check_guild(&self, id: Id<GuildMarker>) -> Result<bool, RedisError> {
+        let count: u8 = self.client.get_async_connection()
+            .await?.exists(format!("guilds.{id}")).await?;
+        Ok(count == 1)
+    }
 }

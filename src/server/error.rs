@@ -1,24 +1,36 @@
 use std::convert::Infallible;
-use std::fmt::{Debug, Display, Formatter, Pointer, Write};
+use std::fmt::{Debug, Display, Formatter, Write};
 use reqwest::StatusCode;
 use warp::reject::Reject;
 use warp::Reply;
 
 #[derive(Debug)]
 pub enum Rejection {
+    #[cfg(feature = "http-interactions")]
     BodyNotConvertableToString,
+    #[cfg(feature = "http-interactions")]
     InvalidSignature,
+    #[cfg(feature = "api")]
     InvalidCode,
+    #[cfg(feature = "api")]
+    Unauthorized,
+    #[cfg(feature = "api")]
     Internal(anyhow::Error)
 }
 
 impl Display for Rejection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            #[cfg(feature = "http-interactions")]
             Rejection::BodyNotConvertableToString => f.write_str("Cannot convert bytes from body into utf8 encoded string"),
+            #[cfg(feature = "http-interactions")]
             Rejection::InvalidSignature => f.write_str("Couldn't verify signature"),
+            #[cfg(feature = "api")]
             Rejection::InvalidCode => f.write_str("Invalid `code` was provided"),
-            Rejection::Internal(err) => std::fmt::Display::fmt(&err, f)
+            #[cfg(feature = "api")]
+            Rejection::Unauthorized => f.write_str("Invalid authorization data provided"),
+            #[cfg(feature = "api")]
+            Rejection::Internal(err) => std::fmt::Display::fmt(&err, f),
         }?;
         Ok(())
     }
@@ -41,11 +53,10 @@ macro_rules! reject {
 }
 
 pub trait MapErrorIntoInternalRejection<T> {
-
     fn map_rejection(self) -> Result<T, warp::Rejection>;
-
 }
 
+#[cfg(feature = "api")]
 impl<T, E: Into<anyhow::Error>> MapErrorIntoInternalRejection<T> for Result<T, E> where Self: Sized {
     fn map_rejection(self) -> Result<T, warp::Rejection> {
         self.map_err(|err| reject!(Rejection::Internal(err.into())))
@@ -54,18 +65,17 @@ impl<T, E: Into<anyhow::Error>> MapErrorIntoInternalRejection<T> for Result<T, E
 
 impl Reject for Rejection {}
 
-// impl Reply for Rejection {
-//     fn into_response(self) -> Response {
-//         handle_rejection(self)
-//     }
-// }
-
 pub async fn handle_rejection(rejection: warp::Rejection) -> Result<impl Reply, Infallible> {
     Ok(if let Some(rejection) = rejection.find::<Rejection>() {
         warp::reply::with_status(rejection.to_string(), match rejection {
+            #[cfg(feature = "http-interactions")]
             Rejection::BodyNotConvertableToString => StatusCode::BAD_REQUEST,
+            #[cfg(feature = "http-interactions")]
             Rejection::InvalidSignature => StatusCode::BAD_REQUEST,
+            #[cfg(feature = "api")]
             Rejection::InvalidCode => StatusCode::BAD_REQUEST,
+            #[cfg(feature = "api")]
+            Rejection::Unauthorized => StatusCode::UNAUTHORIZED,
             _ => StatusCode::INTERNAL_SERVER_ERROR
         })
     } else {
