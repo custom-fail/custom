@@ -7,10 +7,12 @@ use tokio::sync::RwLock;
 use twilight_http::Client;
 use twilight_model::id::Id;
 use twilight_model::id::marker::UserMarker;
-use twilight_model::oauth::Application;
-use twilight_model::user::{CurrentUser, User};
+use twilight_model::user::CurrentUser;
 use twilight_model::util::Timestamp;
 use twilight_util::snowflake::Snowflake;
+use warp::Filter;
+use crate::server::error::Rejection;
+use crate::with_value;
 
 pub struct Authenticator {
     key: PasetoSymmetricKey<V4, Local>
@@ -29,9 +31,12 @@ impl Authenticator {
 
         let result = PasetoBuilder::<V4, Local>::default()
             .set_implicit_assertion(assertion)
+            .set_no_expiration_danger_acknowledged()
             .build(&self.key);
 
-        result
+        result.map(|token|
+            token.strip_prefix("v4.local.").unwrap_or_default().to_string()
+        )
     }
 
     pub fn verify_token(&self, token: &str, user_id: Id<UserMarker>) -> bool {
@@ -73,4 +78,34 @@ impl Sessions {
     pub async fn refresh(&self, user_id: &Id<UserMarker>) {
         todo!()
     }
+}
+
+pub fn authorize_user(
+    authenticator: Arc<Authenticator>,
+    sessions: Arc<Sessions>
+) -> impl Filter<Extract = (Arc<AuthorizationInformation>,), Error = warp::Rejection> + Clone {
+    let with_authenticator = with_value!(authenticator);
+    let with_sessions = with_value!(sessions);
+
+    warp::any()
+        .and(warp::header("Authorization"))
+        .and(warp::header("User-Id"))
+        .and(with_authenticator)
+        .and(with_sessions)
+        .and_then(filter)
+}
+
+async fn filter(
+    token: String,
+    user_id: Id<UserMarker>,
+    authenticator: Arc<Authenticator>,
+    sessions: Arc<Sessions>
+) -> Result<Arc<AuthorizationInformation>, warp::Rejection> {
+    if authenticator.verify_token(token.as_str(), user_id) {
+        return err!(Rejection::Unauthorized)
+    }
+
+    sessions.user(&user_id)
+        .await
+        .ok_or_else(|| reject!(Rejection::Unauthorized))
 }
