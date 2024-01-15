@@ -24,7 +24,9 @@ pub async fn run(
         return Err(Error::from("Invalid command"))
     }
 
-    let leaderboard = context.redis.get_all(format!("top_{week_or_day}.{guild_id}"), 3).map_err(Error::from)?;
+    let leaderboard = context.redis.get_all(
+        format!("top_{week_or_day}.{guild_id}"), 3
+    ).await.map_err(Error::from)?;
 
     let leaderboard_string = leaderboard
         .iter()

@@ -18,12 +18,14 @@ pub async fn run(
     if config.top.week {
         context.redis
             .increase(format!("top_week.{guild_id}"), author_id, 1)
+            .await
             .map_err(|_| ())?;
     }
 
     if config.top.day {
         context.redis
             .increase(format!("top_day.{guild_id}"), author_id, 1)
+            .await
             .map_err(|_| ())?;
     }
 

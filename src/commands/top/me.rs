@@ -25,13 +25,13 @@ pub async fn run(
 
     let (user_score, user_position) = context.redis.get_by_user(
         format!("top_{week_or_day}.{guild_id}"), user.id
-    ).map_err(Error::from)?;
+    ).await.map_err(Error::from)?;
 
     let mut result = format!("You are **{}** with **{user_score}** messages", user_position + 1);
 
     let leaderboard = context.redis.get_all(
         format!("top_{week_or_day}.{guild_id}"), 3
-    ).map_err(Error::from)?;
+    ).await.map_err(Error::from)?;
 
     let leaderboard_string = leaderboard.iter().enumerate()
         .map(|(index, top)|
@@ -46,13 +46,13 @@ pub async fn run(
     if user_position > 0 {
         let user_after = context.redis.get_by_position(
             format!("top_{week_or_day}.{guild_id}"), (user_position - 1) as usize
-        ).map_err(Error::from)?.ok_or("There is no user_after")?;
+        ).await.map_err(Error::from)?.ok_or("There is no user_after")?;
         result = format!("{result}**{user_after}** messages to beat next user\n");
     }
 
     let user_before = context.redis.get_by_position(
         format!("top_{week_or_day}.{guild_id}"), (user_position + 1) as usize
-    ).map_err(Error::from)?.ok_or("There is no `user_before`")?;
+    ).await.map_err(Error::from)?.ok_or("There is no `user_before`")?;
     result = format!("{result}**{user_before}** messages for user before (to you)");
 
     Ok((

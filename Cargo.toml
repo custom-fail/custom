@@ -20,7 +20,7 @@ futures-util = "0.3.19"
 tokio = "1.16.1"
 
 mongodb = "2.1.0"
-redis = "0.21.6"
+redis = { version = "0.24", features = ["aio", "tokio-comp"] }
 
 tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
 

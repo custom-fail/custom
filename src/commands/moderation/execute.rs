@@ -61,7 +61,7 @@ pub async fn run(
     ).await.map_err(Error::from)?;
 
     if let Some(target_member) = &target_member {
-        if !check_position(&context.redis, guild_id, target_member, member)? {
+        if !check_position(&context.redis, guild_id, target_member, member).await? {
             return Err(
                 Error::from("Missing Permissions: Cannot execute moderation action on user with higher role")
             )
@@ -251,13 +251,13 @@ fn get_highest_role_pos(
 }
 
 /// Checks is position of the moderator role higher then position of the target role
-fn check_position(
+async fn check_position(
     redis: &RedisConnection,
     guild_id: Id<GuildMarker>,
     target_member: &Member,
     member: PartialMember
 ) -> Result<bool, Error> {
-    let guild = redis.get_guild(guild_id).map_err(Error::from)?;
+    let guild = redis.get_guild(guild_id).await.map_err(Error::from)?;
 
     let target_role_index = get_highest_role_pos(
         &guild.roles,

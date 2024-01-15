@@ -95,7 +95,7 @@ impl MongoDBConnection {
             let channel = discord_http.create_private_channel(member_id)
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
-            let embed = case.to_dm_embed(redis).map_err(Error::from)?;
+            let embed = case.to_dm_embed(redis).await.map_err(Error::from)?;
             discord_http.create_message(channel.id)
                 .embeds(&[embed]).map_err(Error::from)?
                 .await.map_err(Error::from)?

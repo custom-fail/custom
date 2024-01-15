@@ -36,13 +36,13 @@ pub async fn on_event(
         }
         Event::GuildCreate(event) => {
             tokio::spawn(self::setup::run(event.id, event.joined_at, discord_http));
-            self::cache::on_guild_create(&context.redis, event).ok();
+            self::cache::on_guild_create(&context.redis, event).await.ok();
         },
         Event::GuildUpdate(event) => {
-            self::cache::on_guild_update(&context.redis, event).ok();
+            self::cache::on_guild_update(&context.redis, event).await.ok();
         },
         Event::GuildDelete(event) => {
-            self::cache::delete_guild(&context.redis, event.id).ok();
+            self::cache::delete_guild(&context.redis, event.id).await.ok();
         },
         Event::RoleCreate(event) => {
             self::cache::fetch_and_set(&context.redis, discord_http, event.guild_id).await.ok();
