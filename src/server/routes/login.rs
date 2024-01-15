@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use futures_util::TryFutureExt;
 use serde::{Deserialize, Serialize};
 use twilight_http::Client;
 use twilight_model::user::CurrentUser;
@@ -44,6 +43,7 @@ pub fn login(authenticator: Arc<Authenticator>, sessions: Arc<Sessions>) -> resp
 enum GrantType {
     #[serde(rename = "authorization_code")]
     AuthorizationCode { code: String },
+    #[allow(dead_code)]
     #[serde(rename = "refresh_token")]
     RefreshToken { refresh_token: String }
 }

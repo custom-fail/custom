@@ -1,5 +1,5 @@
 use std::convert::Infallible;
-use std::fmt::{Debug, Display, Formatter, Write};
+use std::fmt::{Debug, Display, Formatter};
 use reqwest::StatusCode;
 use warp::reject::Reject;
 use warp::Reply;
@@ -10,8 +10,6 @@ pub enum Rejection {
     BodyNotConvertableToString,
     #[cfg(feature = "http-interactions")]
     InvalidSignature,
-    #[cfg(feature = "api")]
-    InvalidCode,
     #[cfg(feature = "api")]
     Unauthorized,
     Internal(anyhow::Error)
@@ -24,8 +22,6 @@ impl Display for Rejection {
             Rejection::BodyNotConvertableToString => f.write_str("Cannot convert bytes from body into utf8 encoded string"),
             #[cfg(feature = "http-interactions")]
             Rejection::InvalidSignature => f.write_str("Couldn't verify signature"),
-            #[cfg(feature = "api")]
-            Rejection::InvalidCode => f.write_str("Invalid `code` was provided"),
             #[cfg(feature = "api")]
             Rejection::Unauthorized => f.write_str("Invalid authorization data provided"),
             Rejection::Internal(err) => std::fmt::Display::fmt(&err, f),
@@ -70,8 +66,6 @@ pub async fn handle_rejection(rejection: warp::Rejection) -> Result<impl Reply, 
             Rejection::BodyNotConvertableToString => StatusCode::BAD_REQUEST,
             #[cfg(feature = "http-interactions")]
             Rejection::InvalidSignature => StatusCode::BAD_REQUEST,
-            #[cfg(feature = "api")]
-            Rejection::InvalidCode => StatusCode::BAD_REQUEST,
             #[cfg(feature = "api")]
             Rejection::Unauthorized => StatusCode::UNAUTHORIZED,
             _ => StatusCode::INTERNAL_SERVER_ERROR

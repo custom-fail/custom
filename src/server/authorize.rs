@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use ed25519_dalek::Verifier;
 use ed25519_dalek::{PublicKey, Signature};
 use std::str::FromStr;

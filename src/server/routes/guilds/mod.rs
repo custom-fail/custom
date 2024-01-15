@@ -1,13 +1,9 @@
 use std::sync::Arc;
-use futures_util::future::join_all;
-use futures_util::{FutureExt, StreamExt};
-use redis::{AsyncCommands, RedisError, ToRedisArgs};
 use serde::{Deserialize, Serialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
 use twilight_model::user::CurrentUserGuild;
 use warp::{Filter, Reply};
-use warp::hyper::body::HttpBody;
 use crate::context::Context;
 use crate::{response_type, with_value};
 use crate::server::error::MapErrorIntoInternalRejection;

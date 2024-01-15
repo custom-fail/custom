@@ -7,7 +7,7 @@ use warp::reply::Json;
 use crate::context::Context;
 use crate::server::interaction::handle_interaction;
 use crate::{response_type, with_value};
-use crate::server::error::{MapErrorIntoInternalRejection, Rejection};
+use crate::server::error::MapErrorIntoInternalRejection;
 
 pub fn filter(
     discord_http: Arc<Client>,

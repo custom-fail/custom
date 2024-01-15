@@ -75,6 +75,7 @@ impl Sessions {
         self.0.write().await.insert(data.user.id, data);
     }
 
+    #[allow(dead_code, unused_variables)]
     pub async fn refresh(&self, user_id: &Id<UserMarker>) {
         todo!()
     }
