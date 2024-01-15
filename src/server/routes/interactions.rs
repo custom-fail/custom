@@ -7,6 +7,7 @@ use warp::reply::Json;
 use crate::context::Context;
 use crate::server::interaction::handle_interaction;
 use crate::{response_type, with_value};
+use crate::server::error::{MapErrorIntoInternalRejection, Rejection};
 
 pub fn filter(
     discord_http: Arc<Client>,
@@ -19,10 +20,14 @@ pub fn filter(
     warp::post()
         .and(warp::path("interactions"))
         .and(crate::server::authorize::filter(public_key))
-        .and(warp::body::json())
+        .and_then(parse_body)
         .and(with_discord_http)
         .and(with_context)
         .and_then(run)
+}
+
+async fn parse_body(body: String) -> Result<Interaction, warp::Rejection> {
+    serde_json::from_str(body.as_str()).map_rejection()
 }
 
 async fn run(content: Interaction, discord_http: Arc<Client>, context: Arc<Context>) -> Result<Json, warp::Rejection> {

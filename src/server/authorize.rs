@@ -10,8 +10,8 @@ use crate::{err, reject, with_value};
 pub fn verify_signature(
     public_key: PublicKey,
     signature: String,
-    timestamp: String,
-    body: String,
+    timestamp: &String,
+    body: &String,
 ) -> bool {
     let signature = Signature::from_str(signature.as_str());
     let signature = match signature {
@@ -26,7 +26,7 @@ pub fn verify_signature(
 }
 
 pub fn filter(public_key: PublicKey)
-    -> impl Filter<Extract = (), Error = warp::Rejection> + Clone {
+    -> impl Filter<Extract = (String,), Error = warp::Rejection> + Clone {
     let with_public_key = with_value!(public_key);
 
     warp::any()
@@ -35,22 +35,21 @@ pub fn filter(public_key: PublicKey)
         .and(warp::header("X-Signature-Ed25519"))
         .and(warp::body::bytes())
         .and_then(f)
-        .untuple_one()
         .boxed()
 }
 
-async fn f(public_key: PublicKey, timestamp: String, signature: String, body: Bytes) -> Result<(), warp::Rejection> {
+async fn f(public_key: PublicKey, timestamp: String, signature: String, body: Bytes) -> Result<String, warp::Rejection> {
     let body = String::from_utf8(body.to_vec())
         .map_err(|_| reject!(Rejection::BodyNotConvertableToString))?;
 
     if !verify_signature(
         public_key,
         signature,
-        timestamp,
-        body
+        &timestamp,
+        &body
     ) {
         return err!(Rejection::InvalidSignature);
     }
 
-    Ok(())
+    Ok(body)
 }

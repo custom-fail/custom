@@ -14,7 +14,6 @@ pub enum Rejection {
     InvalidCode,
     #[cfg(feature = "api")]
     Unauthorized,
-    #[cfg(feature = "api")]
     Internal(anyhow::Error)
 }
 
@@ -29,7 +28,6 @@ impl Display for Rejection {
             Rejection::InvalidCode => f.write_str("Invalid `code` was provided"),
             #[cfg(feature = "api")]
             Rejection::Unauthorized => f.write_str("Invalid authorization data provided"),
-            #[cfg(feature = "api")]
             Rejection::Internal(err) => std::fmt::Display::fmt(&err, f),
         }?;
         Ok(())
@@ -56,7 +54,6 @@ pub trait MapErrorIntoInternalRejection<T> {
     fn map_rejection(self) -> Result<T, warp::Rejection>;
 }
 
-#[cfg(feature = "api")]
 impl<T, E: Into<anyhow::Error>> MapErrorIntoInternalRejection<T> for Result<T, E> where Self: Sized {
     fn map_rejection(self) -> Result<T, warp::Rejection> {
         self.map_err(|err| reject!(Rejection::Internal(err.into())))
@@ -66,6 +63,7 @@ impl<T, E: Into<anyhow::Error>> MapErrorIntoInternalRejection<T> for Result<T, E
 impl Reject for Rejection {}
 
 pub async fn handle_rejection(rejection: warp::Rejection) -> Result<impl Reply, Infallible> {
+    println!("{:?}", rejection);
     Ok(if let Some(rejection) = rejection.find::<Rejection>() {
         warp::reply::with_status(rejection.to_string(), match rejection {
             #[cfg(feature = "http-interactions")]
