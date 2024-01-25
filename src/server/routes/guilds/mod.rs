@@ -9,7 +9,7 @@ use crate::{response_type, with_value};
 use crate::server::error::MapErrorIntoInternalRejection;
 use crate::server::session::{Authenticator, AuthorizationInformation, authorize_user, Sessions};
 
-mod _id;
+pub mod _id;
 
 #[derive(Serialize, Deserialize)]
 struct Response {
