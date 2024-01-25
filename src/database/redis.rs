@@ -68,6 +68,11 @@ impl RedisConnection {
         Ok((score, position))
     }
 
+    pub async fn guild_exists(&self, id: Id<GuildMarker>) -> Result<bool, RedisError> {
+        let mut connection = self.client.get_async_connection().await?;
+        connection.exists(format!("guilds.{id}")).await
+    }
+
     pub async fn get_all(&self, path: String, limit: isize) -> Result<Vec<(String, u32)>, RedisError> {
         let mut connection = self.client.get_async_connection().await?;
         connection.zrevrange_withscores(path, 0, limit - 1).await

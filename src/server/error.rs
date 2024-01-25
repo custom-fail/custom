@@ -12,6 +12,10 @@ pub enum Rejection {
     InvalidSignature,
     #[cfg(feature = "api")]
     Unauthorized,
+    #[cfg(feature = "api")]
+    MissingPermissions,
+    #[cfg(feature = "api")]
+    NotMutualGuild,
     Internal(anyhow::Error)
 }
 
@@ -24,6 +28,10 @@ impl Display for Rejection {
             Rejection::InvalidSignature => f.write_str("Couldn't verify signature"),
             #[cfg(feature = "api")]
             Rejection::Unauthorized => f.write_str("Invalid authorization data provided"),
+            #[cfg(feature = "api")]
+            Rejection::MissingPermissions => f.write_str("This account isn't authorized to perform this action"),
+            #[cfg(feature = "api")]
+            Rejection::NotMutualGuild => f.write_str("You can't manage this guild without adding bot first"),
             Rejection::Internal(err) => std::fmt::Display::fmt(&err, f),
         }?;
         Ok(())
