@@ -37,7 +37,7 @@ async fn run(
     let ids: Vec<Id<GuildMarker>> = guilds
         .iter().map(|guild| guild.id).collect();
 
-    let mut pipe = redis::pipe().atomic().to_owned();
+    let mut pipe = redis::pipe().to_owned();
     ids.iter().for_each(|id| { pipe.exists(format!("guilds.{id}")); });
 
     let result: Vec<bool> = pipe.query_async(

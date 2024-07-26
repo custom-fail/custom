@@ -23,6 +23,12 @@ mod session;
 #[cfg(feature = "http-interactions")]
 pub mod authorize;
 
+#[cfg(feature = "api")]
+pub mod guild {
+    pub mod editing;
+    pub mod ws;
+}
+
 mod http_server {
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::sync::Arc;

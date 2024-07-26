@@ -1,19 +1,18 @@
-use std::collections::HashMap;
 use std::sync::Arc;
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
+
+use futures_util::StreamExt;
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
-use warp::Filter;
-use futures_util::FutureExt;
-use futures_util::stream::SplitSink;
-use serde::{Deserialize, Deserializer};
-use serde_json::Value;
 use twilight_model::user::CurrentUserGuild;
-use warp::ws::{Message, WebSocket, Ws};
-use crate::context::Context;
+use warp::Filter;
+use warp::ws::Ws;
+
 use crate::{response_type, with_value};
+use crate::context::Context;
 use crate::server::error::{MapErrorIntoInternalRejection, Rejection};
+use crate::server::guild::editing::GuildsEditing;
+use crate::server::guild::ws::handle_connection;
 use crate::server::session::{Authenticator, AuthorizationInformation, authorize_user, Sessions};
 
 type GuildId = Id<GuildMarker>;
@@ -25,14 +24,26 @@ pub fn run(
 ) -> response_type!() {
     let with_context = with_value!(context);
 
+    let guilds_editing = Arc::new(GuildsEditing::default());
+    let with_guilds_editing = with_value!(guilds_editing);
+
     warp::path!("guilds" / GuildId)
         .and(authorize_user(authenticator, sessions))
-        .and(with_context)
+        .and(with_context.clone())
         .and_then(check_guild)
         .and(warp::ws())
-        .map(|(info, guild): (Arc<AuthorizationInformation>, CurrentUserGuild), ws: Ws| {
+        .and(with_context)
+        .and(with_guilds_editing)
+        .map(|
+            (info, guild): (Arc<AuthorizationInformation>, CurrentUserGuild),
+            ws: Ws,
+            context: Arc<Context>,
+            guilds_editing: Arc<GuildsEditing>
+        | {
+            let context = context.clone();
+            let guilds_editing = guilds_editing.clone();
             ws.on_upgrade(move |ws| {
-                handle_connection(ws, info, guild)
+                handle_connection(context, ws, info, guild, guilds_editing)
             })
         })
 }
@@ -54,73 +65,4 @@ async fn check_guild(
     if !is_mutual { return err!(Rejection::NotMutualGuild) }
 
     Ok((info, guild))
-}
-
-macro_rules! close {
-    ($tx: expr) => {
-        let _ = $tx.close().await;
-    };
-}
-
-macro_rules! unwrap_or_close_and_return {
-    ($target: expr, $tx: expr) => {
-        match $target {
-            Ok(value) => value,
-            Err(_) => {
-                close!($tx);
-                return
-            }
-        }
-    };
-}
-
-async fn handle_connection(
-    ws: WebSocket,
-    info: Arc<AuthorizationInformation>,
-    guild: CurrentUserGuild
-) {
-    let (mut tx, mut rx) = ws.split();
-
-    while let Some(result) = rx.next().await {
-        let message = match result {
-            Ok(message) => message,
-            Err(_) => {
-                close!(tx);
-                break
-            }
-        };
-
-        if !message.is_text() {
-            close!(tx);
-            break
-        }
-
-        on_message(message, &info, &guild, &mut tx).await;
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "action", content = "data")]
-enum InboundMessage {
-    GuildConfigUpdate(HashMap<String, Value>),
-    ApplyChanges
-}
-
-async fn on_message(
-    message: Message,
-    _info: &Arc<AuthorizationInformation>,
-    _guild: &CurrentUserGuild,
-    tx: &mut SplitSink<WebSocket, Message>
-) {
-    let message = unwrap_or_close_and_return!(message.to_str(), tx);
-    let message: InboundMessage = unwrap_or_close_and_return!(
-        serde_json::from_str(message), tx
-    );
-
-    match message {
-        InboundMessage::GuildConfigUpdate(_) => {}
-        InboundMessage::ApplyChanges => {}
-    }
-
-    ()
 }
