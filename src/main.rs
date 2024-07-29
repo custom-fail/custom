@@ -31,6 +31,12 @@ async fn main() {
 
     let context = Arc::new(Context::new().await);
 
+    let cloned_context = context.clone();
+    tokio::spawn(async move {
+        let context = cloned_context;
+        context.redis.watch_config_updates(&context.mongodb).await.unwrap();
+    });
+
     let discord_token = env_unwrap!("DISCORD_TOKEN");
     let main_http = Arc::new(Client::new(discord_token.to_owned()));
 

@@ -37,7 +37,7 @@ macro_rules! unwrap_or_close_and_return {
 
 pub enum CloseReason {
     MessageIsNotString,
-    CannotParseJSON
+    CannotParseJSON,
 }
 
 impl CloseReason {
@@ -76,7 +76,14 @@ pub async fn handle_connection(
 
     let mut rx = UnboundedReceiverStream::new(rx);
 
+    let session_id = ObjectId::new();
+    let guild_id = guild.id;
+
+    let guilds_editing_clone = guilds_editing.clone();
+    let context_clone = context.clone();
     tokio::spawn(async move {
+        let guilds_editing = guilds_editing_clone;
+        let context = context_clone;
         while let Some(message) = rx.next().await {
             match message {
                 OutboundAction::Message(msg) => {
@@ -88,14 +95,13 @@ pub async fn handle_connection(
                     let _ = ws_tx.send(
                         Message::close_with(reason.code(), reason.text())
                     ).await;
+                    guilds_editing.remove_connection(guild_id, session_id).await;
+                    guilds_editing.broadcast_changes(&context, guild_id).await;
                 }
             }
         }
         let _ = ws_tx.close().await;
     });
-
-    let session_id = ObjectId::new();
-    let guild_id = guild.id;
 
     guilds_editing.add_connection(guild_id, Connection {
         user_id: info.user.id,
@@ -109,15 +115,19 @@ pub async fn handle_connection(
         session_id
     }));
 
+    guilds_editing.broadcast_changes(&context, guild_id).await;
+
     while let Some(result) = ws_rx.next().await {
         let message = match result {
             Ok(message) => message,
-            Err(_) => {
+            Err(error) => {
+                println!("{error:?}");
                 break
             }
         };
 
         if !message.is_text() {
+            let _ = tx.send(OutboundAction::Close(CloseReason::MessageIsNotString));
             break
         }
 
@@ -125,6 +135,7 @@ pub async fn handle_connection(
     }
 
     guilds_editing.remove_connection(guild_id, session_id).await;
+    guilds_editing.broadcast_changes(&context, guild_id).await;
 }
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action", content = "data")]
@@ -172,8 +183,13 @@ async fn on_message(
     match message {
         InboundMessage::GuildConfigUpdate(changes) => {
             let _ = guilds_editing.marge_changes(info.user.id, guild.id, changes).await;
-            guilds_editing.broadcast_changes(context, guild.id).await;
+            let _ = guilds_editing.broadcast_changes(&context, guild.id).await;
         }
-        InboundMessage::ApplyChanges => {}
+        InboundMessage::ApplyChanges => {
+            guilds_editing.apply_changes(&context, guild.id).await;
+            let _ = guilds_editing.broadcast_changes(&context, guild.id).await;
+            let _ = context.redis.announce_config_update(guild.id).await
+                .inspect_err(|error| println!("{error}"));
+        }
     }
 }

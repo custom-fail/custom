@@ -29,6 +29,7 @@ pub mod guild {
     pub mod ws;
 }
 
+#[cfg(any(feature = "api", feature = "http-interactions"))]
 mod http_server {
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::sync::Arc;
