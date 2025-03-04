@@ -41,7 +41,7 @@ async fn run(
     ids.iter().for_each(|id| { pipe.exists(format!("guilds.{id}")); });
 
     let result: Vec<bool> = pipe.query_async(
-        &mut context.redis.client.get_async_connection().await.map_rejection()?
+        &mut context.redis.client.get_multiplexed_async_connection().await.map_rejection()?
     ).await.map_rejection()?;
 
     let mutual = result.into_iter().enumerate()
