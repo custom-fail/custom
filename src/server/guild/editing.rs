@@ -105,6 +105,8 @@ impl GuildsEditing {
             .inspect_err(|error| println!("{error:?}"))
             .ok()?;
 
+        let is_guild_premium = config.premium;
+
         let guild = self.get_guild(guild_id).await?;
         let mut guild_lock = guild.lock().await;
 
@@ -118,6 +120,11 @@ impl GuildsEditing {
 
         if new_config.guild_id != guild_id {
             println!("Someone tried changing guild_id in config id={guild_id}");
+            return None
+        }
+
+        if new_config.premium != is_guild_premium {
+            println!("Someone tried changing premium in config id={guild_id}");
             return None
         }
 
