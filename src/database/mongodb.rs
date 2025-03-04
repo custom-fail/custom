@@ -86,7 +86,7 @@ impl MongoDBConnection {
 
         if let Some(channel_id) = logs {
             discord_http.create_message(channel_id)
-                .embeds(&[case_embed.clone()]).map_err(Error::from)?
+                .embeds(&[case_embed.clone()])
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
@@ -97,7 +97,7 @@ impl MongoDBConnection {
                 .model().await.map_err(Error::from)?;
             let embed = case.to_dm_embed(redis).await.map_err(Error::from)?;
             discord_http.create_message(channel.id)
-                .embeds(&[embed]).map_err(Error::from)?
+                .embeds(&[embed])
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }

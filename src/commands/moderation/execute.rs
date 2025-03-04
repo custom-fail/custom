@@ -90,7 +90,6 @@ pub async fn run(
             discord_http
                 .update_guild_member(guild_id, target_id)
                 .communication_disabled_until(timestamp)
-                .map_err(Error::from)?
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         } else {

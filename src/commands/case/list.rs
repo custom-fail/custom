@@ -1,7 +1,7 @@
 use mongodb::bson::doc;
 use mongodb::options::FindOptions;
 use twilight_model::channel::message::{Embed, Component};
-use twilight_model::channel::message::component::{SelectMenuOption, ActionRow, SelectMenu};
+use twilight_model::channel::message::component::{SelectMenuOption, ActionRow, SelectMenu, SelectMenuType};
 use twilight_model::channel::message::embed::{EmbedAuthor, EmbedFooter};
 use std::sync::Arc;
 use futures_util::{TryStreamExt, StreamExt};
@@ -191,11 +191,14 @@ pub async fn run(
             Component::ActionRow(ActionRow {
                 components: vec![
                     Component::SelectMenu(SelectMenu {
+                        channel_types: None,
                         custom_id: format!("a:{}:cl:{member_id}", user.id),
+                        default_values: None,
                         disabled: false,
+                        kind: SelectMenuType::Text,
                         max_values: Some(1),
                         min_values: Some(1),
-                        options: result,
+                        options: Some(result),
                         placeholder: None
                     })
                 ]

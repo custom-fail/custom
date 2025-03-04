@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-twilight-gateway = { version = "0.15", optional = true }
-twilight-model = "0.15"
-twilight-http = "0.15"
-twilight-util = { version = "0.15", features = ["full"] }
-twilight-validate = "0.15"
+twilight-gateway = { version = "0.16", optional = true }
+twilight-model = "0.16"
+twilight-http = "0.16"
+twilight-util = { version = "0.16", features = ["full"] }
+twilight-validate = "0.16"
 
 serde_urlencoded = { version = "0.7", optional = true }
 serde_json = "1.0"
