@@ -37,7 +37,7 @@ impl LoadDiscordClients for DiscordClients {
     async fn load(
         mongodb: &MongoDBConnection
     ) -> Result<Self, Error> {
-        let clients_data = mongodb.clients.find(doc! {}, None)
+        let clients_data = mongodb.clients.find(doc! {})
             .await.map_err(Error::from)?;
         let clients_data: Vec<ClientData> = clients_data.try_collect().await.map_err(Error::from)?;
 

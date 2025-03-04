@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use mongodb::bson::doc;
-use mongodb::options::FindOneOptions;
 use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use crate::commands::context::InteractionContext;
@@ -25,8 +24,11 @@ pub async fn run(
 
     let case = context.mongodb.cases.find_one(
         doc! { "guild_id": guild_id.to_string(), "member_id": member_id.to_string(), "removed": false },
-        FindOneOptions::builder().sort(doc! { "created_at": (-1_i32) }).build()
-    ).await.map_err(Error::from)?.ok_or("This user has no cases")?;
+    )
+        .sort(doc! { "created_at": (-1_i32) })
+        .await
+        .map_err(Error::from)?
+        .ok_or("This user has no cases")?;
 
     Ok((interaction_response_data_from_embed(
         case.to_embed(discord_http).await?, false

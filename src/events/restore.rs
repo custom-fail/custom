@@ -16,7 +16,7 @@ pub mod mutes {
         let task = context.mongodb.tasks.find_one(doc! {
             "action": { "RemoveMuteRole": member.user.id.to_string() },
             "guild_id": config.guild_id.to_string()
-        }, None).await.map_err(|_| ())?;
+        }).await.map_err(|_| ())?;
 
         if task.is_none() { return Ok(()) }
 
@@ -39,7 +39,7 @@ pub mod bans {
         mongodb.tasks.delete_one(doc! {
             "action": { "RemoveBan": event.user.id.to_string() },
             "guild_id": event.guild_id.to_string()
-        }, None).await.map_err(|_| ())?;
+        }).await.map_err(|_| ())?;
         Ok(())
     }
 }
