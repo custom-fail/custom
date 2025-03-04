@@ -45,6 +45,7 @@ pub fn get_all_routes(
     let filter = filter
         .or(login::login(authenticator.to_owned(), sessions.to_owned()))
         .or(users::me::run(authenticator.to_owned(), sessions.to_owned()))
+        .or(guilds::_id::run(context.to_owned(), authenticator.to_owned(), sessions.to_owned()))
         .or(guilds::list(context, authenticator, sessions));
 
     filter

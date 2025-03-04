@@ -1,3 +1,5 @@
+use std::str::FromStr;
+use futures_util::StreamExt;
 use redis::{Client, RedisError};
 use serde_json::json;
 use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
@@ -6,6 +8,9 @@ use twilight_model::util::ImageHash;
 use serde::{Serialize, Deserialize};
 use crate::utils::errors::Error;
 use redis::AsyncCommands;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::error::SendError;
+use crate::database::mongodb::MongoDBConnection;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PartialGuild {
@@ -17,12 +22,36 @@ pub struct PartialGuild {
 #[derive(Clone)]
 pub struct RedisConnection {
     pub client: Client,
+    #[cfg(feature = "api")]
+    pub pub_sub_tx: UnboundedSender<Id<GuildMarker>>
 }
 
 impl RedisConnection {
     pub fn connect(url: String) -> Result<Self, RedisError> {
         let client = Client::open(url)?;
-        Ok(Self { client })
+
+        #[cfg(feature = "api")]
+        let (tx, mut rx) =
+            tokio::sync::mpsc::unbounded_channel::<Id<GuildMarker>>();
+
+        #[cfg(feature = "api")]
+        {
+            let client = client.to_owned();
+            tokio::spawn(async move {
+                while let Some(guild_id) = rx.recv().await {
+                    client
+                        .get_async_connection()
+                        .await
+                        .expect("Cannot get redis connection")
+                        .publish("configs", guild_id.to_string())
+                        .await
+                        .expect("Error while sending pubsub message")
+                }
+            });
+
+        }
+
+        Ok(Self { client, #[cfg(feature = "api")] pub_sub_tx: tx })
     }
 
     pub async fn set_guild(&self, id: Id<GuildMarker>, guild: PartialGuild) -> Result<(), RedisError> {
@@ -68,6 +97,11 @@ impl RedisConnection {
         Ok((score, position))
     }
 
+    pub async fn guild_exists(&self, id: Id<GuildMarker>) -> Result<bool, RedisError> {
+        let mut connection = self.client.get_async_connection().await?;
+        connection.exists(format!("guilds.{id}")).await
+    }
+
     pub async fn get_all(&self, path: String, limit: isize) -> Result<Vec<(String, u32)>, RedisError> {
         let mut connection = self.client.get_async_connection().await?;
         connection.zrevrange_withscores(path, 0, limit - 1).await
@@ -81,5 +115,32 @@ impl RedisConnection {
     ) -> Result<(), RedisError> {
         let mut connection = self.client.get_async_connection().await?;
         connection.zincr(path, user_id.to_string(), count).await
+    }
+
+    pub async fn watch_config_updates(
+        &self,
+        mongodb: &MongoDBConnection
+    ) -> Result<(), RedisError> {
+        let connection = self.client.get_async_connection().await?;
+        let mut pubsub = connection.into_pubsub();
+        pubsub.subscribe("configs").await?;
+
+        while let Some(message) = pubsub.on_message().next().await {
+            const ERROR: &str = "Received invalid payload instead of guild id";
+            let id: String = message.get_payload().expect(ERROR);
+            let id: Id<GuildMarker> = Id::from_str(id.as_str()).expect(ERROR);
+            println!("There is a guild config update id={id}");
+            mongodb.configs_cache.remove(&id);
+        }
+
+        Ok(())
+    }
+
+    #[cfg(feature = "api")]
+    pub async fn announce_config_update(
+        &self,
+        guild_id: Id<GuildMarker>
+    ) -> Result<(), SendError<Id<GuildMarker>>> {
+        self.pub_sub_tx.send(guild_id)
     }
 }
