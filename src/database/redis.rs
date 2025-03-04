@@ -8,7 +8,7 @@ use twilight_model::util::ImageHash;
 use serde::{Serialize, Deserialize};
 use crate::utils::errors::Error;
 use redis::AsyncCommands;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::error::SendError;
 use crate::database::mongodb::MongoDBConnection;
 
@@ -121,7 +121,7 @@ impl RedisConnection {
         &self,
         mongodb: &MongoDBConnection
     ) -> Result<(), RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let connection = self.client.get_async_connection().await?;
         let mut pubsub = connection.into_pubsub();
         pubsub.subscribe("configs").await?;
 

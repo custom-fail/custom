@@ -1,6 +1,5 @@
 use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
-use futures_util::TryFutureExt;
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 use mongodb::options::ReplaceOptions;

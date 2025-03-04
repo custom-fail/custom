@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use futures_util::StreamExt;
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
