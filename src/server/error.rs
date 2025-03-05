@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 use std::fmt::{Debug, Display, Formatter};
-use reqwest::StatusCode;
+use warp::http::StatusCode;
 use warp::reject::Reject;
 use warp::Reply;
 

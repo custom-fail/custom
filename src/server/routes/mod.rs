@@ -1,7 +1,7 @@
 use std::sync::Arc;
-use reqwest::StatusCode;
 use twilight_http::Client;
 use warp::Filter;
+use warp::http::StatusCode;
 use crate::context::Context;
 use crate::{all_macro, response_type};
 
@@ -22,7 +22,7 @@ mod users {
 pub fn get_all_routes(
     discord_http: Arc<Client>,
     context: Arc<Context>,
-    #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::PublicKey
+    #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::VerifyingKey
 ) -> response_type!() {
     let filter = warp::path::end().map(|| {
         warp::reply::with_status("👀", StatusCode::OK)
