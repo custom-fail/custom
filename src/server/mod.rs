@@ -55,7 +55,7 @@ mod http_server {
         port: u16,
         context: Arc<Context>,
         discord_http: Arc<Client>,
-        #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::PublicKey
+        #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::VerifyingKey
     ) {
         let routes = crate::server::routes::get_all_routes(
             discord_http, context, #[cfg(feature = "http-interactions")] public_key

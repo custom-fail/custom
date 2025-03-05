@@ -99,7 +99,7 @@ async fn run(
         .await
         .map_err(|err| reject!(Rejection::Internal(err.into())))?;
 
-    if response.status() != StatusCode::OK {
+    if response.status() != reqwest::StatusCode::OK {
         return Ok(Box::new(warp::reply::with_status(
             response.text().await.unwrap_or_else(|_| "Discord rejected the request".to_string()),
             StatusCode::BAD_REQUEST

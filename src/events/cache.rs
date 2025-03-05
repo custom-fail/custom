@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use twilight_http::Client;
-use twilight_model::gateway::payload::incoming::{GuildCreate, GuildUpdate};
+use twilight_model::gateway::payload::incoming::GuildUpdate;
+use twilight_model::guild::Guild;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
 use crate::database::redis::{PartialGuild, RedisConnection};
@@ -21,7 +22,7 @@ pub async fn fetch_and_set(
     }).await
 }
 
-pub async fn on_guild_create(redis: &RedisConnection, event: Box<GuildCreate>) -> Result<(), ()> {
+pub async fn on_guild_create(redis: &RedisConnection, event: Guild) -> Result<(), ()> {
     let mut roles = event.roles.to_owned();
     roles.sort_by_cached_key(|role| role.position);
     set_guild(redis, event.id, PartialGuild {

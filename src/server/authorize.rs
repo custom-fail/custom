@@ -1,5 +1,5 @@
 use ed25519_dalek::Verifier;
-use ed25519_dalek::{PublicKey, Signature};
+use ed25519_dalek::{VerifyingKey, Signature};
 use std::str::FromStr;
 use warp::Filter;
 use warp::hyper::body::Bytes;
@@ -7,7 +7,7 @@ use crate::server::error::Rejection;
 use crate::{err, reject, with_value};
 
 pub fn verify_signature(
-    public_key: PublicKey,
+    public_key: VerifyingKey,
     signature: String,
     timestamp: &String,
     body: &String,
@@ -24,7 +24,7 @@ pub fn verify_signature(
     verified.is_ok()
 }
 
-pub fn filter(public_key: PublicKey)
+pub fn filter(public_key: VerifyingKey)
     -> impl Filter<Extract = (String,), Error = warp::Rejection> + Clone {
     let with_public_key = with_value!(public_key);
 
@@ -37,7 +37,7 @@ pub fn filter(public_key: PublicKey)
         .boxed()
 }
 
-async fn f(public_key: PublicKey, timestamp: String, signature: String, body: Bytes) -> Result<String, warp::Rejection> {
+async fn f(public_key: VerifyingKey, timestamp: String, signature: String, body: Bytes) -> Result<String, warp::Rejection> {
     let body = String::from_utf8(body.to_vec())
         .map_err(|_| reject!(Rejection::BodyNotConvertableToString))?;
 

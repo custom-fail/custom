@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use ed25519_dalek::PublicKey;
+use ed25519_dalek::VerifyingKey;
 use twilight_http::Client;
 use twilight_model::application::interaction::Interaction;
 use warp::Filter;
@@ -12,7 +12,7 @@ use crate::server::error::MapErrorIntoInternalRejection;
 pub fn filter(
     discord_http: Arc<Client>,
     context: Arc<Context>,
-    public_key: PublicKey
+    public_key: VerifyingKey
 ) -> response_type!() {
     let with_discord_http = with_value!(discord_http);
     let with_context = with_value!(context);

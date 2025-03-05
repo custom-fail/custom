@@ -48,7 +48,6 @@ async fn send_direct_message(
             url: None,
             video: None,
         }])
-        .map_err(|_| ())?
         .await
         .map_err(|_| ())?;
 
@@ -102,7 +101,6 @@ async fn send_logs(
     discord_http
         .create_message(channel)
         .embeds(&[embed])
-        .map_err(|_| ())?
         .await
         .ok();
 
@@ -122,7 +120,6 @@ async fn timeout(
     discord_http
         .update_guild_member(guild_id, message.author.id)
         .communication_disabled_until(Some(timestamp))
-        .map_err(|_| ())?
         .await
         .map_err(|_| ())?;
 

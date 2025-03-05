@@ -27,7 +27,7 @@ pub async fn run(
             "guild_id": guild_id.to_string(),
             "index": case_index,
             "removed": false
-        }, None
+        }
     ).await.map_err(Error::from)?.ok_or("Cannot find case with selected id")?;
 
     Ok((interaction_response_data_from_embed(

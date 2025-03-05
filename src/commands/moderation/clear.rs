@@ -20,7 +20,8 @@ pub async fn run(
     _: GuildConfig
 ) -> ResponseData {
 
-    extract!(interaction.orginal, channel_id);
+    extract!(interaction.orginal, channel);
+    let channel_id = channel.id;
 
     let amount = get_required_option!(
         interaction.options.get("amount"), CommandOptionValue::Integer
@@ -47,13 +48,13 @@ pub async fn run(
 
         let mut messages = if let Some(last) = last {
             discord_http.channel_messages(channel_id)
-                .limit(amount as u16).map_err(Error::from)?
+                .limit(amount as u16)
                 .after(last)
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?
         } else {
             discord_http.channel_messages(channel_id)
-                .limit(amount as u16).map_err(Error::from)?
+                .limit(amount as u16)
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?
         };
@@ -84,7 +85,7 @@ pub async fn run(
 
         if messages.is_empty() { continue }
 
-        discord_http.delete_messages(channel_id, &messages).map_err(Error::from)?.await.map_err(Error::from)?;
+        discord_http.delete_messages(channel_id, &messages).await.map_err(Error::from)?;
     }
 
     Ok((InteractionResponseData {

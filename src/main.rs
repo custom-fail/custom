@@ -81,10 +81,12 @@ async fn main() {
 
         #[cfg(feature = "http-interactions")]
         let public_key = {
-            use ed25519_dalek::PublicKey;
             let public_key = env_unwrap!("PUBLIC_KEY");
-            let pbk_bytes = hex::decode(public_key.as_str()).expect(INVALID_PUBLIC_KEY);
-            PublicKey::from_bytes(&pbk_bytes).expect(INVALID_PUBLIC_KEY)
+            let mut bytes_slice = [0; 32];
+            let pbk_bytes = hex::decode(public_key.as_str())
+                .expect(INVALID_PUBLIC_KEY);
+            bytes_slice.copy_from_slice(&pbk_bytes);
+            ed25519_dalek::VerifyingKey::from_bytes(&bytes_slice).expect(INVALID_PUBLIC_KEY)
         };
 
         let run = tokio::spawn(crate::server::listen(

@@ -2,7 +2,6 @@ use std::collections::{BTreeSet, HashMap};
 use std::sync::Arc;
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
-use mongodb::options::ReplaceOptions;
 use serde_json::{Map, Value};
 use tokio::sync::{Mutex, RwLock};
 use twilight_model::id::Id;
@@ -130,9 +129,9 @@ impl GuildsEditing {
         context.mongodb.configs
             .replace_one(
                 doc! { "guild_id": guild_id.to_string() },
-                new_config,
-                ReplaceOptions::builder().upsert(true).build()
+                new_config
             )
+            .upsert(true)
             .await
             .inspect_err(|error| println!("{error:?}"))
             .ok()?;

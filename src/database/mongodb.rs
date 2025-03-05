@@ -61,7 +61,7 @@ impl MongoDBConnection {
                 let config = self.configs.clone_with_type().find_one(
                     doc! {
                         "guild_id": guild_id.to_string()
-                    }, None
+                    }
                 ).await?.unwrap_or_else(|| GuildConfig::new(guild_id));
 
                 self.configs_cache.insert(guild_id, config.to_owned());
@@ -82,11 +82,11 @@ impl MongoDBConnection {
         logs: Option<Id<ChannelMarker>>
     ) -> Result<(), Error> {
 
-        self.cases.insert_one(case.to_owned(), None).await.map_err(Error::from)?;
+        self.cases.insert_one(case.to_owned()).await.map_err(Error::from)?;
 
         if let Some(channel_id) = logs {
             discord_http.create_message(channel_id)
-                .embeds(&[case_embed.clone()]).map_err(Error::from)?
+                .embeds(&[case_embed.clone()])
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
@@ -97,7 +97,7 @@ impl MongoDBConnection {
                 .model().await.map_err(Error::from)?;
             let embed = case.to_dm_embed(redis).await.map_err(Error::from)?;
             discord_http.create_message(channel.id)
-                .embeds(&[embed]).map_err(Error::from)?
+                .embeds(&[embed])
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
@@ -108,21 +108,21 @@ impl MongoDBConnection {
 
     pub async fn get_next_case_index(&self, guild_id: Id<GuildMarker>) -> Result<u64, Error> {
         Ok(self.cases.count_documents(
-            doc! { "guild_id": guild_id.to_string() }, None
+            doc! { "guild_id": guild_id.to_string() }
         ).await.map_err(Error::from)? + 1)
     }
 
     pub async fn create_task(&self, task: Task) -> Result<(), Error> {
-        self.tasks.insert_one(task, None).await.map(|_| ()).map_err(Error::from)
+        self.tasks.insert_one(task).await.map(|_| ()).map_err(Error::from)
     }
 
     #[cfg(feature = "tasks")]
     pub async fn get_and_delete_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
         let time = DateTime::from_millis(DateTime::now().timestamp_millis() + after as i64);
         let filter = doc! { "execute_at": { "$lt": time } };
-        let tasks = self.tasks.find(filter.to_owned(), None)
+        let tasks = self.tasks.find(filter.to_owned())
             .await.map_err(Error::from)?.try_collect().await.map_err(Error::from);
-        self.tasks.delete_many(filter, None).await.map_err(Error::from)?;
+        self.tasks.delete_many(filter).await.map_err(Error::from)?;
         tasks
     }
 }

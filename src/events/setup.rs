@@ -23,5 +23,5 @@ pub async fn run(
         .create_guild_command(guild_id)
         .chat_input(
             "setup", "Shows where you can setup the bot"
-        ).map_err(Error::from)?.await.map_err(Error::from).map(|_| ())
+        ).await.map_err(Error::from).map(|_| ())
 }

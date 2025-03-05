@@ -26,6 +26,12 @@ pub struct RedisConnection {
     pub pub_sub_tx: UnboundedSender<Id<GuildMarker>>
 }
 
+macro_rules! connection {
+    ($self: expr) => {
+        $self.client.get_multiplexed_async_connection().await
+    };
+}
+
 impl RedisConnection {
     pub fn connect(url: String) -> Result<Self, RedisError> {
         let client = Client::open(url)?;
@@ -40,7 +46,7 @@ impl RedisConnection {
             tokio::spawn(async move {
                 while let Some(guild_id) = rx.recv().await {
                     client
-                        .get_async_connection()
+                        .get_multiplexed_async_connection()
                         .await
                         .expect("Cannot get redis connection")
                         .publish("configs", guild_id.to_string())
@@ -55,19 +61,19 @@ impl RedisConnection {
     }
 
     pub async fn set_guild(&self, id: Id<GuildMarker>, guild: PartialGuild) -> Result<(), RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let mut connection = connection!(self)?;
         let data = json!(guild).to_string();
         connection.set(format!("guilds.{id}"), data).await
     }
 
     pub async fn get_guild(&self, id: Id<GuildMarker>) -> Result<PartialGuild, Error> {
-        let mut connection = self.client.get_async_connection().await.map_err(Error::from)?;
+        let mut connection = connection!(self).map_err(Error::from)?;
         let data: String = connection.get(format!("guilds.{id}")).await.map_err(Error::from)?;
         serde_json::from_str(data.as_str()).map_err(Error::from)
     }
 
     pub async fn delete_guild(&self, id: Id<GuildMarker>) -> Result<(), RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let mut connection = connection!(self)?;
         connection.del(format!("guilds.{id}")).await
     }
 
@@ -76,7 +82,7 @@ impl RedisConnection {
         path: String,
         position: usize,
     ) -> Result<Option<u32>, RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let mut connection = connection!(self)?;
         let result: Vec<u32> = connection.zrevrange_withscores(
             path,
             (position - 1) as isize,
@@ -90,7 +96,7 @@ impl RedisConnection {
         path: String,
         user_id: Id<UserMarker>,
     ) -> Result<(u32, u32), RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let mut connection = connection!(self)?;
         let user_id = user_id.to_string();
         let score = connection.zscore(path.clone(), user_id.clone()).await?;
         let position = connection.zrevrank(path, user_id).await?;
@@ -98,12 +104,12 @@ impl RedisConnection {
     }
 
     pub async fn guild_exists(&self, id: Id<GuildMarker>) -> Result<bool, RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let mut connection = connection!(self)?;
         connection.exists(format!("guilds.{id}")).await
     }
 
     pub async fn get_all(&self, path: String, limit: isize) -> Result<Vec<(String, u32)>, RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let mut connection = connection!(self)?;
         connection.zrevrange_withscores(path, 0, limit - 1).await
     }
 
@@ -113,7 +119,7 @@ impl RedisConnection {
         user_id: Id<UserMarker>,
         count: u8,
     ) -> Result<(), RedisError> {
-        let mut connection = self.client.get_async_connection().await?;
+        let mut connection = connection!(self)?;
         connection.zincr(path, user_id.to_string(), count).await
     }
 
@@ -121,8 +127,8 @@ impl RedisConnection {
         &self,
         mongodb: &MongoDBConnection
     ) -> Result<(), RedisError> {
-        let connection = self.client.get_async_connection().await?;
-        let mut pubsub = connection.into_pubsub();
+
+        let mut pubsub = self.client.get_async_pubsub().await?;
         pubsub.subscribe("configs").await?;
 
         while let Some(message) = pubsub.on_message().next().await {
