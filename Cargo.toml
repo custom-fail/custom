@@ -22,7 +22,7 @@ tokio-stream = "0.1"
 mongodb = "3.2"
 redis = { version = "0.29", features = ["aio", "tokio-comp"] }
 
-tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+tokio-websockets = "0.11"
 
 humantime = "2.1"
 chrono = "0.4"
