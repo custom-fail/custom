@@ -10,6 +10,7 @@ use crate::utils::errors::Error;
 use redis::AsyncCommands;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::error::SendError;
+use tracing::info;
 use crate::database::mongodb::MongoDBConnection;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -127,7 +128,6 @@ impl RedisConnection {
         &self,
         mongodb: &MongoDBConnection
     ) -> Result<(), RedisError> {
-
         let mut pubsub = self.client.get_async_pubsub().await?;
         pubsub.subscribe("configs").await?;
 
@@ -135,8 +135,14 @@ impl RedisConnection {
             const ERROR: &str = "Received invalid payload instead of guild id";
             let id: String = message.get_payload().expect(ERROR);
             let id: Id<GuildMarker> = Id::from_str(id.as_str()).expect(ERROR);
-            println!("There is a guild config update id={id}");
             mongodb.configs_cache.remove(&id);
+
+            info!(
+                name: "config_update",
+                cache_size = mongodb.configs_cache.len(),
+                guild_id = %id,
+                "There is a guild config update"
+            );
         }
 
         Ok(())

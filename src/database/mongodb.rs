@@ -5,6 +5,7 @@ use mongodb::{Client, Collection, Database};
 use mongodb::bson::doc;
 #[cfg(feature = "tasks")]
 use mongodb::bson::DateTime;
+use tracing::info;
 use twilight_model::channel::message::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
@@ -32,6 +33,7 @@ impl MongoDBConnection {
 
     pub async fn connect(uri: String) -> Result<Self, mongodb::error::Error> {
         let client = Client::with_uri_str(uri).await?;
+        info!("connected to MongoDB");
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
         let cases = db.collection("cases");
@@ -52,7 +54,6 @@ impl MongoDBConnection {
     }
 
     pub async fn get_config(&self, guild_id: Id<GuildMarker>) -> Result<GuildConfig, mongodb::error::Error> {
-
         match self.configs_cache.get(&guild_id){
             Some(config) => {
                 Ok(config.to_owned())
@@ -62,9 +63,15 @@ impl MongoDBConnection {
                     doc! {
                         "guild_id": guild_id.to_string()
                     }
-                ).await?.unwrap_or_else(|| GuildConfig::new(guild_id));
+                ).await?.unwrap_or_else(|| GuildConfig::new(guild_id.to_owned()));
 
                 self.configs_cache.insert(guild_id, config.to_owned());
+                info!(
+                    name: "cached_config",
+                    cache_size = self.configs_cache.len(),
+                    guild_id = %guild_id,
+                    "Cached guild config"
+                );
 
                 Ok(config)
             }
