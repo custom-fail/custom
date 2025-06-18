@@ -1,13 +1,9 @@
 use opentelemetry_otlp::WithExportConfig;
 use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 use std::time::Duration;
-use opentelemetry::global::ObjectSafeTracer;
 use opentelemetry::KeyValue;
-use opentelemetry::logs::LoggerProvider;
 use opentelemetry::trace::TracerProvider;
 use opentelemetry_sdk::Resource;
-use tonic::metadata::{MetadataMap, MetadataValue};
-use tonic::service::LayerExt;
 use tracing::{warn, Level};
 
 pub fn init() {
