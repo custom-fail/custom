@@ -11,8 +11,7 @@ pub fn create_debug_config() -> GuildConfig {
     GuildConfig {
         guild_id: Id::new(981950094804930581),
         application_id: None,
-        enabled: HashMap::from([("moderation".to_string(), true)]),
-        moderation: Moderation {
+        moderation: Some(Moderation {
             automod: Some(AutoModeration {
                 rules: vec![AutoModerationRule {
                     basic_type: None,
@@ -21,14 +20,14 @@ pub fn create_debug_config() -> GuildConfig {
                     checks: vec![],
                     actions: vec![
                         ActionMetadata {
-                        action: Action::IncreaseBucket(IncreaseBucket {
-                            key: "mentions".to_owned(),
-                            amount: IncreaseBucketAmount::Mentions,
-                            per_channel: false,
-                            duration: 5
-                        }),
+                            action: Action::IncreaseBucket(IncreaseBucket {
+                                key: "mentions".to_owned(),
+                                amount: IncreaseBucketAmount::Mentions,
+                                per_channel: false,
+                                duration: 5
+                            }),
                             sync: false
-                    }
+                        }
                     ],
                     ignore: Some(Ignore {
                         channels: vec![Id::new(981950096801406979)],
@@ -62,17 +61,17 @@ pub fn create_debug_config() -> GuildConfig {
             native_support: true,
             logs_channel: Some(Id::new(981950096801406979)),
             dm_case: true,
-        },
+        }),
         premium: true,
-        levels: Levels {
+        levels: Some(Levels {
             xp_timeout: 30,
             xp_min: 5,
             xp_max: 5,
-        },
-        top: Top {
+        }),
+        top: Some(Top {
             week: true,
             day: true,
             webhook_url: String::new(),
-        },
+        }),
     }
 }

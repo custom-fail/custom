@@ -28,9 +28,6 @@ async fn handle_command(
     extract!(interaction_ctx.orginal, guild_id);
 
     let config = context.mongodb.get_config(guild_id).await.map_err(Error::from)?;
-    if command.module != "settings" {
-        config.enabled.get(command.module.as_str()).ok_or("This module is disabled")?;
-    }
 
     let execute_as_slower = interaction_ctx.orginal.target_id().is_none()
         && context.application.is_slower(&command.name).await;

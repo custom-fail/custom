@@ -20,7 +20,9 @@ pub async fn run(event: Box<GuildAuditLogEntryCreate>, discord_http: Arc<Client>
     let target_id = event.target_id.ok_or(())?;
 
     let guild_config = context.mongodb.get_config(guild_id).await.map_err(|_| ())?;
-    if !guild_config.moderation.native_support {
+    let moderation_config = guild_config.moderation.ok_or(())?;
+
+    if !moderation_config.native_support {
         return Err(())
     }
 
@@ -62,8 +64,8 @@ pub async fn run(event: Box<GuildAuditLogEntryCreate>, discord_http: Arc<Client>
         &context.redis,
         case,
         embed,
-        if guild_config.moderation.dm_case { Some(target_id.cast()) } else { None },
-        guild_config.moderation.logs_channel
+        if moderation_config.dm_case { Some(target_id.cast()) } else { None },
+        moderation_config.logs_channel
     ).await.map_err(|_| ())?;
 
     Ok(())

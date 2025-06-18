@@ -65,7 +65,7 @@ pub async fn run_action(task: Task, config: GuildConfig, discord_http: Arc<Clien
             let member = discord_http.guild_member(config.guild_id, member_id)
                 .await.map_err(|_| ())?.model().await.map_err(|_| ())?;
 
-            let mute_role = config.moderation.mute_role.ok_or(())?;
+            let mute_role = config.moderation.ok_or(())?.mute_role.ok_or(())?;
             let roles_without_mute_role = member.roles.iter()
                 .filter(|role| role != &&mute_role).cloned().collect::<Vec<Id<RoleMarker>>>();
 
