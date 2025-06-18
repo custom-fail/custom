@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
+use tracing::info;
 use twilight_http::Client;
 use twilight_model::user::CurrentUser;
 use twilight_model::util::Timestamp;
@@ -117,6 +118,12 @@ async fn run(
         .model().await.map_rejection()?;
     let token = authenticator.generate_token(user.id).map_rejection()?;
 
+    info!(
+        name: "user logged in",
+        user_id = %user.id,
+        username = %user.name
+    );
+
     let reply = warp::reply::json(&Response {
         user: &user,
         token: &token
@@ -134,6 +141,5 @@ async fn run(
         http,
     })).await;
 
-
-    return Ok(Box::new(reply))
+    Ok(Box::new(reply))
 }
