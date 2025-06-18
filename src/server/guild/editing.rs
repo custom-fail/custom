@@ -4,6 +4,7 @@ use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
 use serde_json::{Map, Value};
 use tokio::sync::{Mutex, RwLock};
+use tracing::{error, warn};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
 use crate::context::Context;
@@ -78,7 +79,7 @@ impl GuildsEditing {
         let config = context.mongodb
             .get_config(guild_id)
             .await
-            .inspect_err(|error| println!("{error:?}"))
+            .inspect_err(|error| error!(name: "mongodb error", ?error))
             .ok()?;
 
         let guild = self.get_guild(guild_id).await?;
@@ -100,7 +101,7 @@ impl GuildsEditing {
 
     pub async fn apply_changes(&self, context: &Arc<Context>, guild_id: Id<GuildMarker>) -> Option<()> {
         let config = context.mongodb.get_config(guild_id).await
-            .inspect_err(|error| println!("{error:?}"))
+            .inspect_err(|error| error!(name: "mongodb error", ?error))
             .ok()?;
 
         let is_guild_premium = config.premium;
@@ -109,20 +110,20 @@ impl GuildsEditing {
         let mut guild_lock = guild.lock().await;
 
         let mut new_config = serde_json::to_value(config)
-            .inspect_err(|error| println!("{error:?}"))
+            .inspect_err(|error| error!(name: "cannot convert guild config to value", ?error))
             .ok()?;
         json_patch::merge(&mut new_config, &guild_lock.changes);
         let new_config: GuildConfig = serde_json::from_value(new_config)
-            .inspect_err(|error| println!("{error:?}"))
+            .inspect_err(|error| error!(name: "cannot marge edits with guild config", ?error))
             .ok()?;
 
         if new_config.guild_id != guild_id {
-            println!("Someone tried changing guild_id in config id={guild_id}");
+            warn!(name: "someone tried changing guild_id in guild config", guild_id=%guild_id);
             return None
         }
 
         if new_config.premium != is_guild_premium {
-            println!("Someone tried changing premium in config id={guild_id}");
+            warn!(name: "someone tried changing premium in guild config", guild_id=%guild_id);
             return None
         }
 
@@ -133,7 +134,7 @@ impl GuildsEditing {
             )
             .upsert(true)
             .await
-            .inspect_err(|error| println!("{error:?}"))
+            .inspect_err(|error| error!(name: "mongodb error", ?error))
             .ok()?;
         context.mongodb.configs_cache.remove(&guild_id);
 

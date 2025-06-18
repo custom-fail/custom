@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::info;
+use tracing::{error, info};
 use twilight_model::id::Id;
 use twilight_model::id::marker::UserMarker;
 use twilight_model::user::CurrentUserGuild;
@@ -122,7 +122,7 @@ pub async fn handle_connection(
         let message = match result {
             Ok(message) => message,
             Err(error) => {
-                println!("{error:?}");
+                error!(name: "error while receiving message on ws_rx channel", ?error);
                 break
             }
         };
@@ -195,7 +195,9 @@ async fn on_message(
             guilds_editing.apply_changes(&context, guild.id).await;
             let _ = guilds_editing.broadcast_changes(&context, guild.id).await;
             let _ = context.redis.announce_config_update(guild.id).await
-                .inspect_err(|error| println!("{error}"));
+                .inspect_err(|error| {
+                    error!(name: "error sending guild_id to redis update announcer", ?error, %guild.id)
+                });
         }
     }
 }

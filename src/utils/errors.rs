@@ -94,7 +94,6 @@ impl Error {
 
         match self {
             Error::Debug(errors) => {
-                println!("{errors:?}");
                 let description = format!("```{}```", errors.join("``` ```"));
                 EmbedBuilder::new()
                     .title("Internal Server Error".to_string())

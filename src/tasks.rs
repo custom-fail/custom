@@ -3,6 +3,7 @@ use std::time::Duration;
 use mongodb::bson::DateTime;
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
+use tracing::info;
 use twilight_http::Client;
 use twilight_model::id::Id;
 use twilight_model::id::marker::RoleMarker;
@@ -30,7 +31,7 @@ pub async fn interval(
 
         if let Ok(tasks) = tasks {
             if !tasks.is_empty() {
-                println!("Loaded {} tasks", tasks.len())
+                info!(name: "loaded tasks", count = tasks.len())
             };
 
             for task in tasks {
