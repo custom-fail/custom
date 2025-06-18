@@ -1,10 +1,10 @@
-use opentelemetry_otlp::WithExportConfig;
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use std::time::Duration;
 use opentelemetry::KeyValue;
 use opentelemetry::trace::TracerProvider;
+use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::Resource;
-use tracing::{warn, Level};
+use std::time::Duration;
+use tracing::{Level, warn};
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
 
 pub fn init() {
     let endpoint = std::env::var("OTEL_ENDPOINT");
@@ -21,7 +21,7 @@ pub fn init() {
                     ("tonic", Level::WARN),
                     ("h2", Level::WARN),
                 ])
-                .with_default(Level::DEBUG)
+                .with_default(Level::DEBUG),
         )
         .with(tracing_subscriber::filter::LevelFilter::from_level(
             Level::DEBUG,
@@ -57,19 +57,17 @@ pub fn init() {
 
         let tracer = tracer_provider.tracer("custom");
 
-        let otel_span_layer = tracing_opentelemetry::layer()
-            .with_tracer(tracer);
-        let otel_logs_layer = opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(&logs_provider);
+        let otel_span_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+        let otel_logs_layer =
+            opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(&logs_provider);
 
-        let subscriber = subscriber
-            .with(otel_span_layer)
-            .with(otel_logs_layer);
-
+        let subscriber = subscriber.with(otel_span_layer).with(otel_logs_layer);
 
         tracing::subscriber::set_global_default(subscriber).unwrap();
     } else {
         tracing::subscriber::set_global_default(subscriber).unwrap();
-        warn!("There is no OTEL_ENDPOINT environment variable, running with OpenTelemetry disabled");
+        warn!(
+            "There is no OTEL_ENDPOINT environment variable, running with OpenTelemetry disabled"
+        );
     };
-
 }
