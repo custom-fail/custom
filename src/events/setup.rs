@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tracing::info;
 use twilight_http::Client;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
@@ -15,6 +16,11 @@ pub async fn run(
             return Ok(())
         }
     } else { return Ok(()); };
+
+    info!(
+        name: "registering setup command",
+        %guild_id
+    );
 
     let application_id = twilight_http.current_user()
         .await.map_err(Error::from)?.model().await.map_err(Error::from)?.id;

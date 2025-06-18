@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tracing::{debug_span, debug, Instrument};
 use twilight_model::application::interaction::{Interaction, InteractionType};
 use twilight_http::Client;
 use twilight_model::channel::message::MessageFlags;
@@ -34,11 +35,29 @@ async fn handle_command(
     let execute_as_slower = interaction_ctx.orginal.target_id().is_none()
         && context.application.is_slower(&command.name).await;
 
+    let span = debug_span!(
+        "command_execution",
+        module = command.module,
+        command_name = command.name,
+        %guild_id,
+        interaction = ?interaction_ctx.orginal,
+        ?config,
+        execute_as_slower,
+    );
+
     if execute_as_slower {
         tokio::spawn(async move {
-            let response = (command.run)(
+           let response = (command.run)(
                     interaction_ctx, context, discord_http.to_owned(), config
-            ).await;
+            ).instrument(span).await;
+
+            debug!(
+                command.name,
+                module = command.module,
+                ?response,
+                %guild_id,
+                "finished command execution"
+            );
 
             let response_data = response.map(|(v, _)| v).unwrap_or_else(|e| e.to_interaction_data_response());
 
@@ -63,7 +82,19 @@ async fn handle_command(
         }, Some(InteractionResponseType::DeferredChannelMessageWithSource)))
 
     } else {
-        (command.run)(interaction_ctx, context, discord_http, config).await
+        let response = (command.run)(interaction_ctx, context, discord_http, config)
+            .instrument(span)
+            .await;
+
+        debug!(
+            command.name,
+            module = command.module,
+            ?response,
+            %guild_id,
+            "finished command execution"
+        );
+
+        response
     }
 }
 

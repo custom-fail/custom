@@ -24,6 +24,7 @@ macro_rules! extract {
     };
 }
 
+#[derive(Debug, Clone)]
 pub struct InteractionContext {
     pub command_vec: Vec<String>,
     pub command_text: String,

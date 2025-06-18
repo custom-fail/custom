@@ -2,6 +2,7 @@ use std::sync::Arc;
 use crate::context::Context;
 use dotenv::dotenv;
 use tokio::task::JoinHandle;
+use tracing::info;
 use twilight_http::Client;
 
 all_macro!(
@@ -24,10 +25,14 @@ mod database;
 mod models;
 pub mod utils;
 mod server;
+mod tracing_init;
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
+    tracing_init::init();
+    info!("starting app");
 
     let context = Arc::new(Context::new().await);
 

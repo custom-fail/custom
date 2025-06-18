@@ -3,7 +3,7 @@ use twilight_http::Client;
 use twilight_model::gateway::event::Event;
 use twilight_model::gateway::payload::incoming::GuildCreate;
 use crate::context::Context;
-use crate::models::config::automod::TrigerEvent;
+use crate::models::config::automod::TriggerEvent;
 
 pub mod automod;
 mod case;
@@ -27,11 +27,11 @@ pub async fn on_event(
         }
         Event::MessageCreate(event) => {
             let message = event.as_ref().0.to_owned();
-            self::automod::run(message.to_owned(), discord_http, context.to_owned(), TrigerEvent::MessageCreate).await.ok();
+            self::automod::run(message.to_owned(), discord_http, context.to_owned(), TriggerEvent::MessageCreate).await.ok();
             self::top::run(message, context).await.ok();
         }
         Event::MessageUpdate(event) => {
-            self::automod::run(event.0, discord_http, context, TrigerEvent::MessageCreate).await.ok();
+            self::automod::run(event.0, discord_http, context, TriggerEvent::MessageCreate).await.ok();
         }
         Event::GuildCreate(event) => {
             let guild = if let GuildCreate::Available(guild) = *event { guild } else { return Ok(()) };
