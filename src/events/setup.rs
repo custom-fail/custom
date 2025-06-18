@@ -19,7 +19,7 @@ pub async fn run(
 
     info!(
         name: "registering setup command",
-        guild_id = %guild_id
+        %guild_id
     );
 
     let application_id = twilight_http.current_user()

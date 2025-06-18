@@ -69,7 +69,7 @@ impl MongoDBConnection {
                 info!(
                     name: "cached_config",
                     cache_size = self.configs_cache.len(),
-                    guild_id = %guild_id,
+                    %guild_id,
                     "Cached guild config"
                 );
 

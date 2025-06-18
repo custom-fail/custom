@@ -39,9 +39,9 @@ async fn handle_command(
         "command_execution",
         module = command.module,
         command_name = command.name,
-        guild_id = guild_id.to_string(),
+        %guild_id,
         interaction = ?interaction_ctx.orginal,
-        config = ?config,
+        ?config,
         execute_as_slower,
     );
 
@@ -55,6 +55,7 @@ async fn handle_command(
                 command.name,
                 module = command.module,
                 ?response,
+                %guild_id,
                 "finished command execution"
             );
 
@@ -89,6 +90,7 @@ async fn handle_command(
             command.name,
             module = command.module,
             ?response,
+            %guild_id,
             "finished command execution"
         );
 
