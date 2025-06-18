@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use tracing::info;
 use twilight_model::id::Id;
 use twilight_model::id::marker::UserMarker;
 use twilight_model::user::CurrentUserGuild;
@@ -186,6 +187,11 @@ async fn on_message(
             let _ = guilds_editing.broadcast_changes(&context, guild.id).await;
         }
         InboundMessage::ApplyChanges => {
+            info!(
+                name: "applying config changes",
+                author_id = %info.user.id,
+                guild_id = %guild.id
+            );
             guilds_editing.apply_changes(&context, guild.id).await;
             let _ = guilds_editing.broadcast_changes(&context, guild.id).await;
             let _ = context.redis.announce_config_update(guild.id).await
