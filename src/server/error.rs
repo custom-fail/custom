@@ -63,7 +63,6 @@ impl<T, E: Into<anyhow::Error>> MapErrorIntoInternalRejection<T> for Result<T, E
 impl Reject for Rejection {}
 
 pub async fn handle_rejection(rejection: warp::Rejection) -> Result<impl Reply, Infallible> {
-    println!("{:?}", rejection);
     Ok(if let Some(rejection) = rejection.find::<Rejection>() {
         warp::reply::with_status(rejection.to_string(), match rejection {
             #[cfg(feature = "http-interactions")]
