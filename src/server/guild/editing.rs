@@ -118,12 +118,12 @@ impl GuildsEditing {
             .ok()?;
 
         if new_config.guild_id != guild_id {
-            warn!(name: "someone tried changing guild_id in guild config", guild_id=%guild_id);
+            warn!(name: "someone tried changing guild_id in guild config", %guild_id);
             return None
         }
 
         if new_config.premium != is_guild_premium {
-            warn!(name: "someone tried changing premium in guild config", guild_id=%guild_id);
+            warn!(name: "someone tried changing premium in guild config", %guild_id);
             return None
         }
 

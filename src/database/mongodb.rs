@@ -67,10 +67,9 @@ impl MongoDBConnection {
 
                 self.configs_cache.insert(guild_id, config.to_owned());
                 info!(
-                    name: "cached_config",
+                    name: "cached guild config",
                     cache_size = self.configs_cache.len(),
                     %guild_id,
-                    "Cached guild config"
                 );
 
                 Ok(config)

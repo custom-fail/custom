@@ -32,7 +32,7 @@ async fn main() {
     dotenv().ok();
 
     tracing_init::init();
-    info!("Starting app");
+    info!("starting app");
 
     let context = Arc::new(Context::new().await);
 

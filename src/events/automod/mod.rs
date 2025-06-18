@@ -65,12 +65,7 @@ pub async fn run(
             if !is_allowed { return Ok(()) }
         }
 
-        info!(
-            name: "automod rule violated",
-            message = ?message,
-            automod_rule = ?automod_rule,
-            trigger = ?trigger,
-        );
+        info!(name: "automod rule violated", ?message, ?automod_rule, ?trigger);
 
         for action in &automod_rule.actions {
             let run = run_action(

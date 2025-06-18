@@ -138,10 +138,9 @@ impl RedisConnection {
             mongodb.configs_cache.remove(&id);
 
             info!(
-                name: "config_update",
+                name: "removed config from cache due to update",
                 cache_size = mongodb.configs_cache.len(),
                 guild_id = %id,
-                "There is a guild config update"
             );
         }
 
