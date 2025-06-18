@@ -22,11 +22,9 @@ tokio-stream = "0.1"
 tracing = {  version = "0.1", features = ["std"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter","registry", "std", "fmt"] }
 opentelemetry_sdk = "0.30"
-opentelemetry-stdout = "0.30"
 opentelemetry-appender-tracing = "0.30"
 tracing-opentelemetry = "0.31"
 opentelemetry = { version = "0.30", features = ["trace"] }
-tonic = "0.13"
 opentelemetry-otlp = { version = "0.30", features = ["http-proto", "grpc-tonic"] }
 
 mongodb = "3.2"
