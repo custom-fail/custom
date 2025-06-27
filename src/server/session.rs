@@ -3,6 +3,7 @@ use std::sync::Arc;
 use rusty_paseto::core::{ImplicitAssertion, Key, Local, PasetoSymmetricKey, V4};
 use rusty_paseto::generic::GenericBuilderError;
 use rusty_paseto::prelude::{PasetoBuilder, PasetoParser};
+use serde::Deserialize;
 use tokio::sync::RwLock;
 use twilight_http::Client;
 use twilight_model::id::Id;
@@ -107,6 +108,42 @@ async fn filter(
     }
 
     sessions.user(&user_id)
+        .await
+        .ok_or_else(|| reject!(Rejection::Unauthorized))
+}
+
+#[derive(Deserialize)]
+struct Query {
+    #[serde(rename = "Authorization")]
+    pub token: String,
+    #[serde(rename = "User-Id")]
+    pub user_id: Id<UserMarker>
+}
+
+pub fn query_authorize_user(
+    authenticator: Arc<Authenticator>,
+    sessions: Arc<Sessions>
+) -> impl Filter<Extract = (Arc<AuthorizationInformation>,), Error = warp::Rejection> + Clone {
+    let with_authenticator = with_value!(authenticator);
+    let with_sessions = with_value!(sessions);
+
+    warp::any()
+        .and(warp::query::<Query>())
+        .and(with_authenticator)
+        .and(with_sessions)
+        .and_then(query_filter)
+}
+
+async fn query_filter(
+    query: Query,
+    authenticator: Arc<Authenticator>,
+    sessions: Arc<Sessions>
+) -> Result<Arc<AuthorizationInformation>, warp::Rejection> {
+    if authenticator.verify_token(query.token.as_str(), query.user_id) {
+        return err!(Rejection::Unauthorized)
+    }
+
+    sessions.user(&query.user_id)
         .await
         .ok_or_else(|| reject!(Rejection::Unauthorized))
 }

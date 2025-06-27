@@ -12,7 +12,7 @@ use crate::context::Context;
 use crate::server::error::{MapErrorIntoInternalRejection, Rejection};
 use crate::server::guild::editing::GuildsEditing;
 use crate::server::guild::ws::handle_connection;
-use crate::server::session::{Authenticator, AuthorizationInformation, authorize_user, Sessions};
+use crate::server::session::{Authenticator, AuthorizationInformation, Sessions, query_authorize_user};
 
 type GuildId = Id<GuildMarker>;
 
@@ -27,7 +27,7 @@ pub fn run(
     let with_guilds_editing = with_value!(guilds_editing);
 
     warp::path!("guilds" / GuildId)
-        .and(authorize_user(authenticator, sessions))
+        .and(query_authorize_user(authenticator, sessions))
         .and(with_context.clone())
         .and_then(check_guild)
         .and(warp::ws())
