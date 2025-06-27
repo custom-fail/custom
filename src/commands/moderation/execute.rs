@@ -56,6 +56,8 @@ pub async fn run(
         interaction.command_text.as_str(), &config
     ).ok_or("Cannot find any action type matching command name")?;
 
+    let moderation_config = &config.moderation.ok_or("This module is disabled")?;
+
     let target_member = get_target_member(
         &discord_http, guild_id, target_id
     ).await.map_err(Error::from)?;
@@ -100,7 +102,7 @@ pub async fn run(
             let mut roles = target_member
                 .ok_or("You can mute only user server members (User left or didn't join this server)")?
                 .roles;
-            roles.push(config.moderation.mute_role.ok_or("There is no role for muted users set")?);
+            roles.push(moderation_config.mute_role.ok_or("There is no role for muted users set")?);
 
             discord_http.update_guild_member(config.guild_id, target_id)
                 .roles(&roles).await.map_err(Error::from)?;
@@ -149,8 +151,8 @@ pub async fn run(
     let result_case = context.mongodb.create_case(
         discord_http.to_owned(), &context.redis, case,
         case_embed.to_owned(),
-        if config.moderation.dm_case { Some(target_id) } else { None },
-        config.moderation.logs_channel
+        if moderation_config.dm_case { Some(target_id) } else { None },
+        moderation_config.logs_channel
     ).await.err();
 
     Ok((InteractionResponseData {
@@ -179,7 +181,7 @@ fn command_to_action_type(command_name: &str, config: &GuildConfig) -> Option<Ca
     let action_type = match command_name {
         "warn" => CaseActionType::Warn,
         "timeout" | "mute" => {
-            match config.moderation.mute_mode {
+            match config.moderation.as_ref()?.mute_mode {
                 MuteMode::Timeout => CaseActionType::Timeout,
                 MuteMode::Role => CaseActionType::Mute,
                 MuteMode::DependOnCommand => {

@@ -11,7 +11,7 @@ pub mod mutes {
         context: Arc<Context>
     ) -> Result<(), ()> {
         let config = context.mongodb.get_config(member.guild_id).await.map_err(|_| ())?;
-        let mute_role = config.moderation.mute_role.ok_or(())?;
+        let mute_role = config.moderation.ok_or(())?.mute_role.ok_or(())?;
 
         let task = context.mongodb.tasks.find_one(doc! {
             "action": { "RemoveMuteRole": member.user.id.to_string() },

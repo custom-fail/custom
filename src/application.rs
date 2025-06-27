@@ -101,10 +101,10 @@ impl Application {
             set_command!("mod-dash", "moderation", crate::commands::moderation::dash::run),
             set_command!("clear", "moderation", crate::commands::moderation::clear::run),
 
-            set_command!("top week all", "top", crate::commands::top::all::run),
-            set_command!("top day all", "top", crate::commands::top::all::run),
-            set_command!("top week me", "top", crate::commands::top::me::run),
-            set_command!("top day me", "top", crate::commands::top::me::run),
+            set_command!("top week all", "activity", crate::commands::top::all::run),
+            set_command!("top day all", "activity", crate::commands::top::all::run),
+            set_command!("top week me", "activity", crate::commands::top::me::run),
+            set_command!("top day me", "activity", crate::commands::top::me::run),
 
             set_command!("setup", "settings", crate::commands::settings::setup::run)
         ]);
