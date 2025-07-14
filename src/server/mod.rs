@@ -25,6 +25,7 @@ pub mod authorize;
 
 #[cfg(feature = "api")]
 pub mod guild {
+    pub mod commands;
     pub mod editing;
     pub mod ws;
 }
