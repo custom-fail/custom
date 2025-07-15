@@ -57,7 +57,7 @@ async fn check_guild(
     let guild = info.http.current_user_guilds()
         .await.map_rejection()?.model().await.map_rejection()?
         .into_iter().find(|guild| {
-            guild.owner || guild.permissions.intersects(MINIMAL_REQUIRED_PERMISSIONS)
+            guild.id == guild_id && (guild.owner || guild.permissions.intersects(MINIMAL_REQUIRED_PERMISSIONS))
         }).ok_or(Rejection::NotMutualGuild)?;
 
     let is_mutual = context.redis.guild_exists(guild_id).await.map_rejection()?;
