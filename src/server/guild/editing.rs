@@ -1,8 +1,9 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::sync::Arc;
+use json_patch::Patch;
 use mongodb::bson::doc;
 use mongodb::bson::oid::ObjectId;
-use serde_json::{Map, Value};
+use serde::Serialize;
 use tokio::sync::{Mutex, RwLock};
 use tracing::{error, warn};
 use twilight_model::id::Id;
@@ -11,18 +12,22 @@ use crate::context::Context;
 use crate::models::config::GuildConfig;
 use crate::server::guild::ws::{Connection, OutboundAction, OutboundMessage};
 
+#[derive(Clone, Debug, Serialize)]
+pub struct Change {
+    pub author_id: Id<UserMarker>,
+    pub changes: Patch
+}
+
 struct GuildEditingState {
     pub connections: Vec<Arc<Connection>>,
-    pub changes: Value,
-    pub edited_by: BTreeSet<Id<UserMarker>>
+    pub changes: Vec<Change>,
 }
 
 impl Default for GuildEditingState {
     fn default() -> Self {
         Self {
             connections: vec![],
-            changes: Value::Object(Map::new()),
-            edited_by: Default::default(),
+            changes: vec![],
         }
     }
 }
@@ -59,14 +64,16 @@ impl GuildsEditing {
 
     pub async fn marge_changes(
         &self,
-        author: Id<UserMarker>,
+        author_id: Id<UserMarker>,
         guild_id: Id<GuildMarker>,
-        changes: Value
+        changes: Patch
     ) -> Option<()> {
         let guild = self.get_guild(guild_id).await?;
         let mut guild_lock = guild.lock().await;
-        json_patch::merge(&mut guild_lock.changes, &changes);
-        guild_lock.edited_by.insert(author);
+        guild_lock.changes.push(Change {
+            author_id,
+            changes
+        });
         Some(())
     }
 
@@ -75,7 +82,55 @@ impl GuildsEditing {
         list_lock.get(&guild_id).cloned()
     }
 
-    pub async fn broadcast_changes(&self, context: &Arc<Context>, guild_id: Id<GuildMarker>) -> Option<()> {
+    pub async fn broadcast_users(&self, guild_id: Id<GuildMarker>) -> Option<()> {
+        let guild = self.get_guild(guild_id).await?;
+        let guild_lock = guild.lock().await;
+
+        let users = guild_lock.connections
+            .iter().map(|connection| connection.user_id)
+            .collect::<Vec<Id<UserMarker>>>();
+
+        for connection in &guild_lock.connections {
+            let _ = connection.tx.send(OutboundAction::Message(OutboundMessage::OverwriteUsers(users.to_owned())));
+        }
+
+        Some(())
+    }
+
+    pub async fn broadcast_change(
+        &self, guild_id: Id<GuildMarker>, author_id: Id<UserMarker>, changes: Patch
+    ) -> Option<()> {
+        let guild = self.get_guild(guild_id).await?;
+        let guild_lock = guild.lock().await;
+
+        for connection in &guild_lock.connections {
+            let _ = connection.tx.send(OutboundAction::Message(OutboundMessage::PushChange(Change {
+                author_id,
+                changes: changes.to_owned()
+            })));
+        }
+
+        Some(())
+    }
+
+    pub async fn get_initialization_data(&self, context: &Arc<Context>, guild_id: Id<GuildMarker>)
+        -> Option<(GuildConfig, Vec<Change>, Vec<Id<UserMarker>>)> {
+        let config = context.mongodb
+            .get_config(guild_id)
+            .await
+            .inspect_err(|error| error!(name: "mongodb error", ?error))
+            .ok()?;
+
+        let guild = self.get_guild(guild_id).await?;
+        let guild_lock = guild.lock().await;
+        let users = guild_lock.connections
+            .iter().map(|connection| connection.user_id)
+            .collect::<Vec<Id<UserMarker>>>();
+
+        Some((config.to_owned(), guild_lock.changes.to_owned(), users))
+    }
+
+    pub async fn broadcast_config_overwrite(&self, context: &Arc<Context>, guild_id: Id<GuildMarker>) -> Option<()> {
         let config = context.mongodb
             .get_config(guild_id)
             .await
@@ -89,10 +144,9 @@ impl GuildsEditing {
             .collect::<Vec<Id<UserMarker>>>();
 
         for connection in &guild_lock.connections {
-            let _ = connection.tx.send(OutboundAction::Message(OutboundMessage::UpdateConfigurationData {
+            let _ = connection.tx.send(OutboundAction::Message(OutboundMessage::OverwriteConfigurationData {
                 saved_config: config.to_owned(),
                 changes: guild_lock.changes.to_owned(),
-                users: users.to_owned(),
             }));
         }
 
@@ -112,9 +166,14 @@ impl GuildsEditing {
         let mut new_config = serde_json::to_value(config)
             .inspect_err(|error| error!(name: "cannot convert guild config to value", ?error))
             .ok()?;
-        json_patch::merge(&mut new_config, &guild_lock.changes);
+        for patch in &guild_lock.changes {
+            json_patch::patch(&mut new_config, &patch.changes)
+                .inspect_err(|error| error!(name: "error applying patch to guild config", ?patch, ?error))
+                .ok()?;
+        }
+
         let new_config: GuildConfig = serde_json::from_value(new_config)
-            .inspect_err(|error| error!(name: "cannot marge edits with guild config", ?error))
+            .inspect_err(|error| error!(name: "cannot serialize config after applying patches", ?error))
             .ok()?;
 
         if new_config.guild_id != guild_id {
@@ -138,8 +197,7 @@ impl GuildsEditing {
             .ok()?;
         context.mongodb.configs_cache.remove(&guild_id);
 
-        guild_lock.changes = Value::Object(Map::new());
-        guild_lock.edited_by.clear();
+        guild_lock.changes = vec![];
 
         Some(())
     }

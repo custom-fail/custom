@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 use futures_util::{SinkExt, StreamExt};
+use json_patch::Patch;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use twilight_model::id::Id;
 use twilight_model::id::marker::UserMarker;
 use twilight_model::user::CurrentUserGuild;
@@ -15,7 +15,7 @@ use crate::context::Context;
 use crate::database::redis::PartialGuild;
 use crate::models::config::GuildConfig;
 use crate::ok_or_return;
-use crate::server::guild::editing::GuildsEditing;
+use crate::server::guild::editing::{Change, GuildsEditing};
 use crate::server::session::AuthorizationInformation;
 
 macro_rules! close {
@@ -28,14 +28,17 @@ macro_rules! unwrap_or_close_and_return {
     ($target: expr, $tx: expr, $reason: expr) => {
         match $target {
             Ok(value) => value,
-            Err(_) => {
-                close!($tx, $reason);
+            Err(err) => {
+                let reason = $reason;
+                tracing::warn!(name: "connection closed due to error", ?err, ?reason);
+                close!($tx, reason);
                 return
             }
         }
     };
 }
 
+#[derive(Debug)]
 pub enum CloseReason {
     MessageIsNotString,
     CannotParseJSON,
@@ -97,12 +100,15 @@ pub async fn handle_connection(
                         Message::close_with(reason.code(), reason.text())
                     ).await;
                     guilds_editing.remove_connection(guild_id, session_id).await;
-                    guilds_editing.broadcast_changes(&context, guild_id).await;
+                    guilds_editing.broadcast_users(guild_id).await;
                 }
             }
         }
         let _ = ws_tx.close().await;
     });
+
+
+    guilds_editing.broadcast_users(guild_id).await;
 
     guilds_editing.add_connection(guild_id, Connection {
         user_id: info.user.id,
@@ -110,13 +116,17 @@ pub async fn handle_connection(
         tx: tx.to_owned(),
     }).await;
 
-    let _ = tx.send(OutboundAction::Message(OutboundMessage::Initialization {
-        cached: ok_or_return!(context.redis.get_guild(guild.id).await, Ok),
-        oauth2: guild.to_owned(),
-        session_id
-    }));
-
-    guilds_editing.broadcast_changes(&context, guild_id).await;
+    if let Some((saved_config, changes, users)) =
+        guilds_editing.get_initialization_data(&context, guild_id).await {
+        let _ = tx.send(OutboundAction::Message(OutboundMessage::Initialization {
+            cached: ok_or_return!(context.redis.get_guild(guild.id).await, Ok),
+            oauth2: guild.to_owned(),
+            saved_config,
+            changes,
+            users,
+            session_id
+        }));
+    }
 
     while let Some(result) = ws_rx.next().await {
         let message = match result {
@@ -136,12 +146,12 @@ pub async fn handle_connection(
     }
 
     guilds_editing.remove_connection(guild_id, session_id).await;
-    guilds_editing.broadcast_changes(&context, guild_id).await;
+    guilds_editing.broadcast_users(guild_id).await;
 }
 #[derive(Debug, Deserialize)]
 #[serde(tag = "action", content = "data")]
 enum InboundMessage {
-    GuildConfigUpdate(Value),
+    GuildConfigUpdate(Patch),
     ApplyChanges
 }
 
@@ -151,13 +161,17 @@ pub enum OutboundMessage {
     Initialization {
         oauth2: CurrentUserGuild,
         cached: PartialGuild,
-        session_id: ObjectId
-    },
-    UpdateConfigurationData {
+        session_id: ObjectId,
         saved_config: GuildConfig,
-        changes: Value,
+        changes: Vec<Change>,
         users: Vec<Id<UserMarker>>
-    }
+    },
+    OverwriteConfigurationData {
+        saved_config: GuildConfig,
+        changes: Vec<Change>
+    },
+    OverwriteUsers(Vec<Id<UserMarker>>),
+    PushChange(Change)
 }
 
 pub enum OutboundAction {
@@ -183,8 +197,8 @@ async fn on_message(
 
     match message {
         InboundMessage::GuildConfigUpdate(changes) => {
-            let _ = guilds_editing.marge_changes(info.user.id, guild.id, changes).await;
-            let _ = guilds_editing.broadcast_changes(&context, guild.id).await;
+            let _ = guilds_editing.marge_changes(info.user.id, guild.id, changes.to_owned()).await;
+            let _ = guilds_editing.broadcast_change(guild.id, info.user.id, changes).await;
         }
         InboundMessage::ApplyChanges => {
             info!(
@@ -193,7 +207,7 @@ async fn on_message(
                 guild_id = %guild.id
             );
             guilds_editing.apply_changes(&context, guild.id).await;
-            let _ = guilds_editing.broadcast_changes(&context, guild.id).await;
+            let _ = guilds_editing.broadcast_config_overwrite(&context, guild.id).await;
             let _ = context.redis.announce_config_update(guild.id).await
                 .inspect_err(|error| {
                     error!(name: "error sending guild_id to redis update announcer", ?error, %guild.id)
