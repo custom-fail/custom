@@ -6,7 +6,7 @@ use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 use twilight_model::id::Id;
 use twilight_model::id::marker::UserMarker;
 use twilight_model::user::CurrentUserGuild;
