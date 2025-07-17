@@ -1,6 +1,7 @@
 mod activity;
 mod cases;
 mod moderation;
+pub mod bitfield;
 
 use crate::models::config::GuildConfig;
 use twilight_model::application::command::{
