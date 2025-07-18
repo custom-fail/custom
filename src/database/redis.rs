@@ -12,6 +12,8 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::mpsc::error::SendError;
 use tracing::info;
 use crate::database::mongodb::MongoDBConnection;
+use crate::models::config::GuildConfig;
+use crate::server::guild::commands::bitfield::get_enabled_bitfield;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PartialGuild {
@@ -122,6 +124,26 @@ impl RedisConnection {
     ) -> Result<(), RedisError> {
         let mut connection = connection!(self)?;
         connection.zincr(path, user_id.to_string(), count).await
+    }
+
+    pub async fn set_commands_as_synced(&self, config: &GuildConfig) -> Result<(), RedisError> {
+        let mut connection = connection!(self)?;
+        let bitfield = get_enabled_bitfield(&config);
+        let _: () = connection
+            .set(
+                format!("commands.{}", config.guild_id),
+                bitfield.to_string()
+            ).await?;
+
+        Ok(())
+    }
+
+    pub async fn are_commands_synced(&self, config: &GuildConfig) -> Result<bool, RedisError> {
+        let mut connection = connection!(self)?;
+        let bitfield = get_enabled_bitfield(&config);
+        let response: Option<String> = connection.get(format!("commands.{}", config.guild_id)).await?;
+
+        Ok(response.map_or_else(|| false, |v| v == bitfield.to_string()))
     }
 
     pub async fn watch_config_updates(
