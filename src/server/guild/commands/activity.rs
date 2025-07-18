@@ -1,5 +1,5 @@
 use crate::models::config::GuildConfig;
-use crate::server::guild::commands::{default_option, defaults_command, if_enabled, options};
+use crate::server::guild::commands::{default_option, defaults_command, if_enabled};
 use twilight_model::application::command::{Command, CommandOption, CommandOptionType};
 
 macro_rules! subcommand {

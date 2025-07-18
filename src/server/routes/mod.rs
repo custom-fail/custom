@@ -4,6 +4,7 @@ use warp::Filter;
 use warp::http::StatusCode;
 use crate::context::Context;
 use crate::{all_macro, response_type};
+use crate::gateway::clients::DiscordClients;
 
 #[cfg(feature = "http-interactions")]
 mod interactions;
@@ -20,8 +21,9 @@ mod users {
 }
 
 pub fn get_all_routes(
-    discord_http: Arc<Client>,
     context: Arc<Context>,
+    discord_http: Arc<Client>,
+    discord_clients: DiscordClients,
     #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::VerifyingKey
 ) -> response_type!() {
     let filter = warp::path::end().map(|| {
@@ -30,7 +32,7 @@ pub fn get_all_routes(
 
     #[cfg(feature = "http-interactions")]
     let filter = filter.or(interactions::filter(
-        discord_http, context.to_owned(), public_key
+        discord_http.clone(), context.to_owned(), public_key
     ));
 
     #[cfg(feature = "api")]
@@ -47,7 +49,13 @@ pub fn get_all_routes(
     let filter = filter
         .or(login::login(authenticator.to_owned(), sessions.to_owned()))
         .or(users::me::run(authenticator.to_owned(), sessions.to_owned()))
-        .or(guilds::_id::run(context.to_owned(), authenticator.to_owned(), sessions.to_owned()))
+        .or(guilds::_id::run(
+            context.to_owned(),
+            discord_http,
+            discord_clients,
+            authenticator.to_owned(),
+            sessions.to_owned()
+        ))
         .or(guilds::list(context, authenticator, sessions))
         .with(tracing);
 

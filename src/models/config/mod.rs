@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
@@ -19,7 +17,6 @@ pub struct GuildConfig {
     pub guild_id: Id<GuildMarker>,
     pub application_id: Option<Id<ApplicationMarker>>,
     pub enabled_commands: Commands,
-
     pub moderation: Option<Moderation>,
     pub premium: bool,
     pub levels: Option<Levels>,
