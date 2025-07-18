@@ -13,6 +13,7 @@ use twilight_model::user::CurrentUserGuild;
 use warp::ws::{Message, WebSocket};
 use crate::context::Context;
 use crate::database::redis::PartialGuild;
+use crate::gateway::clients::DiscordClients;
 use crate::models::config::GuildConfig;
 use crate::ok_or_return;
 use crate::server::guild::editing::{Change, GuildsEditing};
@@ -32,7 +33,7 @@ macro_rules! unwrap_or_close_and_return {
                 let reason = $reason;
                 tracing::warn!(name: "connection closed due to error", ?err, ?reason);
                 close!($tx, reason);
-                return
+                return None
             }
         }
     };
@@ -68,6 +69,8 @@ pub struct Connection {
 
 pub async fn handle_connection(
     context: Arc<Context>,
+    discord_http: Arc<twilight_http::Client>,
+    discord_clients: DiscordClients,
     ws: WebSocket,
     info: Arc<AuthorizationInformation>,
     guild: CurrentUserGuild,
@@ -84,10 +87,8 @@ pub async fn handle_connection(
     let guild_id = guild.id;
 
     let guilds_editing_clone = guilds_editing.clone();
-    let context_clone = context.clone();
     tokio::spawn(async move {
         let guilds_editing = guilds_editing_clone;
-        let context = context_clone;
         while let Some(message) = rx.next().await {
             match message {
                 OutboundAction::Message(msg) => {
@@ -142,7 +143,16 @@ pub async fn handle_connection(
             break
         }
 
-        on_message(message, &info, &guild, &tx, &guilds_editing, &context).await;
+        on_message(
+            message,
+            &info,
+            &guild,
+            &tx,
+            &guilds_editing,
+            &context,
+            &discord_http,
+            &discord_clients
+        ).await;
     }
 
     guilds_editing.remove_connection(guild_id, session_id).await;
@@ -152,7 +162,8 @@ pub async fn handle_connection(
 #[serde(tag = "action", content = "data")]
 enum InboundMessage {
     GuildConfigUpdate(Patch),
-    ApplyChanges
+    SynchronizeCommands,
+    ApplyChanges,
 }
 
 #[derive(Debug, Serialize)]
@@ -168,9 +179,11 @@ pub enum OutboundMessage {
     },
     OverwriteConfigurationData {
         saved_config: GuildConfig,
-        changes: Vec<Change>
+        changes: Vec<Change>,
+        is_synced: bool
     },
     OverwriteUsers(Vec<Id<UserMarker>>),
+    OverwriteIsSynced(bool),
     PushChange(Change)
 }
 
@@ -185,8 +198,10 @@ async fn on_message(
     guild: &CurrentUserGuild,
     tx: &UnboundedSender<OutboundAction>,
     guilds_editing: &Arc<GuildsEditing>,
-    context: &Arc<Context>
-) {
+    context: &Arc<Context>,
+    discord_http: &Arc<twilight_http::Client>,
+    discord_clients: &DiscordClients
+) -> Option<()> {
     let message = unwrap_or_close_and_return!(
         message.to_str(), tx, CloseReason::MessageIsNotString
     );
@@ -197,8 +212,8 @@ async fn on_message(
 
     match message {
         InboundMessage::GuildConfigUpdate(changes) => {
-            let _ = guilds_editing.marge_changes(info.user.id, guild.id, changes.to_owned()).await;
-            let _ = guilds_editing.broadcast_change(guild.id, info.user.id, changes).await;
+            guilds_editing.marge_changes(info.user.id, guild.id, changes.to_owned()).await?;
+            guilds_editing.broadcast_change(guild.id, info.user.id, changes).await?;
         }
         InboundMessage::ApplyChanges => {
             info!(
@@ -206,12 +221,29 @@ async fn on_message(
                 author_id = %info.user.id,
                 guild_id = %guild.id
             );
-            guilds_editing.apply_changes(&context, guild.id).await;
-            let _ = guilds_editing.broadcast_config_overwrite(&context, guild.id).await;
+            let is_synced = guilds_editing.apply_changes(&context, guild.id).await?;
+            let _ = guilds_editing.broadcast_config_overwrite(&context, guild.id, is_synced).await;
             let _ = context.redis.announce_config_update(guild.id).await
                 .inspect_err(|error| {
                     error!(name: "error sending guild_id to redis update announcer", ?error, %guild.id)
                 });
         }
+        InboundMessage::SynchronizeCommands => {
+            info!(
+                name: "synchronizing commands",
+                author_id = %info.user.id,
+                guild_id = %guild.id
+            );
+            let config = guilds_editing
+                .register_commands(&context, &discord_http, &discord_clients, guild.id)
+                .await?;
+            let _ = context.redis
+                .set_commands_as_synced(&config)
+                .await
+                .inspect_err(|err| error!(name: "redis error while updating commands bitfield", ?err));
+            let _ = tx.send(OutboundAction::Message(OutboundMessage::OverwriteIsSynced(true)));
+        }
     }
+
+    Some(())
 }

@@ -9,7 +9,9 @@ use tracing::{error, warn};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
 use crate::context::Context;
+use crate::gateway::clients::DiscordClients;
 use crate::models::config::GuildConfig;
+use crate::server::guild::commands::get_guild_commands_list;
 use crate::server::guild::ws::{Connection, OutboundAction, OutboundMessage};
 
 #[derive(Clone, Debug, Serialize)]
@@ -130,7 +132,12 @@ impl GuildsEditing {
         Some((config.to_owned(), guild_lock.changes.to_owned(), users))
     }
 
-    pub async fn broadcast_config_overwrite(&self, context: &Arc<Context>, guild_id: Id<GuildMarker>) -> Option<()> {
+    pub async fn broadcast_config_overwrite(
+        &self,
+        context: &Arc<Context>,
+        guild_id: Id<GuildMarker>,
+        is_synced: bool
+    ) -> Option<()> {
         let config = context.mongodb
             .get_config(guild_id)
             .await
@@ -139,21 +146,19 @@ impl GuildsEditing {
 
         let guild = self.get_guild(guild_id).await?;
         let guild_lock = guild.lock().await;
-        let users = guild_lock.connections
-            .iter().map(|connection| connection.user_id)
-            .collect::<Vec<Id<UserMarker>>>();
 
         for connection in &guild_lock.connections {
             let _ = connection.tx.send(OutboundAction::Message(OutboundMessage::OverwriteConfigurationData {
                 saved_config: config.to_owned(),
                 changes: guild_lock.changes.to_owned(),
+                is_synced
             }));
         }
 
         Some(())
     }
 
-    pub async fn apply_changes(&self, context: &Arc<Context>, guild_id: Id<GuildMarker>) -> Option<()> {
+    pub async fn apply_changes(&self, context: &Arc<Context>, guild_id: Id<GuildMarker>) -> Option<bool> {
         let config = context.mongodb.get_config(guild_id).await
             .inspect_err(|error| error!(name: "mongodb error", ?error))
             .ok()?;
@@ -186,6 +191,10 @@ impl GuildsEditing {
             return None
         }
 
+        let is_synced = context.redis.are_commands_synced(&new_config).await
+            .inspect_err(|error| error!(name: "redis error", ?error))
+            .unwrap_or_else(|_| true);
+
         context.mongodb.configs
             .replace_one(
                 doc! { "guild_id": guild_id.to_string() },
@@ -199,6 +208,37 @@ impl GuildsEditing {
 
         guild_lock.changes = vec![];
 
-        Some(())
+        Some(is_synced)
+    }
+
+    pub async fn register_commands(
+        &self,
+        context: &Arc<Context>,
+        discord_http: &Arc<twilight_http::Client>,
+        discord_clients: &DiscordClients,
+        guild_id: Id<GuildMarker>
+    ) -> Option<GuildConfig> {
+        let config = context.mongodb.get_config(guild_id).await
+            .inspect_err(|error| error!(name: "mongodb error", ?error))
+            .ok()?;
+
+        let guild_discord_http = config.application_id
+            .and_then(|id| {
+                discord_clients.get(&id).map(|option| option.value().clone())
+            })
+            .unwrap_or_else(|| discord_http.clone());
+        let application_id = config.application_id.unwrap_or_else(|| context.application_id);
+
+        let commands = get_guild_commands_list(&config);
+        guild_discord_http
+            .interaction(application_id)
+            .set_guild_commands(guild_id, &commands)
+            .await
+            .inspect_err(|error| {
+                error!(name: "error setting guild commands", ?error, %guild_id, %application_id)
+            })
+            .ok()?;
+
+        Some(config)
     }
 }

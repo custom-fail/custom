@@ -25,6 +25,7 @@ pub mod authorize;
 
 #[cfg(feature = "api")]
 pub mod guild {
+    pub mod commands;
     pub mod editing;
     pub mod ws;
 }
@@ -40,6 +41,7 @@ mod http_server {
     use warp::Filter;
     use warp::http::{HeaderName, Method};
     use crate::context::Context;
+    use crate::gateway::clients::DiscordClients;
 
     #[macro_export]
     macro_rules! with_value {
@@ -59,6 +61,7 @@ mod http_server {
         port: u16,
         context: Arc<Context>,
         discord_http: Arc<Client>,
+        discord_clients: DiscordClients,
         #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::VerifyingKey
     ) {
         let cors_allow = if let Ok(origin) = env::var("ALLOWED_ORIGIN") {
@@ -80,7 +83,7 @@ mod http_server {
             .build();
 
         let routes = crate::server::routes::get_all_routes(
-            discord_http, context, #[cfg(feature = "http-interactions")] public_key
+            context, discord_http, discord_clients, #[cfg(feature = "http-interactions")] public_key
         )
             .recover(crate::server::error::handle_rejection)
             .with(cors_allow);

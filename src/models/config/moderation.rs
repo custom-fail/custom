@@ -20,5 +20,6 @@ pub struct Moderation {
     pub mute_role: Option<Id<RoleMarker>>,
     pub native_support: bool,
     pub logs_channel: Option<Id<ChannelMarker>>,
-    pub dm_case: bool
+    pub dm_case: bool,
+    pub context_menu: bool
 }
