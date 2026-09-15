@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
+use crate::assets::GuildAssets;
 use crate::models::config::activity::{Levels, Top};
 use crate::models::config::moderation::Moderation;
 
@@ -14,6 +15,7 @@ pub mod automod;
 pub struct GuildConfig {
     pub guild_id: Id<GuildMarker>,
     pub application_id: Option<Id<ApplicationMarker>>,
+    pub assets: GuildAssets,
     pub moderation: Option<Moderation>,
     pub premium: bool,
     pub levels: Option<Levels>,
@@ -25,6 +27,7 @@ impl GuildConfig {
         Self {
             guild_id,
             application_id: None,
+            assets: GuildAssets(vec![]),
             moderation: None,
             premium: false,
             levels: None,

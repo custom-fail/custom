@@ -89,6 +89,12 @@ impl From<twilight_validate::command::CommandValidationError> for Error {
     }
 }
 
+impl From<crate::assets::render::RenderError> for Error {
+    fn from(error: crate::assets::render::RenderError) -> Self {
+        Self::Debug(vec![format!("{}", error.to_string())])
+    }
+}
+
 impl Error {
     pub fn to_interaction_data_response(&self) -> InteractionResponseData {
 

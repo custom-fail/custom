@@ -19,6 +19,7 @@ pub struct Context {
     pub scam_domains: ScamLinks,
     #[cfg(feature = "gateway")]
     pub bucket: Bucket,
+    pub assets: AssetsManager
 }
 
 impl Context {
@@ -26,8 +27,16 @@ impl Context {
         let mongodb_uri = env_unwrap!("MONGODB_URI");
         let redis_url = env_unwrap!("REDIS_URL");
 
-        let mongodb = MongoDBConnection::connect(mongodb_uri).await.unwrap();
+        let loading = LoadingAnimation::new("Connecting to: MongoDB");
+        let mongodb = MongoDBConnection::connect(mongodb_url).await.unwrap();
+        loading.finish("Connected to: MongoDB ");
+
+        let loading = LoadingAnimation::new("Connecting to: Redis");
         let redis = RedisConnection::connect(redis_url).unwrap();
+        loading.finish("Connected to: Redis ");
+
+        // loading it after scam_domains messages makes stdout writing over stdin
+        let assets = AssetsManager::new().await;
 
         #[cfg(feature = "gateway")]
         let scam_domains = ScamLinks::new()
@@ -38,7 +47,6 @@ impl Context {
 
         #[cfg(feature = "gateway")]
         let bucket: Bucket = Default::default();
-
         let application = Application::new();
 
         Self {
@@ -49,6 +57,7 @@ impl Context {
             #[cfg(feature = "gateway")]
             bucket,
             application,
+            assets,
         }
     }
 }

@@ -12,7 +12,7 @@ pub async fn run(
     twilight_http: Arc<Client>
 ) -> Result<(), Error> {
     if let Some(joined_at) = joined_at {
-        if chrono::Utc::now().timestamp_millis() - (joined_at.as_micros() / 1000) > 2 * 1000 {
+        if chrono::Utc::now().timestamp_millis() - (joined_at.as_micros() / 1000) > 30 * 1000 {
             return Ok(())
         }
     } else { return Ok(()); };
@@ -24,6 +24,7 @@ pub async fn run(
 
     let application_id = twilight_http.current_user()
         .await.map_err(Error::from)?.model().await.map_err(Error::from)?.id;
+    
     twilight_http
         .interaction(application_id.cast())
         .create_guild_command(guild_id)

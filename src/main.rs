@@ -79,7 +79,6 @@ async fn main() {
         threads.push(run);
     }
 
-
     #[cfg(any(feature = "api", feature = "http-interactions"))]
     {
         const INVALID_PUBLIC_KEY: &str = "PUBLIC_KEY provided in .env is invalid";

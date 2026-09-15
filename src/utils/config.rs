@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use twilight_model::id::Id;
 
-use crate::models::config::{GuildConfig, moderation::{Moderation, MuteMode}, automod::{AutoModeration, AutoModerationRule, ignore::{Ignore, IgnoreMode}, actions::{ActionMetadata, Action, IncreaseBucket, IncreaseBucketAmount, BucketAction, Timeout}}, activity::{Levels, Top}};
+use crate::{models::config::{GuildConfig, moderation::{Moderation, MuteMode}, automod::{AutoModeration, AutoModerationRule, ignore::{Ignore, IgnoreMode}, actions::{ActionMetadata, Action, IncreaseBucket, IncreaseBucketAmount, BucketAction, Timeout}}, activity::{Levels, Top}}, assets::GuildAssets};
 
 #[allow(dead_code)]
 
@@ -72,6 +72,7 @@ pub fn create_debug_config() -> GuildConfig {
             week: true,
             day: true,
             webhook_url: String::new(),
-        }),
+        },
+        assets: GuildAssets(vec![]),
     }
 }
