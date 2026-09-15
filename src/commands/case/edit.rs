@@ -34,7 +34,7 @@ pub async fn run(
     }
 
     let mut case = context.mongodb.cases.find_one(
-        doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false }, None
+        doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false }
     ).await.map_err(Error::from)?.ok_or("There is no case with selected id")?;
 
     if case.moderator_id != user.id {
@@ -43,7 +43,7 @@ pub async fn run(
 
     context.mongodb.cases.update_one(
         doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false },
-        doc! { "$set": {"reason": reason.to_owned() } }, None
+        doc! { "$set": {"reason": reason.to_owned() } }
     ).await.map_err(Error::from)?;
 
     case.reason = Some(reason);

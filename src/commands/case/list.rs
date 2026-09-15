@@ -1,7 +1,6 @@
 use mongodb::bson::doc;
-use mongodb::options::FindOptions;
 use twilight_model::channel::message::{Embed, Component};
-use twilight_model::channel::message::component::{SelectMenuOption, ActionRow, SelectMenu};
+use twilight_model::channel::message::component::{SelectMenuOption, ActionRow, SelectMenu, SelectMenuType};
 use twilight_model::channel::message::embed::{EmbedAuthor, EmbedFooter};
 use std::sync::Arc;
 use futures_util::{TryStreamExt, StreamExt};
@@ -81,12 +80,12 @@ pub async fn run(
         }
     };
 
-    let case_list = context.mongodb.cases.find(
-        filter.clone(),
-        FindOptions::builder()
-            .limit(6).skip(Some((page - 1) * 6))
-            .sort(doc! { "created_at": -1_i32 }).build()
-    ).await.map_err(Error::from)?;
+    let case_list = context.mongodb.cases.find(filter.clone())
+        .limit(6)
+        .skip((page - 1) * 6)
+        .sort(doc! { "created_at": -1_i32 })
+        .await
+        .map_err(Error::from)?;
 
     let case_list: Vec<Case> = case_list.try_collect().await.map_err(Error::from)?;
 
@@ -104,8 +103,7 @@ pub async fn run(
                     "totalValue": { "$sum": "$count" }
                 }
             }
-        ],
-        None
+        ]
     ).await.map_err(Error::from)?;
 
     let mut total = 0;
@@ -191,11 +189,14 @@ pub async fn run(
             Component::ActionRow(ActionRow {
                 components: vec![
                     Component::SelectMenu(SelectMenu {
+                        channel_types: None,
                         custom_id: format!("a:{}:cl:{member_id}", user.id),
+                        default_values: None,
                         disabled: false,
+                        kind: SelectMenuType::Text,
                         max_values: Some(1),
                         min_values: Some(1),
-                        options: result,
+                        options: Some(result),
                         placeholder: None
                     })
                 ]

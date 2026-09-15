@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tracing::info;
 use twilight_http::Client;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
@@ -16,6 +17,11 @@ pub async fn run(
         }
     } else { return Ok(()); };
 
+    info!(
+        name: "registering setup command",
+        %guild_id
+    );
+
     let application_id = twilight_http.current_user()
         .await.map_err(Error::from)?.model().await.map_err(Error::from)?.id;
     
@@ -23,6 +29,6 @@ pub async fn run(
         .interaction(application_id.cast())
         .create_guild_command(guild_id)
         .chat_input(
-            "setup", "Shows how and where you can setup the bot"
-        ).map_err(Error::from)?.await.map_err(Error::from).map(|_| ())
+            "setup", "Shows where you can setup the bot"
+        ).await.map_err(Error::from).map(|_| ())
 }

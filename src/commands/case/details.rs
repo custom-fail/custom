@@ -23,20 +23,13 @@ pub async fn run(
         CommandOptionValue::Integer
     );
 
-    let case = context
-        .mongodb
-        .cases
-        .find_one(
-            doc! {
-                "guild_id": guild_id.to_string(),
-                "index": case_index,
-                "removed": false
-            },
-            None,
-        )
-        .await
-        .map_err(Error::from)?
-        .ok_or("Cannot find case with selected id")?;
+    let case = context.mongodb.cases.find_one(
+        doc! {
+            "guild_id": guild_id.to_string(),
+            "index": case_index,
+            "removed": false
+        }
+    ).await.map_err(Error::from)?.ok_or("Cannot find case with selected id")?;
 
     Ok((
         interaction_response_data_from_embed(case.to_embed(discord_http).await?, false),

@@ -41,8 +41,8 @@ pub struct AutoModerationRule {
     pub name: String,
 }
 
-#[derive(PartialEq)]
-pub enum TrigerEvent {
+#[derive(PartialEq, Debug)]
+pub enum TriggerEvent {
     MessageCreate,
     MessageUpdate
 }

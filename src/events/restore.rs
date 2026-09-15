@@ -11,12 +11,12 @@ pub mod mutes {
         context: Arc<Context>
     ) -> Result<(), ()> {
         let config = context.mongodb.get_config(member.guild_id).await.map_err(|_| ())?;
-        let mute_role = config.moderation.mute_role.ok_or(())?;
+        let mute_role = config.moderation.ok_or(())?.mute_role.ok_or(())?;
 
         let task = context.mongodb.tasks.find_one(doc! {
             "action": { "RemoveMuteRole": member.user.id.to_string() },
             "guild_id": config.guild_id.to_string()
-        }, None).await.map_err(|_| ())?;
+        }).await.map_err(|_| ())?;
 
         if task.is_none() { return Ok(()) }
 
@@ -33,13 +33,13 @@ pub mod mutes {
 pub mod bans {
     use mongodb::bson::doc;
     use twilight_model::gateway::payload::incoming::BanRemove;
-    use crate::MongoDBConnection;
+    use crate::database::mongodb::MongoDBConnection;
 
     pub async fn run(event: BanRemove, mongodb: &MongoDBConnection) -> Result<(), ()> {
         mongodb.tasks.delete_one(doc! {
             "action": { "RemoveBan": event.user.id.to_string() },
             "guild_id": event.guild_id.to_string()
-        }, None).await.map_err(|_| ())?;
+        }).await.map_err(|_| ())?;
         Ok(())
     }
 }

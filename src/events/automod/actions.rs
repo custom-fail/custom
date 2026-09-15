@@ -6,7 +6,7 @@ use twilight_http::Client;
 use twilight_model::channel::Message;
 use twilight_model::id::Id;
 use twilight_model::id::marker::GuildMarker;
-use crate::Bucket;
+use crate::bucket::Bucket;
 use crate::models::config::GuildConfig;
 use crate::models::config::automod::actions::{Timeout, Action};
 use crate::utils::avatars::get_avatar_url;
@@ -48,7 +48,6 @@ async fn send_direct_message(
             url: None,
             video: None,
         }])
-        .map_err(|_| ())?
         .await
         .map_err(|_| ())?;
 
@@ -72,7 +71,7 @@ async fn send_logs(
     guild_config: Arc<GuildConfig>,
     reason: String
 ) -> Result<(), ()> {
-    let channel = guild_config.moderation.automod.as_ref().ok_or(())?.logs_channel.ok_or(())?;
+    let channel = guild_config.moderation.as_ref().ok_or(())?.automod.as_ref().ok_or(())?.logs_channel.ok_or(())?;
 
     let avatar = get_avatar_url(message.author.avatar, message.author.id);
     let embed = Embed {
@@ -102,7 +101,6 @@ async fn send_logs(
     discord_http
         .create_message(channel)
         .embeds(&[embed])
-        .map_err(|_| ())?
         .await
         .ok();
 
@@ -122,7 +120,6 @@ async fn timeout(
     discord_http
         .update_guild_member(guild_id, message.author.id)
         .communication_disabled_until(Some(timestamp))
-        .map_err(|_| ())?
         .await
         .map_err(|_| ())?;
 

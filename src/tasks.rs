@@ -1,20 +1,24 @@
 use std::sync::Arc;
 use std::time::Duration;
 use mongodb::bson::DateTime;
+use tokio::task::JoinHandle;
 use tokio::time::Instant;
+use tracing::info;
 use twilight_http::Client;
 use twilight_model::id::Id;
 use twilight_model::id::marker::RoleMarker;
-use crate::{DiscordClients, MongoDBConnection, ok_or_skip};
+use crate::database::mongodb::MongoDBConnection;
+use crate::ok_or_skip;
 use crate::models::config::GuildConfig;
 use crate::models::task::{Task, TaskAction};
+use crate::gateway::clients::DiscordClients;
 
 pub fn run(
     mongodb: MongoDBConnection,
     discord_clients: DiscordClients,
     discord_http: Arc<Client>
-) {
-    tokio::spawn(interval(mongodb, discord_clients, discord_http));
+) -> JoinHandle<()> {
+    tokio::spawn(interval(mongodb, discord_clients, discord_http))
 }
 
 pub async fn interval(
@@ -27,7 +31,7 @@ pub async fn interval(
 
         if let Ok(tasks) = tasks {
             if !tasks.is_empty() {
-                println!("Loaded {} tasks", tasks.len())
+                info!(name: "loaded tasks", count = tasks.len())
             };
 
             for task in tasks {
@@ -61,7 +65,7 @@ pub async fn run_action(task: Task, config: GuildConfig, discord_http: Arc<Clien
             let member = discord_http.guild_member(config.guild_id, member_id)
                 .await.map_err(|_| ())?.model().await.map_err(|_| ())?;
 
-            let mute_role = config.moderation.mute_role.ok_or(())?;
+            let mute_role = config.moderation.ok_or(())?.mute_role.ok_or(())?;
             let roles_without_mute_role = member.roles.iter()
                 .filter(|role| role != &&mute_role).cloned().collect::<Vec<Id<RoleMarker>>>();
 

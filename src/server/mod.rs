@@ -1,132 +1,94 @@
-use std::convert::Infallible;
-use std::sync::Arc;
-use ed25519_dalek::PublicKey;
-use hyper::{Body, Method, Request, Response, StatusCode};
-use hyper::http::HeaderValue;
-use hyper::service::{make_service_fn, service_fn};
-use serde_json::json;
-use twilight_http::Client;
-use twilight_model::application::interaction::Interaction;
-use crate::context::Context;
-use crate::server::authorize::verify_signature;
-use crate::server::interaction::handle_interaction;
+use crate::all_macro;
 
+#[cfg(any(
+    feature = "gateway",
+    feature = "custom-clients",
+    feature = "http-interactions"
+))]
 pub mod interaction;
+
+#[cfg(any(feature = "http-interactions", feature = "api"))]
+#[macro_use]
+pub mod error;
+
+all_macro!(
+    cfg(any(feature = "http-interactions", feature = "api"));
+    // pub mod error;
+    pub mod routes;
+);
+
+#[cfg(feature = "api")]
+mod session;
+
+#[cfg(feature = "http-interactions")]
 pub mod authorize;
 
-fn string_from_headers_option(header: Option<&HeaderValue>) -> Option<String> {
-    Some(match header {
-        Some(header) => match header.to_str() {
-            Ok(header) => header.to_string(),
-            Err(_) => return None
-        },
-        None => return None
-    })
+#[cfg(feature = "api")]
+pub mod guild {
+    pub mod editing;
+    pub mod ws;
 }
 
-struct HttpResponse {
-    status: StatusCode,
-    body: &'static str
-}
+#[cfg(any(feature = "api", feature = "http-interactions"))]
+mod http_server {
+    use std::env;
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::str::FromStr;
+    use std::sync::Arc;
+    use tracing::warn;
+    use twilight_http::Client;
+    use warp::Filter;
+    use warp::http::{HeaderName, Method};
+    use crate::context::Context;
 
-impl HttpResponse {
-    pub fn to_response(&self) -> Response<Body> {
-        let mut response = Response::default();
-        *response.status_mut() = self.status;
-        *response.body_mut() = Body::from(self.body);
-        response
+    #[macro_export]
+    macro_rules! with_value {
+        ($name: expr) => {
+            warp::any().map(move || $name.to_owned())
+        };
+    }
+
+    #[macro_export]
+    macro_rules! response_type {
+        () => {
+            impl warp::Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
+        };
+    }
+
+    pub async fn listen(
+        port: u16,
+        context: Arc<Context>,
+        discord_http: Arc<Client>,
+        #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::VerifyingKey
+    ) {
+        let cors_allow = if let Ok(origin) = env::var("ALLOWED_ORIGIN") {
+            warp::cors()
+                .allow_origin(origin.as_str())
+        } else {
+            warn!(
+                "There is no ALLOWED_ORIGIN environment variable, CORS Headers are set to accept all requests"
+            );
+            warp::cors().allow_any_origin()
+        };
+        let cors_allow = cors_allow
+            .allow_headers([
+                HeaderName::from_str("Authorization").unwrap(),
+                HeaderName::from_str("User-Id").unwrap()
+            ])
+            .allow_methods([Method::GET, Method::POST])
+            .allow_credentials(true)
+            .build();
+
+        let routes = crate::server::routes::get_all_routes(
+            discord_http, context, #[cfg(feature = "http-interactions")] public_key
+        )
+            .recover(crate::server::error::handle_rejection)
+            .with(cors_allow);
+
+        const ALL_SOCKETS: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+        warp::serve(routes).run(SocketAddr::new(ALL_SOCKETS, port)).await;
     }
 }
 
-const INTERNAL_SERVER_ERROR: HttpResponse = HttpResponse { body: "Internal server error", status: StatusCode::INTERNAL_SERVER_ERROR };
-const METHOD_NOT_ALLOWED: HttpResponse = HttpResponse { body: "Method not allowed", status: StatusCode::METHOD_NOT_ALLOWED };
-const MISSING_HEADERS: HttpResponse = HttpResponse { body:"Missing headers", status: StatusCode::BAD_REQUEST };
-const UNAUTHORIZED: HttpResponse = HttpResponse { body: "Unauthorized", status: StatusCode::UNAUTHORIZED };
-const INVALID_BODY: HttpResponse = HttpResponse { body: "Invalid/Missing body", status: StatusCode::BAD_REQUEST };
-
-async fn route(
-    request: Request<Body>,
-    discord_http: Arc<Client>,
-    context: Arc<Context>,
-    public_key: PublicKey
-) -> Result<Response<Body>, Response<Body>> {
-    if request.method() != Method::POST {
-        return Ok(METHOD_NOT_ALLOWED.to_response());
-    };
-
-    let timestamp = request.headers().get("X-Signature-Timestamp");
-    let signature = request.headers().get("X-Signature-Ed25519");
-
-    let timestamp = string_from_headers_option(timestamp)
-        .ok_or_else(|| MISSING_HEADERS.to_response())?;
-
-    let signature = string_from_headers_option(signature)
-        .ok_or_else(|| MISSING_HEADERS.to_response())?;
-
-    let whole_body = hyper::body::to_bytes(request.into_body()).await;
-    let whole_body = whole_body.map_err(|_| INVALID_BODY.to_response())?;
-
-    let reversed_body = whole_body.iter().cloned().collect::<Vec<u8>>();
-    let body = String::from_utf8(reversed_body).map_err(|_| INVALID_BODY.to_response())?;
-
-    let interaction = serde_json::from_str::<Interaction>(body.as_str())
-        .map_err(|_| INVALID_BODY.to_response())?;
-
-    if !verify_signature(public_key, signature, timestamp, body.clone()) {
-        return Ok(UNAUTHORIZED.to_response());
-    };
-
-    let content = handle_interaction(interaction, discord_http, context).await;
-    let content = json!(content).to_string();
-
-    let response = Response::builder()
-        .header("Content-Type", "application/json")
-        .body(Body::from(content));
-
-    response.map_err(|_| INTERNAL_SERVER_ERROR.to_response())
-}
-
-pub async fn run_route(
-    request: Request<Body>,
-    public_key: PublicKey,
-    discord_http: Arc<Client>,
-    context: Arc<Context>
-) -> Result<Response<Body>, Infallible> {
-    let response = route(
-            request, discord_http, context, public_key
-    ).await;
-
-    Ok(match response {
-        Ok(response) => response,
-        Err(response) => response
-    })
-}
-
-pub async fn listen(
-    port: u8,
-    context: Arc<Context>,
-    discord_http: Arc<Client>,
-    public_key: PublicKey
-) {
-    let service = make_service_fn(move |_| {
-        let discord_http = discord_http.to_owned();
-        let context = context.to_owned();
-        async move {
-            Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                run_route(
-                    req,
-                    public_key,
-                    discord_http.to_owned(),
-                    context.to_owned()
-                )
-            }))
-        }
-    });
-
-    let address = ([127, 0, 0, 1], port.into()).into();
-    let server = hyper::Server::bind(&address).serve(service);
-
-    println!("Listening on {address}");
-
-    server.await.unwrap()
-}
+#[cfg(any(feature = "api", feature = "http-interactions"))]
+pub use http_server::*;

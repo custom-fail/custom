@@ -2,10 +2,14 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use futures_util::TryStreamExt;
 use mongodb::{Client, Collection, Database};
-use mongodb::bson::{DateTime, doc};
+use mongodb::bson::doc;
+#[cfg(feature = "tasks")]
+use mongodb::bson::DateTime;
+use tracing::info;
 use twilight_model::channel::message::Embed;
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
+#[cfg(any(feature = "tasks", feature = "custom-clients"))]
 use crate::gateway::clients::ClientData;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
@@ -19,6 +23,7 @@ pub struct MongoDBConnection {
     pub database: Database,
     pub cases: Collection<Case>,
     pub configs: Collection<GuildConfig>,
+    #[cfg(any(feature = "tasks", feature = "custom-clients"))]
     pub clients: Collection<ClientData>,
     pub tasks: Collection<Task>,
     pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>
@@ -26,12 +31,13 @@ pub struct MongoDBConnection {
 
 impl MongoDBConnection {
 
-    pub async fn connect(url: String) -> Result<Self, mongodb::error::Error> {
-
-        let client = Client::with_uri_str(url).await?;
+    pub async fn connect(uri: String) -> Result<Self, mongodb::error::Error> {
+        let client = Client::with_uri_str(uri).await?;
+        info!("connected to MongoDB");
         let db = client.database("custom");
         let configs = db.collection::<GuildConfig>("configs");
         let cases = db.collection("cases");
+        #[cfg(any(feature = "tasks", feature = "custom-clients"))]
         let clients = db.collection("clients");
         let tasks = db.collection("tasks");
 
@@ -40,6 +46,7 @@ impl MongoDBConnection {
             database: db,
             cases,
             client,
+            #[cfg(any(feature = "tasks", feature = "custom-clients"))]
             clients,
             configs,
             tasks
@@ -47,7 +54,6 @@ impl MongoDBConnection {
     }
 
     pub async fn get_config(&self, guild_id: Id<GuildMarker>) -> Result<GuildConfig, mongodb::error::Error> {
-
         match self.configs_cache.get(&guild_id){
             Some(config) => {
                 Ok(config.to_owned())
@@ -56,10 +62,15 @@ impl MongoDBConnection {
                 let config = self.configs.clone_with_type().find_one(
                     doc! {
                         "guild_id": guild_id.to_string()
-                    }, None
-                ).await?.unwrap_or_else(|| GuildConfig::new(guild_id));
+                    }
+                ).await?.unwrap_or_else(|| GuildConfig::new(guild_id.to_owned()));
 
                 self.configs_cache.insert(guild_id, config.to_owned());
+                info!(
+                    name: "cached guild config",
+                    cache_size = self.configs_cache.len(),
+                    %guild_id,
+                );
 
                 Ok(config)
             }
@@ -77,11 +88,11 @@ impl MongoDBConnection {
         logs: Option<Id<ChannelMarker>>
     ) -> Result<(), Error> {
 
-        self.cases.insert_one(case.to_owned(), None).await.map_err(Error::from)?;
+        self.cases.insert_one(case.to_owned()).await.map_err(Error::from)?;
 
         if let Some(channel_id) = logs {
             discord_http.create_message(channel_id)
-                .embeds(&[case_embed.clone()]).map_err(Error::from)?
+                .embeds(&[case_embed.clone()])
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
@@ -90,9 +101,9 @@ impl MongoDBConnection {
             let channel = discord_http.create_private_channel(member_id)
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
-            let embed = case.to_dm_embed(redis).map_err(Error::from)?;
+            let embed = case.to_dm_embed(redis).await.map_err(Error::from)?;
             discord_http.create_message(channel.id)
-                .embeds(&[embed]).map_err(Error::from)?
+                .embeds(&[embed])
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         }
@@ -103,20 +114,21 @@ impl MongoDBConnection {
 
     pub async fn get_next_case_index(&self, guild_id: Id<GuildMarker>) -> Result<u64, Error> {
         Ok(self.cases.count_documents(
-            doc! { "guild_id": guild_id.to_string() }, None
+            doc! { "guild_id": guild_id.to_string() }
         ).await.map_err(Error::from)? + 1)
     }
 
     pub async fn create_task(&self, task: Task) -> Result<(), Error> {
-        self.tasks.insert_one(task, None).await.map(|_| ()).map_err(Error::from)
+        self.tasks.insert_one(task).await.map(|_| ()).map_err(Error::from)
     }
 
+    #[cfg(feature = "tasks")]
     pub async fn get_and_delete_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
         let time = DateTime::from_millis(DateTime::now().timestamp_millis() + after as i64);
         let filter = doc! { "execute_at": { "$lt": time } };
-        let tasks = self.tasks.find(filter.to_owned(), None)
+        let tasks = self.tasks.find(filter.to_owned())
             .await.map_err(Error::from)?.try_collect().await.map_err(Error::from);
-        self.tasks.delete_many(filter, None).await.map_err(Error::from)?;
+        self.tasks.delete_many(filter).await.map_err(Error::from)?;
         tasks
     }
 }

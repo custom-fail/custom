@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use twilight_model::application::interaction::application_command::{CommandDataOption, CommandInteractionDataResolved};
+use twilight_model::application::interaction::application_command::CommandDataOption;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
-use twilight_model::application::interaction::{Interaction, InteractionData};
+use twilight_model::application::interaction::{Interaction, InteractionData, InteractionDataResolved};
 use twilight_model::id::Id;
 use twilight_model::id::marker::GenericMarker;
 use crate::utils::errors::Error;
@@ -24,6 +24,7 @@ macro_rules! extract {
     };
 }
 
+#[derive(Debug, Clone)]
 pub struct InteractionContext {
     pub command_vec: Vec<String>,
     pub command_text: String,
@@ -93,12 +94,12 @@ fn push_subcommands_names(before: &mut Vec<String>, data: CommandDataOption) {
 }
 
 pub trait InteractionHelpers {
-    fn resolved(&self) -> Option<&CommandInteractionDataResolved>;
+    fn resolved(&self) -> Option<&InteractionDataResolved>;
     fn target_id(&self) -> Option<Id<GenericMarker>>;
 }
 
 impl InteractionHelpers for Interaction {
-    fn resolved(&self) -> Option<&CommandInteractionDataResolved> {
+    fn resolved(&self) -> Option<&InteractionDataResolved> {
         if let Some(InteractionData::ApplicationCommand(data)) = &self.data {
             data.resolved.as_ref()
         } else { None }

@@ -9,10 +9,10 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{GuildMarker, UserMarker};
 use twilight_model::util::datetime::TimestampParseError;
 use twilight_model::util::Timestamp;
-use crate::RedisConnection;
 use crate::utils::avatars::{DEFAULT_AVATAR, get_avatar_url, get_guild_icon_url};
 use crate::utils::errors::Error;
 use serde::{Serialize, Deserialize};
+use crate::database::redis::RedisConnection;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Case {
@@ -71,8 +71,8 @@ impl From<CaseActionType> for u8 {
 }
 
 impl Case {
-    pub fn to_dm_embed(&self, redis: &RedisConnection) -> Result<Embed, Error> {
-        let guild = redis.get_guild(self.guild_id).map_err(Error::from)?;
+    pub async fn to_dm_embed(&self, redis: &RedisConnection) -> Result<Embed, Error> {
+        let guild = redis.get_guild(self.guild_id).await.map_err(Error::from)?;
         let guild_icon_url = get_guild_icon_url(guild.icon, self.guild_id);
 
         let author = EmbedAuthor {

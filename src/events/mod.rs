@@ -1,9 +1,9 @@
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::gateway::event::Event;
+use twilight_model::gateway::payload::incoming::GuildCreate;
 use crate::context::Context;
-use crate::models::config::automod::TrigerEvent;
-use crate::utils::message::ConvertToMessage;
+use crate::models::config::automod::TriggerEvent;
 
 pub mod automod;
 mod case;
@@ -27,22 +27,22 @@ pub async fn on_event(
         }
         Event::MessageCreate(event) => {
             let message = event.as_ref().0.to_owned();
-            self::automod::run(message.to_owned(), discord_http, context.to_owned(), TrigerEvent::MessageCreate).await.ok();
+            self::automod::run(message.to_owned(), discord_http, context.to_owned(), TriggerEvent::MessageCreate).await.ok();
             self::top::run(message, context).await.ok();
         }
         Event::MessageUpdate(event) => {
-            let message = event.convert()?;
-            self::automod::run(message, discord_http, context, TrigerEvent::MessageCreate).await.ok();
+            self::automod::run(event.0, discord_http, context, TriggerEvent::MessageCreate).await.ok();
         }
         Event::GuildCreate(event) => {
-            tokio::spawn(self::setup::run(event.id, event.joined_at, discord_http));
-            self::cache::on_guild_create(&context.redis, event).ok();
+            let guild = if let GuildCreate::Available(guild) = *event { guild } else { return Ok(()) };
+            tokio::spawn(self::setup::run(guild.id, guild.joined_at, discord_http));
+            self::cache::on_guild_create(&context.redis, guild).await.ok();
         },
         Event::GuildUpdate(event) => {
-            self::cache::on_guild_update(&context.redis, event).ok();
+            self::cache::on_guild_update(&context.redis, event).await.ok();
         },
         Event::GuildDelete(event) => {
-            self::cache::delete_guild(&context.redis, event.id).ok();
+            self::cache::delete_guild(&context.redis, event.id).await.ok();
         },
         Event::RoleCreate(event) => {
             self::cache::fetch_and_set(&context.redis, discord_http, event.guild_id).await.ok();

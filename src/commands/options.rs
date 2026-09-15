@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use twilight_model::application::interaction::application_command::{CommandData, CommandDataOption, CommandOptionValue};
 use twilight_model::application::interaction::InteractionData;
 use crate::{extract, ok_or_break, ok_or_skip};
-use async_trait::async_trait;
 use crate::application::{Application, ConvertableOptionsList};
 use crate::commands::context::InteractionContext;
 use crate::utils::errors::Error;
@@ -34,12 +33,10 @@ macro_rules! get_required_option {
     };
 }
 
-#[async_trait]
 pub trait LoadOptions {
     async fn load_options(self, application: &Application) -> Result<InteractionContext, Error>;
 }
 
-#[async_trait]
 impl LoadOptions for InteractionContext {
     async fn load_options(mut self, application: &Application) -> Result<Self, Error> {
         extract!(&self.orginal, data);

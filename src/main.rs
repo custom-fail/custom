@@ -1,77 +1,106 @@
-use crate::bucket::Bucket;
-use crate::context::Context;
-use crate::database::mongodb::MongoDBConnection;
-use crate::database::redis::RedisConnection;
-use crate::gateway::clients::{DiscordClients, LoadDiscordClients};
-use crate::gateway::shard::connect_shards;
-use crate::links::ScamLinks;
-use dotenv::dotenv;
-use ed25519_dalek::PublicKey;
 use std::sync::Arc;
+use crate::context::Context;
+use dotenv::dotenv;
+use tokio::task::JoinHandle;
+use tracing::info;
 use twilight_http::Client;
 
-mod application;
-mod assets;
-mod bucket;
-mod commands;
+all_macro!(
+    cfg(feature = "gateway");
+    mod events;
+    mod links;
+    mod bucket;
+);
+
 mod context;
-mod database;
-mod events;
+
+#[cfg(any(feature = "gateway", feature = "custom-clients", feature = "tasks"))]
 mod gateway;
-mod links;
-mod models;
-mod server;
+
+#[cfg(feature = "tasks")]
 mod tasks;
-mod utils;
+mod application;
+mod commands;
+mod database;
+mod models;
+pub mod utils;
+mod server;
+mod tracing_init;
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
 
-    let args: Vec<String> = std::env::args().collect();
+    tracing_init::init();
+    info!("starting app");
+
     let context = Arc::new(Context::new().await);
 
-    let discord_token =
-        std::env::var("DISCORD_TOKEN").expect("Cannot load DISCORD_TOKEN from .env");
+    let cloned_context = context.clone();
+    tokio::spawn(async move {
+        let context = cloned_context;
+        context.redis.watch_config_updates(&context.mongodb).await.unwrap();
+    });
+
+    let discord_token = env_unwrap!("DISCORD_TOKEN");
     let main_http = Arc::new(Client::new(discord_token.to_owned()));
 
-    if args.contains(&"--gateway".to_string()) || args.contains(&"-A".to_string()) {
-        if args.contains(&"--custom-clients".to_string()) || args.contains(&"-A".to_string()) {
-            let discord_clients = DiscordClients::load(&context.mongodb).await.unwrap();
+    let mut threads: Vec<JoinHandle<()>> = vec![];
 
-            if args.contains(&"--tasks".to_string()) || args.contains(&"A".to_string()) {
-                tasks::run(
-                    context.mongodb.to_owned(),
-                    discord_clients.to_owned(),
-                    main_http.to_owned(),
-                );
-            }
+    #[cfg(any(feature = "custom-clients", feature = "tasks"))]
+    {
+        use crate::gateway::clients::{DiscordClients, LoadDiscordClients};
+        let discord_clients = DiscordClients::load(&context.mongodb).await.unwrap();
 
-            discord_clients.start(context.to_owned());
+        #[cfg(feature = "tasks")]
+        {
+            threads.push(tasks::run(
+                context.mongodb.to_owned(),
+                discord_clients.to_owned(),
+                main_http.to_owned()
+            ));
         }
 
-        let run = connect_shards(
-            (
-                "main".to_string(),
-                Arc::new(Client::new(discord_token.to_owned())),
-            ),
-            context.to_owned(),
-        );
-
-        if args.contains(&"--http".to_string()) || args.contains(&"-A".to_string()) {
-            tokio::spawn(run);
-        } else {
-            run.await;
-        }
+        #[cfg(feature = "custom-clients")]
+        threads.append(&mut discord_clients.start(context.to_owned()));
     }
 
-    const INVALID_PUBLIC_KEY: &str = "PUBLIC_KEY provided in .env is invalid";
+    #[cfg(feature = "gateway")]
+    {
+        use crate::gateway::shard::connect_shards;
 
-    if args.contains(&"--http".to_string()) || args.contains(&"-A".to_string()) {
-        let public_key = std::env::var("PUBLIC_KEY").expect("Cannot load PUBLIC_KEY from .env");
-        let pbk_bytes = hex::decode(public_key.as_str()).expect(INVALID_PUBLIC_KEY);
-        let public_key = PublicKey::from_bytes(&pbk_bytes).expect(INVALID_PUBLIC_KEY);
+        let run = tokio::spawn(connect_shards(
+            ("main".to_string(), Arc::new(
+                Client::new(discord_token.to_owned())
+            )),
+            context.to_owned()
+        ));
 
-        crate::server::listen(80, context, main_http, public_key).await;
+        threads.push(run);
+    }
+
+    #[cfg(any(feature = "api", feature = "http-interactions"))]
+    {
+        const INVALID_PUBLIC_KEY: &str = "PUBLIC_KEY provided in .env is invalid";
+
+        #[cfg(feature = "http-interactions")]
+        let public_key = {
+            let public_key = env_unwrap!("PUBLIC_KEY");
+            let mut bytes_slice = [0; 32];
+            let pbk_bytes = hex::decode(public_key.as_str())
+                .expect(INVALID_PUBLIC_KEY);
+            bytes_slice.copy_from_slice(&pbk_bytes);
+            ed25519_dalek::VerifyingKey::from_bytes(&bytes_slice).expect(INVALID_PUBLIC_KEY)
+        };
+
+        let run = tokio::spawn(crate::server::listen(
+            80, context, main_http, #[cfg(feature = "http-interactions")] public_key
+        ));
+        threads.push(run);
+    }
+
+    for thread in threads {
+        // When threads panic runtime shows reasons in stdout so unwrap would only make output less readable
+        thread.await.unwrap_or_else(|_| std::process::exit(1));
     }
 }

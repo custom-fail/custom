@@ -18,7 +18,9 @@ pub async fn run(
     discord_http: Arc<Client>,
     config: GuildConfig,
 ) -> ResponseData {
-    extract!(interaction.orginal, channel_id);
+
+    extract!(interaction.orginal, channel);
+    let channel_id = channel.id;
 
     let amount = get_required_option!(
         interaction.options.get("amount"),
@@ -53,10 +55,8 @@ pub async fn run(
         };
 
         let mut messages = if let Some(last) = last {
-            discord_http
-                .channel_messages(channel_id)
+            discord_http.channel_messages(channel_id)
                 .limit(amount as u16)
-                .map_err(Error::from)?
                 .after(last)
                 .await
                 .map_err(Error::from)?
@@ -64,15 +64,10 @@ pub async fn run(
                 .await
                 .map_err(Error::from)?
         } else {
-            discord_http
-                .channel_messages(channel_id)
+            discord_http.channel_messages(channel_id)
                 .limit(amount as u16)
-                .map_err(Error::from)?
-                .await
-                .map_err(Error::from)?
-                .model()
-                .await
-                .map_err(Error::from)?
+                .await.map_err(Error::from)?
+                .model().await.map_err(Error::from)?
         };
 
         last = messages.last().map(|msg| msg.id);
@@ -111,11 +106,7 @@ pub async fn run(
         }
         total += messages.len();
 
-        discord_http
-            .delete_messages(channel_id, &messages)
-            .map_err(Error::from)?
-            .await
-            .map_err(Error::from)?;
+        discord_http.delete_messages(channel_id, &messages).await.map_err(Error::from)?;
     }
 
     Ok((

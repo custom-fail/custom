@@ -14,8 +14,9 @@ use twilight_model::id::Id;
 use twilight_model::id::marker::{GenericMarker, GuildMarker, RoleMarker, UserMarker};
 use crate::commands::ResponseData;
 use crate::context::Context;
-use crate::{extract, get_option, get_required_option, RedisConnection};
+use crate::{extract, get_option, get_required_option};
 use crate::commands::context::{InteractionContext, InteractionHelpers};
+use crate::database::redis::RedisConnection;
 use crate::models::case::{Case, CaseActionType};
 use crate::models::config::GuildConfig;
 use crate::models::config::moderation::MuteMode;
@@ -55,12 +56,14 @@ pub async fn run(
         interaction.command_text.as_str(), &config
     ).ok_or("Cannot find any action type matching command name")?;
 
+    let moderation_config = &config.moderation.ok_or("This module is disabled")?;
+
     let target_member = get_target_member(
         &discord_http, guild_id, target_id
     ).await.map_err(Error::from)?;
 
     if let Some(target_member) = &target_member {
-        if !check_position(&context.redis, guild_id, target_member, member)? {
+        if !check_position(&context.redis, guild_id, target_member, member).await? {
             return Err(
                 Error::from("Missing Permissions: Cannot execute moderation action on user with higher role")
             )
@@ -89,7 +92,6 @@ pub async fn run(
             discord_http
                 .update_guild_member(guild_id, target_id)
                 .communication_disabled_until(timestamp)
-                .map_err(Error::from)?
                 .await.map_err(Error::from)?
                 .model().await.map_err(Error::from)?;
         } else {
@@ -100,7 +102,7 @@ pub async fn run(
             let mut roles = target_member
                 .ok_or("You can mute only user server members (User left or didn't join this server)")?
                 .roles;
-            roles.push(config.moderation.mute_role.ok_or("There is no role for muted users set")?);
+            roles.push(moderation_config.mute_role.ok_or("There is no role for muted users set")?);
 
             discord_http.update_guild_member(config.guild_id, target_id)
                 .roles(&roles).await.map_err(Error::from)?;
@@ -149,8 +151,8 @@ pub async fn run(
     let result_case = context.mongodb.create_case(
         discord_http.to_owned(), &context.redis, case,
         case_embed.to_owned(),
-        if config.moderation.dm_case { Some(target_id) } else { None },
-        config.moderation.logs_channel
+        if moderation_config.dm_case { Some(target_id) } else { None },
+        moderation_config.logs_channel
     ).await.err();
 
     Ok((InteractionResponseData {
@@ -179,7 +181,7 @@ fn command_to_action_type(command_name: &str, config: &GuildConfig) -> Option<Ca
     let action_type = match command_name {
         "warn" => CaseActionType::Warn,
         "timeout" | "mute" => {
-            match config.moderation.mute_mode {
+            match config.moderation.as_ref()?.mute_mode {
                 MuteMode::Timeout => CaseActionType::Timeout,
                 MuteMode::Role => CaseActionType::Mute,
                 MuteMode::DependOnCommand => {
@@ -250,13 +252,13 @@ fn get_highest_role_pos(
 }
 
 /// Checks is position of the moderator role higher then position of the target role
-fn check_position(
+async fn check_position(
     redis: &RedisConnection,
     guild_id: Id<GuildMarker>,
     target_member: &Member,
     member: PartialMember
 ) -> Result<bool, Error> {
-    let guild = redis.get_guild(guild_id).map_err(Error::from)?;
+    let guild = redis.get_guild(guild_id).await.map_err(Error::from)?;
 
     let target_role_index = get_highest_role_pos(
         &guild.roles,

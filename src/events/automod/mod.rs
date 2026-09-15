@@ -3,11 +3,12 @@ mod checks;
 mod filters;
 
 use std::sync::Arc;
+use tracing::info;
 use twilight_http::Client;
 use twilight_model::channel::Message;
 use crate::context::Context;
 use crate::events::automod::actions::run_action;
-use crate::models::config::automod::TrigerEvent;
+use crate::models::config::automod::TriggerEvent;
 use crate::models::config::automod::ignore::{Ignore, IgnoreMode};
 
 fn is_ignored(message: &Message, ignore_rule: &Option<Ignore>) -> bool {
@@ -37,11 +38,11 @@ pub async fn run(
     message: Message,
     discord_http: Arc<Client>,
     context: Arc<Context>,
-    triger: TrigerEvent
+    trigger: TriggerEvent
 ) -> Result<(), ()> {
     let guild_id = message.guild_id.ok_or(())?;
     let guild_config = Arc::new(context.mongodb.get_config(guild_id).await.map_err(|_| ())?);
-    let automod_config = guild_config.moderation.automod.as_ref().ok_or(())?;
+    let automod_config = guild_config.moderation.as_ref().ok_or(())?.automod.as_ref().ok_or(())?;
 
     if message.content.is_empty() || message.author.bot {
         return Ok(())
@@ -52,7 +53,7 @@ pub async fn run(
     let message = Arc::new(message);
 
     for automod_rule in &automod_config.rules {
-        if triger == TrigerEvent::MessageUpdate && !automod_rule.check_on_edit { continue }
+        if trigger == TriggerEvent::MessageUpdate && !automod_rule.check_on_edit { continue }
         if is_ignored(&message, &automod_rule.ignore) { continue }
 
         for filter_meta in &automod_rule.filters {
@@ -63,6 +64,8 @@ pub async fn run(
             let is_allowed = check.is_matching(&message.content, &context.scam_domains).await?;
             if !is_allowed { return Ok(()) }
         }
+
+        info!(name: "automod rule violated", ?message, ?automod_rule, ?trigger);
 
         for action in &automod_rule.actions {
             let run = run_action(
