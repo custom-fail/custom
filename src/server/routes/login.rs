@@ -7,7 +7,7 @@ use twilight_model::user::CurrentUser;
 use twilight_model::util::Timestamp;
 use warp::{Filter, Reply};
 use warp::http::StatusCode;
-use crate::{env_unwrap, reject, response_type, with_value};
+use crate::{env_unwrap, response_type, with_value};
 use crate::server::error::{Rejection, MapErrorIntoInternalRejection};
 use crate::server::session::{Authenticator, AuthorizationInformation, Sessions};
 

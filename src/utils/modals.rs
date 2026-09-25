@@ -36,8 +36,9 @@ impl ModalBuilder {
         match input_type {
             RepetitiveTextInput::Reason => {
                 self.add_custom_component(TextInput {
+                    id: None,
                     custom_id: "reason".to_string(),
-                    label: "Reason".to_string(),
+                    label: Some("Reason".to_string()),
                     max_length: Some(512),
                     min_length: None,
                     placeholder: None,
@@ -48,8 +49,9 @@ impl ModalBuilder {
             }
             RepetitiveTextInput::Duration(required) => {
                 self.add_custom_component(TextInput {
+                    id: None,
                     custom_id: "duration".to_string(),
-                    label: "Duration".to_string(),
+                    label: Some("Duration".to_string()),
                     max_length: Some(21),
                     min_length: None,
                     placeholder: None,
@@ -60,8 +62,9 @@ impl ModalBuilder {
             },
             RepetitiveTextInput::Member => {
                 self.add_custom_component(TextInput {
+                    id: None,
                     custom_id: "member".to_string(),
-                    label: "Member ID".to_string(),
+                    label: Some("Member ID".to_string()),
                     max_length: Some(21),
                     min_length: None,
                     placeholder: None,
@@ -81,6 +84,7 @@ impl ModalBuilder {
             components: Some(
                 self.inputs.iter().map(|text_input| {
                     Component::ActionRow(ActionRow {
+                        id: None,
                         components: vec![Component::TextInput(text_input.clone())]
                     })
                 }).collect()
@@ -90,7 +94,8 @@ impl ModalBuilder {
             embeds: None,
             flags: None,
             title: Some(self.title.clone()),
-            tts: None
+            tts: None,
+            poll: None,
         }
     }
 }

@@ -187,8 +187,10 @@ pub async fn run(
         choices: None,
         components: Some(vec![
             Component::ActionRow(ActionRow {
+                id: None,
                 components: vec![
                     Component::SelectMenu(SelectMenu {
+                        id: None,
                         channel_types: None,
                         custom_id: format!("a:{}:cl:{member_id}", user.id),
                         default_values: None,
@@ -197,7 +199,8 @@ pub async fn run(
                         max_values: Some(1),
                         min_values: Some(1),
                         options: Some(result),
-                        placeholder: None
+                        placeholder: None,
+                        required: None,
                     })
                 ]
             })
@@ -207,7 +210,8 @@ pub async fn run(
         embeds: Some(vec![embed]),
         flags: None,
         title: None,
-        tts: None
+        tts: None,
+        poll: None,
     }, None))
 
 }

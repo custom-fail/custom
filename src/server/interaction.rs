@@ -75,7 +75,8 @@ async fn handle_command(
             embeds: None,
             flags: Some(MessageFlags::EPHEMERAL),
             title: None,
-            tts: None
+            tts: None,
+            poll: None,
         }, Some(InteractionResponseType::DeferredChannelMessageWithSource)))
 
     } else {

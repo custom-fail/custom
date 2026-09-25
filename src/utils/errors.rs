@@ -111,7 +111,8 @@ impl Error {
                     embeds: None,
                     flags: Some(MessageFlags::EPHEMERAL),
                     title: None,
-                    tts: None
+                    tts: None,
+                    poll: None,
                 }
             }
         }

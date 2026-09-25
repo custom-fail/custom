@@ -98,7 +98,8 @@ pub async fn run(
         embeds: None,
         flags: Some(MessageFlags::EPHEMERAL),
         title: None,
-        tts: None
+        tts: None,
+        poll: None,
     }, None))
 
 }

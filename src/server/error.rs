@@ -36,7 +36,7 @@ impl Display for Rejection {
 
 // impl warp::reject::
 
-#[macro_export()]
+#[macro_export]
 macro_rules! err {
     ($err: expr) => {
         Err($crate::reject!($err))
