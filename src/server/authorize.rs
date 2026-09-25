@@ -4,7 +4,7 @@ use std::str::FromStr;
 use warp::Filter;
 use warp::hyper::body::Bytes;
 use crate::server::error::Rejection;
-use crate::{err, reject, with_value};
+use crate::with_value;
 
 pub fn verify_signature(
     public_key: VerifyingKey,
