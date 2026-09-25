@@ -1,3 +1,5 @@
+use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 use crate::{
     all_macro,
     env_unwrap,
@@ -19,10 +21,11 @@ pub struct Context {
     pub scam_domains: ScamLinks,
     #[cfg(feature = "gateway")]
     pub bucket: Bucket,
+    pub application_id: Id<ApplicationMarker>,
 }
 
 impl Context {
-    pub async fn new() -> Self {
+    pub async fn new(application_id: Id<ApplicationMarker>) -> Self {
         let mongodb_uri = env_unwrap!("MONGODB_URI");
         let redis_url = env_unwrap!("REDIS_URL");
 
@@ -49,6 +52,7 @@ impl Context {
             #[cfg(feature = "gateway")]
             bucket,
             application,
+            application_id
         }
     }
 }

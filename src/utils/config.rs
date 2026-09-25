@@ -3,14 +3,32 @@ use std::collections::HashMap;
 use twilight_model::id::Id;
 
 use crate::models::config::{GuildConfig, moderation::{Moderation, MuteMode}, automod::{AutoModeration, AutoModerationRule, ignore::{Ignore, IgnoreMode}, actions::{ActionMetadata, Action, IncreaseBucket, IncreaseBucketAmount, BucketAction, Timeout}}, activity::{Levels, Top}};
+use crate::models::config::commands::Commands;
 
 #[allow(dead_code)]
 
 /// Creates config for warns
 pub fn create_debug_config() -> GuildConfig {
     GuildConfig {
-        guild_id: Id::new(981950094804930581),
+        guild_id: Id::new(759848600833490945),
         application_id: None,
+        enabled_commands: Commands {
+            case_details: true,
+            case_edit: true,
+            case_last: true,
+            case_list: true,
+            case_remove: true,
+            clear: true,
+            ban: true,
+            kick: true,
+            mute: true,
+            timeout: true,
+            warn: true,
+            top_day_all: true,
+            top_day_me: true,
+            top_week_all: true,
+            top_week_me: true,
+        },
         moderation: Some(Moderation {
             automod: Some(AutoModeration {
                 rules: vec![AutoModerationRule {
@@ -61,6 +79,7 @@ pub fn create_debug_config() -> GuildConfig {
             native_support: true,
             logs_channel: Some(Id::new(981950096801406979)),
             dm_case: true,
+            context_menu: true,
         }),
         premium: true,
         levels: Some(Levels {

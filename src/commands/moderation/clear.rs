@@ -27,12 +27,12 @@ pub async fn run(
         interaction.options.get("amount"), CommandOptionValue::Integer
     );
 
-    let member = get_option!(
-        interaction.options.get("member"), CommandOptionValue::User
+    let author = get_option!(
+        interaction.options.get("author"), CommandOptionValue::User
     ).copied();
 
     let filter = get_option!(
-        interaction.options.get("member"), CommandOptionValue::String
+        interaction.options.get("filter"), CommandOptionValue::String
     );
 
     if !(&2..=&600).contains(&amount) {
@@ -61,7 +61,7 @@ pub async fn run(
 
         last = messages.last().map(|msg| msg.id);
 
-        if let Some(member) = member {
+        if let Some(member) = author {
             messages = messages.iter()
                 .filter(|msg| msg.author.id == member)
                 .cloned().collect::<Vec<Message>>();
