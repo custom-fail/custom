@@ -2,21 +2,40 @@ name: Rust
 
 on:
   push:
-    branches: [ "*" ]
+    branches: ["*"]
   pull_request:
-    branches: [ "*" ]
+    branches: ["*"]
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
 
 jobs:
-  linter:
+  fmt:
+    name: Rust
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Update toolchain
-      run: rustup update stable
-    - name: Check
-      run: cargo check --features all
-    - name: Tests
-      run: cargo test --features all
+      - uses: actions/checkout@v4
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  check:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check
+        run: cargo check --features all
+
+  test:
+    name: Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Tests
+        run: cargo test --features all
