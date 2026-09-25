@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use twilight_model::application::interaction::application_command::{CommandData, CommandDataOption, CommandOptionValue};
 use twilight_model::application::interaction::InteractionData;
+use twilight_model::application::interaction::modal::ModalInteractionComponent;
 use crate::{extract, ok_or_break, ok_or_skip};
 use crate::application::{Application, ConvertableOptionsList};
 use crate::commands::context::InteractionContext;
@@ -73,15 +74,15 @@ impl LoadOptions for InteractionContext {
                     .await.ok_or("Unknown modal")?;
                 self.command_text = component.command;
 
-                for action_row in &data.components {
-                    for text_input in &action_row.components {
+                for modal_component in &data.components {
+                    if let ModalInteractionComponent::TextInput(input) = modal_component {
                         let kind = ok_or_skip!(
-                            &component.inputs.get(text_input.custom_id.as_str()), Some
+                            &component.inputs.get(input.custom_id.as_str()), Some
                         );
                         let value = convert_value_to_option(
-                            ok_or_skip!(&text_input.value, Some).to_owned().as_str(), kind
+                            input.value.as_str(), kind
                         )?;
-                        self.options.insert(text_input.custom_id.clone(), value);
+                        self.options.insert(input.custom_id.clone(), value);
                     }
                 }
 
