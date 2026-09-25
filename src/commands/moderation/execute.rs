@@ -167,7 +167,8 @@ pub async fn run(
         embeds: Some(vec![case_embed]),
         flags: Some(MessageFlags::EPHEMERAL),
         title: None,
-        tts: None
+        tts: None,
+        poll: None,
     }, None))
 }
 

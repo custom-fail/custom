@@ -58,7 +58,8 @@ pub async fn run(
         embeds: Some(vec![case.to_embed(discord_http).await?]),
         flags: Some(MessageFlags::EPHEMERAL),
         title: None,
-        tts: None
+        tts: None,
+        poll: None,
     }, None))
 
 }

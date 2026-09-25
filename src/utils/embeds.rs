@@ -77,6 +77,7 @@ pub fn interaction_response_data_from_embed(embed: Embed, ephemeral: bool) -> In
         embeds: Some(vec![embed]),
         flags: if ephemeral { Some(MessageFlags::EPHEMERAL) } else { None },
         title: None,
-        tts: None
+        tts: None,
+        poll: None,
     }
 }
