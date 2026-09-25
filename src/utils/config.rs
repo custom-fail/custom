@@ -2,8 +2,19 @@ use std::collections::HashMap;
 
 use twilight_model::id::Id;
 
-use crate::models::config::{GuildConfig, moderation::{Moderation, MuteMode}, automod::{AutoModeration, AutoModerationRule, ignore::{Ignore, IgnoreMode}, actions::{ActionMetadata, Action, IncreaseBucket, IncreaseBucketAmount, BucketAction, Timeout}}, activity::{Levels, Top}};
 use crate::models::config::commands::Commands;
+use crate::models::config::{
+    GuildConfig,
+    activity::{Levels, Top},
+    automod::{
+        AutoModeration, AutoModerationRule,
+        actions::{
+            Action, ActionMetadata, BucketAction, IncreaseBucket, IncreaseBucketAmount, Timeout,
+        },
+        ignore::{Ignore, IgnoreMode},
+    },
+    moderation::{Moderation, MuteMode},
+};
 
 #[allow(dead_code)]
 
@@ -36,41 +47,41 @@ pub fn create_debug_config() -> GuildConfig {
                     check_on_edit: true,
                     filters: vec![],
                     checks: vec![],
-                    actions: vec![
-                        ActionMetadata {
-                            action: Action::IncreaseBucket(IncreaseBucket {
-                                key: "mentions".to_owned(),
-                                amount: IncreaseBucketAmount::Mentions,
-                                per_channel: false,
-                                duration: 5
-                            }),
-                            sync: false
-                        }
-                    ],
+                    actions: vec![ActionMetadata {
+                        action: Action::IncreaseBucket(IncreaseBucket {
+                            key: "mentions".to_owned(),
+                            amount: IncreaseBucketAmount::Mentions,
+                            per_channel: false,
+                            duration: 5,
+                        }),
+                        sync: false,
+                    }],
                     ignore: Some(Ignore {
                         channels: vec![Id::new(981950096801406979)],
                         channels_ignore_mode: IgnoreMode::BlackList,
                         roles: vec![Id::new(981950094888820797)],
-                        users: vec![]
+                        users: vec![],
                     }),
                     reason: "test".to_string(),
-                    name: "test".to_string()
+                    name: "test".to_string(),
                 }],
-                bucket_actions: HashMap::from([
-                    ("mentions".to_owned(), BucketAction {
-                        actions: vec![ActionMetadata {
-                            action: Action::Timeout(Timeout {
-                                duration: 5000
-                            }),
-                            sync: false
-                        }, ActionMetadata {
-                            action: Action::DeleteMessage,
-                            sync: false
-                        }],
+                bucket_actions: HashMap::from([(
+                    "mentions".to_owned(),
+                    BucketAction {
+                        actions: vec![
+                            ActionMetadata {
+                                action: Action::Timeout(Timeout { duration: 5000 }),
+                                sync: false,
+                            },
+                            ActionMetadata {
+                                action: Action::DeleteMessage,
+                                sync: false,
+                            },
+                        ],
                         reason: "Too many mentions".to_string(),
                         limit: 5,
-                    })
-                ]),
+                    },
+                )]),
                 logs_channel: Some(Id::new(981950096801406979)),
                 ignore: None,
             }),

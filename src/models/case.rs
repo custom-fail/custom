@@ -1,18 +1,18 @@
-use std::sync::Arc;
-use std::time::Duration as StdDuration;
-use humantime::format_duration;
-use mongodb::bson::DateTime;
-use twilight_http::Client;
-use twilight_model::channel::message::Embed;
-use twilight_model::channel::message::embed::{EmbedFooter, EmbedField, EmbedAuthor};
-use twilight_model::id::Id;
-use twilight_model::id::marker::{GuildMarker, UserMarker};
-use twilight_model::util::datetime::TimestampParseError;
-use twilight_model::util::Timestamp;
+use crate::database::redis::RedisConnection;
 use crate::utils::avatars::{DEFAULT_AVATAR, get_avatar_url, get_guild_icon_url};
 use crate::utils::errors::Error;
-use serde::{Serialize, Deserialize};
-use crate::database::redis::RedisConnection;
+use humantime::format_duration;
+use mongodb::bson::DateTime;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use std::time::Duration as StdDuration;
+use twilight_http::Client;
+use twilight_model::channel::message::Embed;
+use twilight_model::channel::message::embed::{EmbedAuthor, EmbedField, EmbedFooter};
+use twilight_model::id::Id;
+use twilight_model::id::marker::{GuildMarker, UserMarker};
+use twilight_model::util::Timestamp;
+use twilight_model::util::datetime::TimestampParseError;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Case {
@@ -24,7 +24,7 @@ pub struct Case {
     pub reason: Option<String>,
     pub removed: bool,
     pub duration: Option<i64>,
-    pub index: u16
+    pub index: u16,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -37,7 +37,7 @@ pub enum CaseActionType {
     Unban,
     Kick,
     Timeout,
-    Unknown(u8)
+    Unknown(u8),
 }
 
 impl From<u8> for CaseActionType {
@@ -50,7 +50,7 @@ impl From<u8> for CaseActionType {
             5 => CaseActionType::Unban,
             6 => CaseActionType::Kick,
             7 => CaseActionType::Timeout,
-            _ => CaseActionType::Unknown(action_type)
+            _ => CaseActionType::Unknown(action_type),
         }
     }
 }
@@ -65,7 +65,7 @@ impl From<CaseActionType> for u8 {
             CaseActionType::Unban => 5,
             CaseActionType::Kick => 6,
             CaseActionType::Timeout => 7,
-            CaseActionType::Unknown(action_type) => action_type
+            CaseActionType::Unknown(action_type) => action_type,
         }
     }
 }
@@ -79,7 +79,7 @@ impl Case {
             icon_url: Some(guild_icon_url),
             name: guild.name,
             proxy_icon_url: None,
-            url: None
+            url: None,
         };
 
         let mut embed = self.to_empty_embed(false, true).map_err(Error::from)?;
@@ -90,38 +90,50 @@ impl Case {
     pub async fn to_embed(&self, discord_http: Arc<Client>) -> Result<Embed, Error> {
         let moderator = match discord_http.user(self.moderator_id).await {
             Ok(moderator) => moderator.model().await.ok(),
-            Err(_) => None
+            Err(_) => None,
         };
 
-        let embed_author = moderator.map(|moderator| {
-            let avatar = get_avatar_url(moderator.avatar, moderator.id);
-            EmbedAuthor {
-                icon_url: Some(avatar),
-                name: format!("{}#{} {}", moderator.name, moderator.discriminator, moderator.id),
-                proxy_icon_url: None,
-                url: None
-            }
-        }).unwrap_or(EmbedAuthor {
-            icon_url: Some(DEFAULT_AVATAR.to_string()),
-            name: "Unknown#0000".to_string(),
-            proxy_icon_url: Some(DEFAULT_AVATAR.to_string()),
-            url: None
-        });
+        let embed_author = moderator
+            .map(|moderator| {
+                let avatar = get_avatar_url(moderator.avatar, moderator.id);
+                EmbedAuthor {
+                    icon_url: Some(avatar),
+                    name: format!(
+                        "{}#{} {}",
+                        moderator.name, moderator.discriminator, moderator.id
+                    ),
+                    proxy_icon_url: None,
+                    url: None,
+                }
+            })
+            .unwrap_or(EmbedAuthor {
+                icon_url: Some(DEFAULT_AVATAR.to_string()),
+                name: "Unknown#0000".to_string(),
+                proxy_icon_url: Some(DEFAULT_AVATAR.to_string()),
+                url: None,
+            });
 
         let mut embed = self.to_empty_embed(true, false).map_err(Error::from)?;
         embed.author = Some(embed_author);
         Ok(embed)
     }
 
-    pub fn to_empty_embed(&self, member: bool, moderator: bool) -> Result<Embed, TimestampParseError> {
+    pub fn to_empty_embed(
+        &self,
+        member: bool,
+        moderator: bool,
+    ) -> Result<Embed, TimestampParseError> {
         let timestamp = Timestamp::from_secs(self.created_at.timestamp_millis() / 1000)?;
 
         let mut description = format!(
             "Action:** {:?}{}\n**Reason:** {}",
             self.action,
-            self.duration.map(|duration| format!(
-                "\n**Duration:** {}", format_duration(StdDuration::from_secs(duration as u64))
-            )).unwrap_or_else(|| "".to_string()),
+            self.duration
+                .map(|duration| format!(
+                    "\n**Duration:** {}",
+                    format_duration(StdDuration::from_secs(duration as u64))
+                ))
+                .unwrap_or_else(|| "".to_string()),
             self.reason.to_owned().unwrap_or_else(|| "None".to_string())
         );
 
@@ -135,7 +147,7 @@ impl Case {
         let footer = EmbedFooter {
             icon_url: None,
             proxy_icon_url: None,
-            text: format!("Case #{}", self.index)
+            text: format!("Case #{}", self.index),
         };
 
         Ok(Embed {
@@ -151,7 +163,7 @@ impl Case {
             timestamp: Some(timestamp),
             title: None,
             url: None,
-            video: None
+            video: None,
         })
     }
 
@@ -160,7 +172,7 @@ impl Case {
         EmbedField {
             inline: false,
             name: format!("**Case #{} - {:?}**", self.index, self.action),
-            value: reason
+            value: reason,
         }
     }
 }

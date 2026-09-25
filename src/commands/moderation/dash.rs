@@ -1,23 +1,24 @@
+use crate::commands::ResponseData;
+use crate::commands::context::InteractionContext;
+use crate::context::Context;
+use crate::models::config::GuildConfig;
+use crate::utils::errors::Error;
+use crate::utils::modals::{ModalBuilder, RepetitiveTextInput};
+use crate::{get_option, get_required_option};
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::http::interaction::InteractionResponseType;
-use crate::commands::ResponseData;
-use crate::context::Context;
-use crate::{get_required_option, get_option};
-use crate::commands::context::InteractionContext;
-use crate::models::config::GuildConfig;
-use crate::utils::errors::Error;
-use crate::utils::modals::{ModalBuilder, RepetitiveTextInput};
 
 pub async fn run(
     interaction: InteractionContext,
     _: Arc<Context>,
     _: Arc<Client>,
-    _: GuildConfig
+    _: GuildConfig,
 ) -> ResponseData {
     let action = get_required_option!(
-        interaction.options.get("action"), CommandOptionValue::String
+        interaction.options.get("action"),
+        CommandOptionValue::String
     );
 
     let modal = if *action == "warn" {
@@ -38,10 +39,12 @@ pub async fn run(
             .add_repetitive_component(RepetitiveTextInput::Member)
             .add_repetitive_component(RepetitiveTextInput::Duration(false))
             .add_repetitive_component(RepetitiveTextInput::Reason)
-    } else { return Err(Error::from("Unknown action")) };
+    } else {
+        return Err(Error::from("Unknown action"));
+    };
 
     Ok((
         modal.to_interaction_response_data(),
-        Some(InteractionResponseType::Modal)
+        Some(InteractionResponseType::Modal),
     ))
 }
