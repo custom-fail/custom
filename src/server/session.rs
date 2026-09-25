@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use rusty_paseto::core::{ImplicitAssertion, Key, Local, PasetoSymmetricKey, V4};
-use rusty_paseto::generic::GenericBuilderError;
 use rusty_paseto::prelude::{PasetoBuilder, PasetoParser};
 use serde::Deserialize;
 use tokio::sync::RwLock;
@@ -26,18 +25,16 @@ impl Authenticator {
         }
     }
 
-    pub fn generate_token(&self, user_id: Id<UserMarker>) -> Result<String, GenericBuilderError> {
+    pub fn generate_token(&self, user_id: Id<UserMarker>) -> Result<String, rusty_paseto::Error> {
         let user_id = user_id.id().to_string();
         let assertion = ImplicitAssertion::from(user_id.as_str());
 
-        let result = PasetoBuilder::<V4, Local>::default()
+        PasetoBuilder::<V4, Local>::default()
             .set_implicit_assertion(assertion)
             .set_no_expiration_danger_acknowledged()
-            .build(&self.key);
-
-        result.map(|token|
-            token.strip_prefix("v4.local.").unwrap_or_default().to_string()
-        )
+            .build(&self.key)
+            .map(|token| token.strip_prefix("v4.local.").unwrap_or_default().to_string())
+            .map_err(rusty_paseto::Error::from)
     }
 
     pub fn verify_token(&self, token: &str, user_id: Id<UserMarker>) -> bool {
