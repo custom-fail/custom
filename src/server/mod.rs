@@ -32,6 +32,8 @@ pub mod guild {
 
 #[cfg(any(feature = "api", feature = "http-interactions"))]
 mod http_server {
+    use crate::context::Context;
+    use crate::gateway::clients::DiscordClients;
     use std::env;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use std::str::FromStr;
@@ -40,8 +42,6 @@ mod http_server {
     use twilight_http::Client;
     use warp::Filter;
     use warp::http::{HeaderName, Method};
-    use crate::context::Context;
-    use crate::gateway::clients::DiscordClients;
 
     #[macro_export]
     macro_rules! with_value {
@@ -62,11 +62,10 @@ mod http_server {
         context: Arc<Context>,
         discord_http: Arc<Client>,
         discord_clients: DiscordClients,
-        #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::VerifyingKey
+        #[cfg(feature = "http-interactions")] public_key: ed25519_dalek::VerifyingKey,
     ) {
         let cors_allow = if let Ok(origin) = env::var("ALLOWED_ORIGIN") {
-            warp::cors()
-                .allow_origin(origin.as_str())
+            warp::cors().allow_origin(origin.as_str())
         } else {
             warn!(
                 "There is no ALLOWED_ORIGIN environment variable, CORS Headers are set to accept all requests"
@@ -76,20 +75,26 @@ mod http_server {
         let cors_allow = cors_allow
             .allow_headers([
                 HeaderName::from_str("Authorization").unwrap(),
-                HeaderName::from_str("User-Id").unwrap()
+                HeaderName::from_str("User-Id").unwrap(),
             ])
             .allow_methods([Method::GET, Method::POST])
             .allow_credentials(true)
             .build();
 
         let routes = crate::server::routes::get_all_routes(
-            context, discord_http, discord_clients, #[cfg(feature = "http-interactions")] public_key
+            context,
+            discord_http,
+            discord_clients,
+            #[cfg(feature = "http-interactions")]
+            public_key,
         )
-            .recover(crate::server::error::handle_rejection)
-            .with(cors_allow);
+        .recover(crate::server::error::handle_rejection)
+        .with(cors_allow);
 
         const ALL_SOCKETS: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
-        warp::serve(routes).run(SocketAddr::new(ALL_SOCKETS, port)).await;
+        warp::serve(routes)
+            .run(SocketAddr::new(ALL_SOCKETS, port))
+            .await;
     }
 }
 

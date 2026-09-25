@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
@@ -7,31 +7,31 @@ pub enum Check {
     TextLines(TextLines),
     CapsLock(CapsLock),
     Invites(Invites),
-    Regex(Regex)
+    Regex(Regex),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Invites {
     // codes of allowed invites
-    pub allowed_invites: Vec<String>
+    pub allowed_invites: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 // min and max in %
 pub struct CapsLock {
     pub min: Option<u8>,
-    pub max: Option<u8>
+    pub max: Option<u8>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TextLines {
     pub line_len: Option<u16>,
     pub min: Option<u16>,
-    pub max: Option<u16>
+    pub max: Option<u16>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Regex {
     pub is_matching: bool,
-    pub regex: String
+    pub regex: String,
 }

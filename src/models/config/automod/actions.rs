@@ -1,10 +1,10 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ActionMetadata {
     #[serde(flatten)]
     pub action: Action,
-    pub sync: bool
+    pub sync: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -16,7 +16,7 @@ pub enum Action {
     SendLogs,
     Timeout(Timeout),
     Kick,
-    Ban
+    Ban,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -25,7 +25,7 @@ pub enum IncreaseBucketAmount {
     Stickers,
     Attachments,
     Mentions,
-    Static(u8)
+    Static(u8),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,7 +34,7 @@ pub struct IncreaseBucket {
     pub amount: IncreaseBucketAmount,
     pub per_channel: bool,
     /// Time before value is decreased (in seconds)
-    pub duration: u16
+    pub duration: u16,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -42,10 +42,10 @@ pub struct BucketAction {
     pub actions: Vec<ActionMetadata>,
     pub reason: String,
     /// Minimal value required to run action
-    pub limit: u8
+    pub limit: u8,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Timeout {
-    pub duration: u32
+    pub duration: u32,
 }

@@ -1,7 +1,7 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use twilight_model::id::Id;
 use twilight_model::id::marker::{ChannelMarker, RoleMarker};
-use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use super::automod::AutoModeration;
 
@@ -10,7 +10,7 @@ use super::automod::AutoModeration;
 pub enum MuteMode {
     DependOnCommand = 1,
     Timeout = 2,
-    Role = 3
+    Role = 3,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -21,5 +21,5 @@ pub struct Moderation {
     pub native_support: bool,
     pub logs_channel: Option<Id<ChannelMarker>>,
     pub dm_case: bool,
-    pub context_menu: bool
+    pub context_menu: bool,
 }

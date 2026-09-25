@@ -1,11 +1,11 @@
-use twilight_model::channel::message::{MessageFlags, Embed};
 use twilight_model::channel::message::embed::EmbedField;
+use twilight_model::channel::message::{Embed, MessageFlags};
 use twilight_model::http::interaction::InteractionResponseData;
 
 pub struct EmbedBuilder {
     description: Option<String>,
     title: Option<String>,
-    fields: Vec<EmbedField>
+    fields: Vec<EmbedField>,
 }
 
 #[allow(dead_code)]
@@ -15,7 +15,7 @@ impl EmbedBuilder {
         Self {
             title: None,
             description: None,
-            fields: vec![]
+            fields: vec![],
         }
     }
 
@@ -23,7 +23,7 @@ impl EmbedBuilder {
         Self {
             title: self.title.to_owned(),
             description: Some(text),
-            fields: self.fields.to_owned()
+            fields: self.fields.to_owned(),
         }
     }
 
@@ -31,7 +31,7 @@ impl EmbedBuilder {
         Self {
             title: Some(text),
             description: None,
-            fields: self.fields.to_owned()
+            fields: self.fields.to_owned(),
         }
     }
 
@@ -39,7 +39,7 @@ impl EmbedBuilder {
         Self {
             description: self.description.to_owned(),
             title: self.title.to_owned(),
-            fields
+            fields,
         }
     }
 
@@ -57,7 +57,7 @@ impl EmbedBuilder {
             timestamp: None,
             title: self.title.to_owned(),
             url: None,
-            video: None
+            video: None,
         }
     }
 
@@ -66,7 +66,10 @@ impl EmbedBuilder {
     }
 }
 
-pub fn interaction_response_data_from_embed(embed: Embed, ephemeral: bool) -> InteractionResponseData {
+pub fn interaction_response_data_from_embed(
+    embed: Embed,
+    ephemeral: bool,
+) -> InteractionResponseData {
     InteractionResponseData {
         allowed_mentions: None,
         attachments: None,
@@ -75,8 +78,12 @@ pub fn interaction_response_data_from_embed(embed: Embed, ephemeral: bool) -> In
         content: None,
         custom_id: None,
         embeds: Some(vec![embed]),
-        flags: if ephemeral { Some(MessageFlags::EPHEMERAL) } else { None },
+        flags: if ephemeral {
+            Some(MessageFlags::EPHEMERAL)
+        } else {
+            None
+        },
         title: None,
-        tts: None
+        tts: None,
     }
 }

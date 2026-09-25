@@ -1,21 +1,21 @@
-use std::sync::Arc;
-use dashmap::DashMap;
-use futures_util::TryStreamExt;
-use mongodb::{Client, Collection, Database};
-use mongodb::bson::doc;
-#[cfg(feature = "tasks")]
-use mongodb::bson::DateTime;
-use tracing::info;
-use twilight_model::channel::message::Embed;
-use twilight_model::id::Id;
-use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
+use crate::database::redis::RedisConnection;
 #[cfg(any(feature = "tasks", feature = "custom-clients"))]
 use crate::gateway::clients::ClientData;
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 use crate::models::task::Task;
-use crate::database::redis::RedisConnection;
 use crate::utils::errors::Error;
+use dashmap::DashMap;
+use futures_util::TryStreamExt;
+#[cfg(feature = "tasks")]
+use mongodb::bson::DateTime;
+use mongodb::bson::doc;
+use mongodb::{Client, Collection, Database};
+use std::sync::Arc;
+use tracing::info;
+use twilight_model::channel::message::Embed;
+use twilight_model::id::Id;
+use twilight_model::id::marker::{ChannelMarker, GuildMarker, UserMarker};
 
 #[derive(Clone)]
 pub struct MongoDBConnection {
@@ -26,11 +26,10 @@ pub struct MongoDBConnection {
     #[cfg(any(feature = "tasks", feature = "custom-clients"))]
     pub clients: Collection<ClientData>,
     pub tasks: Collection<Task>,
-    pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>
+    pub configs_cache: Arc<DashMap<Id<GuildMarker>, GuildConfig>>,
 }
 
 impl MongoDBConnection {
-
     pub async fn connect(uri: String) -> Result<Self, mongodb::error::Error> {
         let client = Client::with_uri_str(uri).await?;
         info!("connected to MongoDB");
@@ -49,21 +48,25 @@ impl MongoDBConnection {
             #[cfg(any(feature = "tasks", feature = "custom-clients"))]
             clients,
             configs,
-            tasks
+            tasks,
         })
     }
 
-    pub async fn get_config(&self, guild_id: Id<GuildMarker>) -> Result<GuildConfig, mongodb::error::Error> {
-        match self.configs_cache.get(&guild_id){
-            Some(config) => {
-                Ok(config.to_owned())
-            },
+    pub async fn get_config(
+        &self,
+        guild_id: Id<GuildMarker>,
+    ) -> Result<GuildConfig, mongodb::error::Error> {
+        match self.configs_cache.get(&guild_id) {
+            Some(config) => Ok(config.to_owned()),
             None => {
-                let config = self.configs.clone_with_type().find_one(
-                    doc! {
+                let config = self
+                    .configs
+                    .clone_with_type()
+                    .find_one(doc! {
                         "guild_id": guild_id.to_string()
-                    }
-                ).await?.unwrap_or_else(|| GuildConfig::new(guild_id.to_owned()));
+                    })
+                    .await?
+                    .unwrap_or_else(|| GuildConfig::new(guild_id.to_owned()));
 
                 self.configs_cache.insert(guild_id, config.to_owned());
                 info!(
@@ -75,7 +78,6 @@ impl MongoDBConnection {
                 Ok(config)
             }
         }
-
     }
 
     pub async fn create_case(
@@ -85,49 +87,75 @@ impl MongoDBConnection {
         case: Case,
         case_embed: Embed,
         dm_case: Option<Id<UserMarker>>,
-        logs: Option<Id<ChannelMarker>>
+        logs: Option<Id<ChannelMarker>>,
     ) -> Result<(), Error> {
-
-        self.cases.insert_one(case.to_owned()).await.map_err(Error::from)?;
+        self.cases
+            .insert_one(case.to_owned())
+            .await
+            .map_err(Error::from)?;
 
         if let Some(channel_id) = logs {
-            discord_http.create_message(channel_id)
+            discord_http
+                .create_message(channel_id)
                 .embeds(&[case_embed.clone()])
-                .await.map_err(Error::from)?
-                .model().await.map_err(Error::from)?;
+                .await
+                .map_err(Error::from)?
+                .model()
+                .await
+                .map_err(Error::from)?;
         }
 
         if let Some(member_id) = dm_case {
-            let channel = discord_http.create_private_channel(member_id)
-                .await.map_err(Error::from)?
-                .model().await.map_err(Error::from)?;
+            let channel = discord_http
+                .create_private_channel(member_id)
+                .await
+                .map_err(Error::from)?
+                .model()
+                .await
+                .map_err(Error::from)?;
             let embed = case.to_dm_embed(redis).await.map_err(Error::from)?;
-            discord_http.create_message(channel.id)
+            discord_http
+                .create_message(channel.id)
                 .embeds(&[embed])
-                .await.map_err(Error::from)?
-                .model().await.map_err(Error::from)?;
+                .await
+                .map_err(Error::from)?
+                .model()
+                .await
+                .map_err(Error::from)?;
         }
 
         Ok(())
-
     }
 
     pub async fn get_next_case_index(&self, guild_id: Id<GuildMarker>) -> Result<u64, Error> {
-        Ok(self.cases.count_documents(
-            doc! { "guild_id": guild_id.to_string() }
-        ).await.map_err(Error::from)? + 1)
+        Ok(self
+            .cases
+            .count_documents(doc! { "guild_id": guild_id.to_string() })
+            .await
+            .map_err(Error::from)?
+            + 1)
     }
 
     pub async fn create_task(&self, task: Task) -> Result<(), Error> {
-        self.tasks.insert_one(task).await.map(|_| ()).map_err(Error::from)
+        self.tasks
+            .insert_one(task)
+            .await
+            .map(|_| ())
+            .map_err(Error::from)
     }
 
     #[cfg(feature = "tasks")]
     pub async fn get_and_delete_future_tasks(&self, after: u64) -> Result<Vec<Task>, Error> {
         let time = DateTime::from_millis(DateTime::now().timestamp_millis() + after as i64);
         let filter = doc! { "execute_at": { "$lt": time } };
-        let tasks = self.tasks.find(filter.to_owned())
-            .await.map_err(Error::from)?.try_collect().await.map_err(Error::from);
+        let tasks = self
+            .tasks
+            .find(filter.to_owned())
+            .await
+            .map_err(Error::from)?
+            .try_collect()
+            .await
+            .map_err(Error::from);
         self.tasks.delete_many(filter).await.map_err(Error::from)?;
         tasks
     }

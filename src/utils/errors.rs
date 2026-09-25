@@ -1,14 +1,16 @@
+use crate::utils::embeds::EmbedBuilder;
 use redis::RedisError;
 use twilight_model::channel::message::MessageFlags;
+use twilight_model::http::interaction::{
+    InteractionResponse, InteractionResponseData, InteractionResponseType,
+};
 use twilight_model::util::datetime::TimestampParseError;
-use twilight_model::http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType};
 use twilight_validate::command::CommandValidationError;
-use crate::utils::embeds::EmbedBuilder;
 
 #[derive(Debug)]
 pub enum Error {
     Debug(Vec<String>),
-    Message(String)
+    Message(String),
 }
 
 impl From<String> for Error {
@@ -91,7 +93,6 @@ impl From<twilight_validate::command::CommandValidationError> for Error {
 
 impl Error {
     pub fn to_interaction_data_response(&self) -> InteractionResponseData {
-
         match self {
             Error::Debug(errors) => {
                 let description = format!("```{}```", errors.join("``` ```"));
@@ -99,29 +100,26 @@ impl Error {
                     .title("Internal Server Error".to_string())
                     .description(description)
                     .to_interaction_response_data(true)
-            },
-            Error::Message(message) => {
-                InteractionResponseData {
-                    allowed_mentions: None,
-                    attachments: None,
-                    choices: None,
-                    components: None,
-                    content: Some(message.to_owned()),
-                    custom_id: None,
-                    embeds: None,
-                    flags: Some(MessageFlags::EPHEMERAL),
-                    title: None,
-                    tts: None
-                }
             }
+            Error::Message(message) => InteractionResponseData {
+                allowed_mentions: None,
+                attachments: None,
+                choices: None,
+                components: None,
+                content: Some(message.to_owned()),
+                custom_id: None,
+                embeds: None,
+                flags: Some(MessageFlags::EPHEMERAL),
+                title: None,
+                tts: None,
+            },
         }
-
     }
 
     pub fn to_interaction_response(&self) -> InteractionResponse {
         InteractionResponse {
             kind: InteractionResponseType::ChannelMessageWithSource,
-            data: Some(self.to_interaction_data_response())
+            data: Some(self.to_interaction_data_response()),
         }
     }
 }
