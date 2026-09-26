@@ -101,9 +101,15 @@ mod tests {
     fn test_is_equal() {
         let config1 = create_debug_config();
         let mut config2 = create_debug_config();
-        assert_eq!(get_enabled_bitfield(&config1), get_enabled_bitfield(&config2));
+        assert_eq!(
+            get_enabled_bitfield(&config1),
+            get_enabled_bitfield(&config2)
+        );
 
         config2.enabled_commands.ban = false;
-        assert_ne!(get_enabled_bitfield(&config1), get_enabled_bitfield(&config2));
+        assert_ne!(
+            get_enabled_bitfield(&config1),
+            get_enabled_bitfield(&config2)
+        );
     }
 }

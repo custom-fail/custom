@@ -1,8 +1,10 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use crate::server::error::Rejection;
+use crate::with_value;
 use rusty_paseto::core::{ImplicitAssertion, Key, Local, PasetoSymmetricKey, V4};
 use rusty_paseto::prelude::{PasetoBuilder, PasetoParser};
 use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::RwLock;
 use twilight_http::Client;
 use twilight_model::id::Id;
@@ -11,17 +13,15 @@ use twilight_model::user::CurrentUser;
 use twilight_model::util::Timestamp;
 use twilight_util::snowflake::Snowflake;
 use warp::Filter;
-use crate::server::error::Rejection;
-use crate::with_value;
 
 pub struct Authenticator {
-    key: PasetoSymmetricKey<V4, Local>
+    key: PasetoSymmetricKey<V4, Local>,
 }
 
 impl Authenticator {
     pub fn with_random_key() -> Self {
         Self {
-            key: PasetoSymmetricKey::<V4, Local>::from(Key::try_new_random().unwrap())
+            key: PasetoSymmetricKey::<V4, Local>::from(Key::try_new_random().unwrap()),
         }
     }
 
@@ -33,14 +33,18 @@ impl Authenticator {
             .set_implicit_assertion(assertion)
             .set_no_expiration_danger_acknowledged()
             .build(&self.key)
-            .map(|token| token.strip_prefix("v4.local.").unwrap_or_default().to_string())
+            .map(|token| {
+                token
+                    .strip_prefix("v4.local.")
+                    .unwrap_or_default()
+                    .to_string()
+            })
             .map_err(rusty_paseto::Error::from)
     }
 
     pub fn verify_token(&self, token: &str, user_id: Id<UserMarker>) -> bool {
         let user_id = user_id.to_string();
         let assertion = ImplicitAssertion::from(user_id.as_str());
-
 
         let is_verified = PasetoParser::<V4, Local>::default()
             .set_implicit_assertion(assertion)
@@ -69,7 +73,7 @@ impl Sessions {
         Some(Arc::clone(self.0.read().await.get(&id)?))
     }
 
-    pub async fn add<'f>(&self,  data: Arc<AuthorizationInformation>) {
+    pub async fn add<'f>(&self, data: Arc<AuthorizationInformation>) {
         self.0.write().await.insert(data.user.id, data);
     }
 
@@ -81,7 +85,7 @@ impl Sessions {
 
 pub fn authorize_user(
     authenticator: Arc<Authenticator>,
-    sessions: Arc<Sessions>
+    sessions: Arc<Sessions>,
 ) -> impl Filter<Extract = (Arc<AuthorizationInformation>,), Error = warp::Rejection> + Clone {
     let with_authenticator = with_value!(authenticator);
     let with_sessions = with_value!(sessions);
@@ -98,13 +102,14 @@ async fn filter(
     token: String,
     user_id: Id<UserMarker>,
     authenticator: Arc<Authenticator>,
-    sessions: Arc<Sessions>
+    sessions: Arc<Sessions>,
 ) -> Result<Arc<AuthorizationInformation>, warp::Rejection> {
     if authenticator.verify_token(token.as_str(), user_id) {
-        return err!(Rejection::Unauthorized)
+        return err!(Rejection::Unauthorized);
     }
 
-    sessions.user(&user_id)
+    sessions
+        .user(&user_id)
         .await
         .ok_or_else(|| reject!(Rejection::Unauthorized))
 }
@@ -114,12 +119,12 @@ struct Query {
     #[serde(rename = "Authorization")]
     pub token: String,
     #[serde(rename = "User-Id")]
-    pub user_id: Id<UserMarker>
+    pub user_id: Id<UserMarker>,
 }
 
 pub fn query_authorize_user(
     authenticator: Arc<Authenticator>,
-    sessions: Arc<Sessions>
+    sessions: Arc<Sessions>,
 ) -> impl Filter<Extract = (Arc<AuthorizationInformation>,), Error = warp::Rejection> + Clone {
     let with_authenticator = with_value!(authenticator);
     let with_sessions = with_value!(sessions);
@@ -134,13 +139,14 @@ pub fn query_authorize_user(
 async fn query_filter(
     query: Query,
     authenticator: Arc<Authenticator>,
-    sessions: Arc<Sessions>
+    sessions: Arc<Sessions>,
 ) -> Result<Arc<AuthorizationInformation>, warp::Rejection> {
     if authenticator.verify_token(query.token.as_str(), query.user_id) {
-        return err!(Rejection::Unauthorized)
+        return err!(Rejection::Unauthorized);
     }
 
-    sessions.user(&query.user_id)
+    sessions
+        .user(&query.user_id)
         .await
         .ok_or_else(|| reject!(Rejection::Unauthorized))
 }

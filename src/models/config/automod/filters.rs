@@ -1,11 +1,11 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use twilight_model::channel::message::MessageType;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct FilterMetadata {
     #[serde(flatten)]
     pub filter: Filter,
-    pub negate: bool
+    pub negate: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -19,7 +19,7 @@ pub enum Filter {
     HasSticker,
     Embeds(U8MinMax),
     IsTTS,
-    IsInThread
+    IsInThread,
 }
 
 type U8MinMax = MinMax<u8>;
@@ -28,5 +28,5 @@ type U16MinMax = MinMax<u16>;
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct MinMax<T> {
     pub min: Option<T>,
-    pub max: Option<T>
+    pub max: Option<T>,
 }

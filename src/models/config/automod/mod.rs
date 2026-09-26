@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use crate::models::config::automod::filters::FilterMetadata;
-use serde::{Serialize, Deserialize};
-use twilight_model::id::Id;
-use twilight_model::id::marker::ChannelMarker;
 use self::actions::{ActionMetadata, BucketAction};
 use self::ignore::Ignore;
 use crate::models::config::automod::checks::Check;
+use crate::models::config::automod::filters::FilterMetadata;
+use serde::{Deserialize, Serialize};
+use twilight_model::id::Id;
+use twilight_model::id::marker::ChannelMarker;
 
 pub mod actions;
 pub mod checks;
@@ -18,7 +18,7 @@ pub struct AutoModeration {
     pub rules: Vec<AutoModerationRule>,
     pub bucket_actions: HashMap<String, BucketAction>,
     pub logs_channel: Option<Id<ChannelMarker>>,
-    pub ignore: Option<Ignore>
+    pub ignore: Option<Ignore>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -26,7 +26,7 @@ pub enum BasicAutoModerationRule {
     ScamLinks = 1,
     Mentions = 2,
     CapsLock = 3,
-    Invites = 4
+    Invites = 4,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -44,5 +44,5 @@ pub struct AutoModerationRule {
 #[derive(PartialEq, Debug)]
 pub enum TriggerEvent {
     MessageCreate,
-    MessageUpdate
+    MessageUpdate,
 }

@@ -3,7 +3,9 @@ macro_rules! ok_or_return {
     ($value: expr, $type: path) => {
         if let $type(value) = $value {
             value
-        } else { return }
+        } else {
+            return;
+        }
     };
 }
 
@@ -12,7 +14,9 @@ macro_rules! ok_or_skip {
     ($value: expr, $type: path) => {
         if let $type(value) = $value {
             value.clone()
-        } else { continue }
+        } else {
+            continue;
+        }
     };
 }
 
@@ -21,7 +25,9 @@ macro_rules! ok_or_break {
     ($value: expr, $type: path) => {
         if let $type(value) = $value {
             value.clone()
-        } else { break }
+        } else {
+            break;
+        }
     };
 }
 
@@ -30,7 +36,9 @@ macro_rules! ok_or_break_without_clone {
     ($value: expr, $type: path) => {
         if let $type(value) = $value {
             value
-        } else { break }
+        } else {
+            break;
+        }
     };
 }
 
@@ -39,7 +47,9 @@ macro_rules! ok_or_skip_without_clone {
     ($value: expr, $type: path) => {
         if let $type(value) = $value {
             value
-        } else { continue }
+        } else {
+            continue;
+        }
     };
 }
 
@@ -48,7 +58,7 @@ macro_rules! check_type {
     ($value: expr, $type: path) => {
         match $value {
             $type(v) => Some(v),
-            _ => None
+            _ => None,
         }
-    }
+    };
 }

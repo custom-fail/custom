@@ -1,32 +1,32 @@
-use std::str::FromStr;
-use futures_util::StreamExt;
-use redis::{Client, RedisError};
-use serde_json::json;
-use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
-use twilight_model::id::Id;
-use twilight_model::util::ImageHash;
-use serde::{Serialize, Deserialize};
-use crate::utils::errors::Error;
-use redis::AsyncCommands;
-use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::mpsc::error::SendError;
-use tracing::info;
 use crate::database::mongodb::MongoDBConnection;
 use crate::models::config::GuildConfig;
 use crate::server::guild::commands::bitfield::get_enabled_bitfield;
+use crate::utils::errors::Error;
+use futures_util::StreamExt;
+use redis::AsyncCommands;
+use redis::{Client, RedisError};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::str::FromStr;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::error::SendError;
+use tracing::info;
+use twilight_model::id::Id;
+use twilight_model::id::marker::{GuildMarker, RoleMarker, UserMarker};
+use twilight_model::util::ImageHash;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PartialGuild {
     pub name: String,
     pub icon: Option<ImageHash>,
-    pub roles: Vec<Id<RoleMarker>>
+    pub roles: Vec<Id<RoleMarker>>,
 }
 
 #[derive(Clone)]
 pub struct RedisConnection {
     pub client: Client,
     #[cfg(feature = "api")]
-    pub pub_sub_tx: UnboundedSender<Id<GuildMarker>>
+    pub pub_sub_tx: UnboundedSender<Id<GuildMarker>>,
 }
 
 macro_rules! connection {
@@ -40,8 +40,7 @@ impl RedisConnection {
         let client = Client::open(url)?;
 
         #[cfg(feature = "api")]
-        let (tx, mut rx) =
-            tokio::sync::mpsc::unbounded_channel::<Id<GuildMarker>>();
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Id<GuildMarker>>();
 
         #[cfg(feature = "api")]
         {
@@ -57,13 +56,20 @@ impl RedisConnection {
                         .expect("Error while sending pubsub message")
                 }
             });
-
         }
 
-        Ok(Self { client, #[cfg(feature = "api")] pub_sub_tx: tx })
+        Ok(Self {
+            client,
+            #[cfg(feature = "api")]
+            pub_sub_tx: tx,
+        })
     }
 
-    pub async fn set_guild(&self, id: Id<GuildMarker>, guild: PartialGuild) -> Result<(), RedisError> {
+    pub async fn set_guild(
+        &self,
+        id: Id<GuildMarker>,
+        guild: PartialGuild,
+    ) -> Result<(), RedisError> {
         let mut connection = connection!(self)?;
         let data = json!(guild).to_string();
         connection.set(format!("guilds.{id}"), data).await
@@ -71,7 +77,10 @@ impl RedisConnection {
 
     pub async fn get_guild(&self, id: Id<GuildMarker>) -> Result<PartialGuild, Error> {
         let mut connection = connection!(self).map_err(Error::from)?;
-        let data: String = connection.get(format!("guilds.{id}")).await.map_err(Error::from)?;
+        let data: String = connection
+            .get(format!("guilds.{id}"))
+            .await
+            .map_err(Error::from)?;
         serde_json::from_str(data.as_str()).map_err(Error::from)
     }
 
@@ -86,11 +95,9 @@ impl RedisConnection {
         position: usize,
     ) -> Result<Option<u32>, RedisError> {
         let mut connection = connection!(self)?;
-        let result: Vec<u32> = connection.zrevrange_withscores(
-            path,
-            (position - 1) as isize,
-            (position - 1) as isize,
-        ).await?;
+        let result: Vec<u32> = connection
+            .zrevrange_withscores(path, (position - 1) as isize, (position - 1) as isize)
+            .await?;
         Ok(result.first().cloned())
     }
 
@@ -111,7 +118,11 @@ impl RedisConnection {
         connection.exists(format!("guilds.{id}")).await
     }
 
-    pub async fn get_all(&self, path: String, limit: isize) -> Result<Vec<(String, u32)>, RedisError> {
+    pub async fn get_all(
+        &self,
+        path: String,
+        limit: isize,
+    ) -> Result<Vec<(String, u32)>, RedisError> {
         let mut connection = connection!(self)?;
         connection.zrevrange_withscores(path, 0, limit - 1).await
     }
@@ -132,8 +143,9 @@ impl RedisConnection {
         let _: () = connection
             .set(
                 format!("commands.{}", config.guild_id),
-                bitfield.to_string()
-            ).await?;
+                bitfield.to_string(),
+            )
+            .await?;
 
         Ok(())
     }
@@ -141,14 +153,16 @@ impl RedisConnection {
     pub async fn are_commands_synced(&self, config: &GuildConfig) -> Result<bool, RedisError> {
         let mut connection = connection!(self)?;
         let bitfield = get_enabled_bitfield(&config);
-        let response: Option<String> = connection.get(format!("commands.{}", config.guild_id)).await?;
+        let response: Option<String> = connection
+            .get(format!("commands.{}", config.guild_id))
+            .await?;
 
         Ok(response.map_or_else(|| false, |v| v == bitfield.to_string()))
     }
 
     pub async fn watch_config_updates(
         &self,
-        mongodb: &MongoDBConnection
+        mongodb: &MongoDBConnection,
     ) -> Result<(), RedisError> {
         let mut pubsub = self.client.get_async_pubsub().await?;
         pubsub.subscribe("configs").await?;
@@ -172,7 +186,7 @@ impl RedisConnection {
     #[cfg(feature = "api")]
     pub async fn announce_config_update(
         &self,
-        guild_id: Id<GuildMarker>
+        guild_id: Id<GuildMarker>,
     ) -> Result<(), SendError<Id<GuildMarker>>> {
         self.pub_sub_tx.send(guild_id)
     }

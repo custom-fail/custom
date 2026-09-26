@@ -1,68 +1,71 @@
-use mongodb::bson::doc;
-use twilight_model::channel::message::{Embed, Component};
-use twilight_model::channel::message::component::{SelectMenuOption, ActionRow, SelectMenu, SelectMenuType};
-use twilight_model::channel::message::embed::{EmbedAuthor, EmbedFooter};
-use std::sync::Arc;
-use futures_util::{TryStreamExt, StreamExt};
-use mongodb::bson;
-use twilight_http::Client;
-use twilight_model::http::interaction::InteractionResponseData;
-use twilight_model::application::interaction::application_command::CommandOptionValue;
-use serde::{Serialize, Deserialize};
-use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::commands::ResponseData;
+use crate::commands::context::{InteractionContext, InteractionHelpers};
 use crate::context::Context;
-use crate::{extract, get_option, get_required_option};
 use crate::models::case::Case;
 use crate::models::config::GuildConfig;
 use crate::utils::avatars::get_avatar_url;
 use crate::utils::errors::Error;
+use crate::{extract, get_option, get_required_option};
+use futures_util::{StreamExt, TryStreamExt};
+use mongodb::bson;
+use mongodb::bson::doc;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use twilight_http::Client;
+use twilight_model::application::interaction::application_command::CommandOptionValue;
+use twilight_model::channel::message::component::{
+    ActionRow, SelectMenu, SelectMenuOption, SelectMenuType,
+};
+use twilight_model::channel::message::embed::{EmbedAuthor, EmbedFooter};
+use twilight_model::channel::message::{Component, Embed};
+use twilight_model::http::interaction::InteractionResponseData;
 
 #[derive(Serialize, Deserialize)]
 struct ActionDocument {
-    action: u8
+    action: u8,
 }
 
 #[derive(Serialize, Deserialize)]
 struct CountActions {
     #[serde(rename = "_id")]
     target: ActionDocument,
-    count: usize
+    count: usize,
 }
 
 pub async fn run(
     interaction: InteractionContext,
     context: Arc<Context>,
     _: Arc<Client>,
-    _: GuildConfig
+    _: GuildConfig,
 ) -> ResponseData {
-    let member_id = get_required_option!(
-        interaction.options.get("member"), CommandOptionValue::User
-    );
+    let member_id =
+        get_required_option!(interaction.options.get("member"), CommandOptionValue::User);
 
     let page = u64::try_from(
-        get_option!(
-            interaction.options.get("page"), CommandOptionValue::Integer
-        ).copied().unwrap_or(1)
-    ).map_err(|_| "Page must be u64")?;
+        get_option!(interaction.options.get("page"), CommandOptionValue::Integer)
+            .copied()
+            .unwrap_or(1),
+    )
+    .map_err(|_| "Page must be u64")?;
 
-    let user_data = interaction.orginal.resolved()
-        .and_then(|resolved| resolved.users.get(member_id)).cloned();
+    let user_data = interaction
+        .orginal
+        .resolved()
+        .and_then(|resolved| resolved.users.get(member_id))
+        .cloned();
 
     extract!(interaction.orginal, guild_id, member);
     extract!(member, user);
 
     let action_type = match interaction.options.get("type") {
-        Some(CommandOptionValue::String(value)) => {
-            Some(match value.as_str() {
-                "mutes" => 7,
-                "warns" => 1,
-                "bans" => 4,
-                "kicks" => 6,
-                _ => 0
-            })
-        },
-        _ => None
+        Some(CommandOptionValue::String(value)) => Some(match value.as_str() {
+            "mutes" => 7,
+            "warns" => 1,
+            "bans" => 4,
+            "kicks" => 6,
+            _ => 0,
+        }),
+        _ => None,
     };
 
     let filter = if let Some(action_type) = action_type {
@@ -80,7 +83,10 @@ pub async fn run(
         }
     };
 
-    let case_list = context.mongodb.cases.find(filter.clone())
+    let case_list = context
+        .mongodb
+        .cases
+        .find(filter.clone())
         .limit(6)
         .skip((page - 1) * 6)
         .sort(doc! { "created_at": -1_i32 })
@@ -90,11 +96,13 @@ pub async fn run(
     let case_list: Vec<Case> = case_list.try_collect().await.map_err(Error::from)?;
 
     if case_list.is_empty() {
-        return Err(Error::from("This user has no cases"))
+        return Err(Error::from("This user has no cases"));
     }
 
-    let mut count = context.mongodb.cases.aggregate(
-        [
+    let mut count = context
+        .mongodb
+        .cases
+        .aggregate([
             doc! { "$match": filter },
             doc! {
                 "$group": {
@@ -102,9 +110,10 @@ pub async fn run(
                     "count": { "$sum": 1_u32 },
                     "totalValue": { "$sum": "$count" }
                 }
-            }
-        ]
-    ).await.map_err(Error::from)?;
+            },
+        ])
+        .await
+        .map_err(Error::from)?;
 
     let mut total = 0;
     let mut footer = vec![];
@@ -117,15 +126,21 @@ pub async fn run(
             if action_type == result.target.action {
                 total += result.count;
             }
-        } else { total += result.count }
+        } else {
+            total += result.count
+        }
 
-        footer.push(format!("{}: {}", match result.target.action {
-            7 => "Mutes",
-            1 => "Warns",
-            4 => "Bans",
-            6 => "Kicks",
-            _ => "???"
-        }, result.count));
+        footer.push(format!(
+            "{}: {}",
+            match result.target.action {
+                7 => "Mutes",
+                1 => "Warns",
+                4 => "Bans",
+                6 => "Kicks",
+                _ => "???",
+            },
+            result.count
+        ));
     }
 
     let author = if let Some(user) = user_data {
@@ -134,14 +149,14 @@ pub async fn run(
             icon_url: Some(avatar.to_owned()),
             name: format!("{}#{} {}", user.name, user.discriminator, user.id),
             proxy_icon_url: Some(avatar),
-            url: None
+            url: None,
         }
     } else {
         EmbedAuthor {
             icon_url: Some("https://cdn.discordapp.com/embed/avatars/0.png".to_string()),
             name: format!("Deleted User#0000 {member_id}"),
             proxy_icon_url: Some("https://cdn.discordapp.com/embed/avatars/0.png".to_string()),
-            url: None
+            url: None,
         }
     };
 
@@ -154,7 +169,7 @@ pub async fn run(
         footer: Some(EmbedFooter {
             icon_url: None,
             proxy_icon_url: None,
-            text: footer.join(" | ")
+            text: footer.join(" | "),
         }),
         image: None,
         kind: "".to_string(),
@@ -163,55 +178,55 @@ pub async fn run(
         timestamp: None,
         title: None,
         url: None,
-        video: None
+        video: None,
     };
 
-    let pages = if total % 6 == 0 { total / 6 } else { total / 6 + 1 };
+    let pages = if total % 6 == 0 {
+        total / 6
+    } else {
+        total / 6 + 1
+    };
 
     let mut result = vec![];
-    for page in 1..(
-        if pages + 1 > 25 { 25 } else { pages + 1 }
-    ) {
+    for page in 1..(if pages + 1 > 25 { 25 } else { pages + 1 }) {
         result.push(SelectMenuOption {
             default: false,
             description: None,
             emoji: None,
             label: format!("Page {page}"),
-            value: page.to_string()
+            value: page.to_string(),
         });
     }
 
-    Ok((InteractionResponseData {
-        allowed_mentions: None,
-        attachments: None,
-        choices: None,
-        components: Some(vec![
-            Component::ActionRow(ActionRow {
+    Ok((
+        InteractionResponseData {
+            allowed_mentions: None,
+            attachments: None,
+            choices: None,
+            components: Some(vec![Component::ActionRow(ActionRow {
                 id: None,
-                components: vec![
-                    Component::SelectMenu(SelectMenu {
-                        id: None,
-                        channel_types: None,
-                        custom_id: format!("a:{}:cl:{member_id}", user.id),
-                        default_values: None,
-                        disabled: false,
-                        kind: SelectMenuType::Text,
-                        max_values: Some(1),
-                        min_values: Some(1),
-                        options: Some(result),
-                        placeholder: None,
-                        required: None,
-                    })
-                ]
-            })
-        ]),
-        content: None,
-        custom_id: None,
-        embeds: Some(vec![embed]),
-        flags: None,
-        title: None,
-        tts: None,
-        poll: None,
-    }, None))
-
+                components: vec![Component::SelectMenu(SelectMenu {
+                    id: None,
+                    channel_types: None,
+                    custom_id: format!("a:{}:cl:{member_id}", user.id),
+                    default_values: None,
+                    disabled: false,
+                    kind: SelectMenuType::Text,
+                    max_values: Some(1),
+                    min_values: Some(1),
+                    options: Some(result),
+                    placeholder: None,
+                    required: None,
+                })],
+            })]),
+            content: None,
+            custom_id: None,
+            embeds: Some(vec![embed]),
+            flags: None,
+            title: None,
+            tts: None,
+            poll: None,
+        },
+        None,
+    ))
 }

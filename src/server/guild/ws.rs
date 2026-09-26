@@ -1,16 +1,3 @@
-use std::borrow::Cow;
-use std::sync::Arc;
-use futures_util::{SinkExt, StreamExt};
-use json_patch::Patch;
-use mongodb::bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::UnboundedSender;
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{error, info};
-use twilight_model::id::Id;
-use twilight_model::id::marker::UserMarker;
-use twilight_model::user::CurrentUserGuild;
-use warp::ws::{Message, WebSocket};
 use crate::context::Context;
 use crate::database::redis::PartialGuild;
 use crate::gateway::clients::DiscordClients;
@@ -18,6 +5,19 @@ use crate::models::config::GuildConfig;
 use crate::ok_or_return;
 use crate::server::guild::editing::{Change, GuildsEditing};
 use crate::server::session::AuthorizationInformation;
+use futures_util::{SinkExt, StreamExt};
+use json_patch::Patch;
+use mongodb::bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+use std::sync::Arc;
+use tokio::sync::mpsc::UnboundedSender;
+use tokio_stream::wrappers::UnboundedReceiverStream;
+use tracing::{error, info};
+use twilight_model::id::Id;
+use twilight_model::id::marker::UserMarker;
+use twilight_model::user::CurrentUserGuild;
+use warp::ws::{Message, WebSocket};
 
 macro_rules! close {
     ($tx: expr, $reason: expr) => {
@@ -56,7 +56,7 @@ impl CloseReason {
     pub fn text(&self) -> impl Into<Cow<'static, str>> {
         match self {
             CloseReason::MessageIsNotString => "Message is not UTF-8 string",
-            CloseReason::CannotParseJSON => "Cannot parse JSON message"
+            CloseReason::CannotParseJSON => "Cannot parse JSON message",
         }
     }
 }
@@ -64,7 +64,7 @@ impl CloseReason {
 pub struct Connection {
     pub user_id: Id<UserMarker>,
     pub session_id: ObjectId,
-    pub tx: UnboundedSender<OutboundAction>
+    pub tx: UnboundedSender<OutboundAction>,
 }
 
 pub async fn handle_connection(
@@ -74,12 +74,11 @@ pub async fn handle_connection(
     ws: WebSocket,
     info: Arc<AuthorizationInformation>,
     guild: CurrentUserGuild,
-    guilds_editing: Arc<GuildsEditing>
+    guilds_editing: Arc<GuildsEditing>,
 ) {
     let (mut ws_tx, mut ws_rx) = ws.split();
 
-    let (tx, rx) =
-        tokio::sync::mpsc::unbounded_channel();
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 
     let mut rx = UnboundedReceiverStream::new(rx);
 
@@ -97,9 +96,9 @@ pub async fn handle_connection(
                     }
                 }
                 OutboundAction::Close(reason) => {
-                    let _ = ws_tx.send(
-                        Message::close_with(reason.code(), reason.text())
-                    ).await;
+                    let _ = ws_tx
+                        .send(Message::close_with(reason.code(), reason.text()))
+                        .await;
                     guilds_editing.remove_connection(guild_id, session_id).await;
                     guilds_editing.broadcast_users(guild_id).await;
                 }
@@ -108,24 +107,30 @@ pub async fn handle_connection(
         let _ = ws_tx.close().await;
     });
 
-
     guilds_editing.broadcast_users(guild_id).await;
 
-    guilds_editing.add_connection(guild_id, Connection {
-        user_id: info.user.id,
-        session_id,
-        tx: tx.to_owned(),
-    }).await;
+    guilds_editing
+        .add_connection(
+            guild_id,
+            Connection {
+                user_id: info.user.id,
+                session_id,
+                tx: tx.to_owned(),
+            },
+        )
+        .await;
 
-    if let Some((saved_config, changes, users)) =
-        guilds_editing.get_initialization_data(&context, guild_id).await {
+    if let Some((saved_config, changes, users)) = guilds_editing
+        .get_initialization_data(&context, guild_id)
+        .await
+    {
         let _ = tx.send(OutboundAction::Message(OutboundMessage::Initialization {
             cached: ok_or_return!(context.redis.get_guild(guild.id).await, Ok),
             oauth2: guild.to_owned(),
             saved_config,
             changes,
             users,
-            session_id
+            session_id,
         }));
     }
 
@@ -134,13 +139,13 @@ pub async fn handle_connection(
             Ok(message) => message,
             Err(error) => {
                 error!(name: "error while receiving message on ws_rx channel", ?error);
-                break
+                break;
             }
         };
 
         if !message.is_text() {
             let _ = tx.send(OutboundAction::Close(CloseReason::MessageIsNotString));
-            break
+            break;
         }
 
         on_message(
@@ -151,8 +156,9 @@ pub async fn handle_connection(
             &guilds_editing,
             &context,
             &discord_http,
-            &discord_clients
-        ).await;
+            &discord_clients,
+        )
+        .await;
     }
 
     guilds_editing.remove_connection(guild_id, session_id).await;
@@ -175,21 +181,21 @@ pub enum OutboundMessage {
         session_id: ObjectId,
         saved_config: GuildConfig,
         changes: Vec<Change>,
-        users: Vec<Id<UserMarker>>
+        users: Vec<Id<UserMarker>>,
     },
     OverwriteConfigurationData {
         saved_config: GuildConfig,
         changes: Vec<Change>,
-        is_synced: bool
+        is_synced: bool,
     },
     OverwriteUsers(Vec<Id<UserMarker>>),
     OverwriteIsSynced(bool),
-    PushChange(Change)
+    PushChange(Change),
 }
 
 pub enum OutboundAction {
     Message(OutboundMessage),
-    Close(CloseReason)
+    Close(CloseReason),
 }
 
 async fn on_message(
@@ -200,20 +206,25 @@ async fn on_message(
     guilds_editing: &Arc<GuildsEditing>,
     context: &Arc<Context>,
     discord_http: &Arc<twilight_http::Client>,
-    discord_clients: &DiscordClients
+    discord_clients: &DiscordClients,
 ) -> Option<()> {
-    let message = unwrap_or_close_and_return!(
-        message.to_str(), tx, CloseReason::MessageIsNotString
-    );
+    let message =
+        unwrap_or_close_and_return!(message.to_str(), tx, CloseReason::MessageIsNotString);
 
     let message: InboundMessage = unwrap_or_close_and_return!(
-        serde_json::from_str(message), tx, CloseReason::CannotParseJSON
+        serde_json::from_str(message),
+        tx,
+        CloseReason::CannotParseJSON
     );
 
     match message {
         InboundMessage::GuildConfigUpdate(changes) => {
-            guilds_editing.marge_changes(info.user.id, guild.id, changes.to_owned()).await?;
-            guilds_editing.broadcast_change(guild.id, info.user.id, changes).await?;
+            guilds_editing
+                .marge_changes(info.user.id, guild.id, changes.to_owned())
+                .await?;
+            guilds_editing
+                .broadcast_change(guild.id, info.user.id, changes)
+                .await?;
         }
         InboundMessage::ApplyChanges => {
             info!(
@@ -222,7 +233,9 @@ async fn on_message(
                 guild_id = %guild.id
             );
             let is_synced = guilds_editing.apply_changes(&context, guild.id).await?;
-            let _ = guilds_editing.broadcast_config_overwrite(&context, guild.id, is_synced).await;
+            let _ = guilds_editing
+                .broadcast_config_overwrite(&context, guild.id, is_synced)
+                .await;
             let _ = context.redis.announce_config_update(guild.id).await
                 .inspect_err(|error| {
                     error!(name: "error sending guild_id to redis update announcer", ?error, %guild.id)
@@ -237,11 +250,16 @@ async fn on_message(
             let config = guilds_editing
                 .register_commands(&context, &discord_http, &discord_clients, guild.id)
                 .await?;
-            let _ = context.redis
+            let _ = context
+                .redis
                 .set_commands_as_synced(&config)
                 .await
-                .inspect_err(|err| error!(name: "redis error while updating commands bitfield", ?err));
-            let _ = tx.send(OutboundAction::Message(OutboundMessage::OverwriteIsSynced(true)));
+                .inspect_err(
+                    |err| error!(name: "redis error while updating commands bitfield", ?err),
+                );
+            let _ = tx.send(OutboundAction::Message(OutboundMessage::OverwriteIsSynced(
+                true,
+            )));
         }
     }
 

@@ -1,11 +1,11 @@
-use twilight_model::id::Id;
-use twilight_model::id::marker::ApplicationMarker;
 use crate::{
     all_macro,
-    env_unwrap,
     application::Application,
     database::{mongodb::MongoDBConnection, redis::RedisConnection},
+    env_unwrap,
 };
+use twilight_model::id::Id;
+use twilight_model::id::marker::ApplicationMarker;
 
 all_macro!(
     cfg(feature = "gateway");
@@ -52,7 +52,7 @@ impl Context {
             #[cfg(feature = "gateway")]
             bucket,
             application,
-            application_id
+            application_id,
         }
     }
 }

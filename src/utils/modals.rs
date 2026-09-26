@@ -1,26 +1,25 @@
 use twilight_model::channel::message::Component;
-use twilight_model::channel::message::component::{TextInput, TextInputStyle, ActionRow};
+use twilight_model::channel::message::component::{ActionRow, TextInput, TextInputStyle};
 use twilight_model::http::interaction::InteractionResponseData;
 
 pub enum RepetitiveTextInput {
     Duration(bool),
     Reason,
-    Member
+    Member,
 }
 
 pub struct ModalBuilder {
     custom_id: String,
     title: String,
-    inputs: Vec<TextInput>
+    inputs: Vec<TextInput>,
 }
 
 impl ModalBuilder {
-
     pub fn new(custom_id: String, title: String) -> Self {
         Self {
             custom_id,
             title,
-            inputs: vec![]
+            inputs: vec![],
         }
     }
 
@@ -28,51 +27,45 @@ impl ModalBuilder {
         Self {
             custom_id: self.custom_id.clone(),
             title: self.title.clone(),
-            inputs: vec![self.inputs.clone(), vec![text_input]].concat()
+            inputs: vec![self.inputs.clone(), vec![text_input]].concat(),
         }
     }
 
     pub fn add_repetitive_component(&self, input_type: RepetitiveTextInput) -> Self {
         match input_type {
-            RepetitiveTextInput::Reason => {
-                self.add_custom_component(TextInput {
-                    id: None,
-                    custom_id: "reason".to_string(),
-                    label: Some("Reason".to_string()),
-                    max_length: Some(512),
-                    min_length: None,
-                    placeholder: None,
-                    required: Some(false),
-                    style: TextInputStyle::Paragraph,
-                    value: None
-                })
-            }
-            RepetitiveTextInput::Duration(required) => {
-                self.add_custom_component(TextInput {
-                    id: None,
-                    custom_id: "duration".to_string(),
-                    label: Some("Duration".to_string()),
-                    max_length: Some(21),
-                    min_length: None,
-                    placeholder: None,
-                    required: Some(required),
-                    style: TextInputStyle::Short,
-                    value: None
-                })
-            },
-            RepetitiveTextInput::Member => {
-                self.add_custom_component(TextInput {
-                    id: None,
-                    custom_id: "member".to_string(),
-                    label: Some("Member ID".to_string()),
-                    max_length: Some(21),
-                    min_length: None,
-                    placeholder: None,
-                    required: Some(true),
-                    style: TextInputStyle::Short,
-                    value: None
-                })
-            }
+            RepetitiveTextInput::Reason => self.add_custom_component(TextInput {
+                id: None,
+                custom_id: "reason".to_string(),
+                label: Some("Reason".to_string()),
+                max_length: Some(512),
+                min_length: None,
+                placeholder: None,
+                required: Some(false),
+                style: TextInputStyle::Paragraph,
+                value: None,
+            }),
+            RepetitiveTextInput::Duration(required) => self.add_custom_component(TextInput {
+                id: None,
+                custom_id: "duration".to_string(),
+                label: Some("Duration".to_string()),
+                max_length: Some(21),
+                min_length: None,
+                placeholder: None,
+                required: Some(required),
+                style: TextInputStyle::Short,
+                value: None,
+            }),
+            RepetitiveTextInput::Member => self.add_custom_component(TextInput {
+                id: None,
+                custom_id: "member".to_string(),
+                label: Some("Member ID".to_string()),
+                max_length: Some(21),
+                min_length: None,
+                placeholder: None,
+                required: Some(true),
+                style: TextInputStyle::Short,
+                value: None,
+            }),
         }
     }
 
@@ -82,12 +75,15 @@ impl ModalBuilder {
             attachments: None,
             choices: None,
             components: Some(
-                self.inputs.iter().map(|text_input| {
-                    Component::ActionRow(ActionRow {
-                        id: None,
-                        components: vec![Component::TextInput(text_input.clone())]
+                self.inputs
+                    .iter()
+                    .map(|text_input| {
+                        Component::ActionRow(ActionRow {
+                            id: None,
+                            components: vec![Component::TextInput(text_input.clone())],
+                        })
                     })
-                }).collect()
+                    .collect(),
             ),
             content: None,
             custom_id: Some(self.custom_id.clone()),
