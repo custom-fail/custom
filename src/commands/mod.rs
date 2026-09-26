@@ -1,19 +1,19 @@
-pub mod top;
 pub mod case;
 pub mod context;
 pub mod moderation;
 pub mod options;
 pub mod settings;
+pub mod top;
 
+use crate::commands::context::InteractionContext;
+use crate::context::Context;
+use crate::models::config::GuildConfig;
+use crate::utils::errors::Error;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
-use crate::commands::context::InteractionContext;
-use crate::context::Context;
-use crate::models::config::GuildConfig;
-use crate::utils::errors::Error;
 
 pub type ResponseData = Result<(InteractionResponseData, Option<InteractionResponseType>), Error>;
 pub type Response = Pin<Box<dyn Future<Output = ResponseData> + Send + 'static>>;
@@ -25,9 +25,14 @@ macro_rules! command {
         Command {
             name: $name,
             module: $module,
-            run: |interaction: InteractionContext, context: Arc<Context>, discord_http: Arc<Client>, config: GuildConfig| ($function)(interaction, context, discord_http, config).boxed()
+            run: |interaction: InteractionContext,
+                  context: Arc<Context>,
+                  discord_http: Arc<Client>,
+                  config: GuildConfig| {
+                ($function)(interaction, context, discord_http, config).boxed()
+            },
         }
-    }
+    };
 }
 
 #[derive(Clone)]

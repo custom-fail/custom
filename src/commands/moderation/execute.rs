@@ -1,21 +1,6 @@
-use std::str::FromStr;
-use std::sync::Arc;
-use chrono::Utc;
-use humantime::Duration;
-use mongodb::bson::DateTime;
-use twilight_http::Client;
-use twilight_http::error::ErrorType;
-use twilight_model::application::interaction::application_command::CommandOptionValue;
-use twilight_model::channel::message::MessageFlags;
-use twilight_model::util::datetime::Timestamp;
-use twilight_model::guild::{Member, PartialMember};
-use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
-use twilight_model::id::Id;
-use twilight_model::id::marker::{GenericMarker, GuildMarker, RoleMarker, UserMarker};
 use crate::commands::ResponseData;
-use crate::context::Context;
-use crate::{extract, get_option, get_required_option};
 use crate::commands::context::{InteractionContext, InteractionHelpers};
+use crate::context::Context;
 use crate::database::redis::RedisConnection;
 use crate::models::case::{Case, CaseActionType};
 use crate::models::config::GuildConfig;
@@ -25,18 +10,32 @@ use crate::utils::constants::duration::{DAY, MINUTE};
 use crate::utils::errors::Error;
 use crate::utils::modals::{ModalBuilder, RepetitiveTextInput};
 use crate::utils::uppercase::FirstLetterToUpperCase;
+use crate::{extract, get_option, get_required_option};
+use chrono::Utc;
+use humantime::Duration;
+use mongodb::bson::DateTime;
+use std::str::FromStr;
+use std::sync::Arc;
+use twilight_http::Client;
+use twilight_http::error::ErrorType;
+use twilight_model::application::interaction::application_command::CommandOptionValue;
+use twilight_model::channel::message::MessageFlags;
+use twilight_model::guild::{Member, PartialMember};
+use twilight_model::http::interaction::{InteractionResponseData, InteractionResponseType};
+use twilight_model::id::Id;
+use twilight_model::id::marker::{GenericMarker, GuildMarker, RoleMarker, UserMarker};
+use twilight_model::util::datetime::Timestamp;
 
 pub async fn run(
     interaction: InteractionContext,
     context: Arc<Context>,
     discord_http: Arc<Client>,
-    config: GuildConfig
+    config: GuildConfig,
 ) -> ResponseData {
     if let Some(target_user) = interaction.orginal.target_id() {
-        let response = create_modal(
-            interaction.command_text, target_user
-        ).to_interaction_response_data();
-        return Ok((response, Some(InteractionResponseType::Modal)))
+        let response =
+            create_modal(interaction.command_text, target_user).to_interaction_response_data();
+        return Ok((response, Some(InteractionResponseType::Modal)));
     }
 
     extract!(interaction.orginal, guild_id, member);
@@ -44,34 +43,35 @@ pub async fn run(
 
     let user_id = user.id;
 
-    let target_id = *get_required_option!(
-        interaction.options.get("member"), CommandOptionValue::User
-    );
+    let target_id =
+        *get_required_option!(interaction.options.get("member"), CommandOptionValue::User);
 
     let reason = get_option!(
-        interaction.options.get("reason"), CommandOptionValue::String
-    ).cloned();
+        interaction.options.get("reason"),
+        CommandOptionValue::String
+    )
+    .cloned();
 
-    let case_type = command_to_action_type(
-        interaction.command_text.as_str(), &config
-    ).ok_or("Cannot find any action type matching command name")?;
+    let case_type = command_to_action_type(interaction.command_text.as_str(), &config)
+        .ok_or("Cannot find any action type matching command name")?;
 
     let moderation_config = &config.moderation.ok_or("This module is disabled")?;
 
-    let target_member = get_target_member(
-        &discord_http, guild_id, target_id
-    ).await.map_err(Error::from)?;
+    let target_member = get_target_member(&discord_http, guild_id, target_id)
+        .await
+        .map_err(Error::from)?;
 
     if let Some(target_member) = &target_member {
         if !check_position(&context.redis, guild_id, target_member, member).await? {
-            return Err(
-                Error::from("Missing Permissions: Cannot execute moderation action on user with higher role")
-            )
+            return Err(Error::from(
+                "Missing Permissions: Cannot execute moderation action on user with higher role",
+            ));
         }
     }
 
     let duration = get_option!(
-        interaction.options.get("duration"), CommandOptionValue::String
+        interaction.options.get("duration"),
+        CommandOptionValue::String
     );
 
     let duration = match duration {
@@ -81,7 +81,7 @@ pub async fn run(
             let end_at = Utc::now().timestamp() + (duration.as_secs() as i64);
             Some((duration, end_at))
         }
-        None => None
+        None => None,
     };
 
     if [CaseActionType::Mute, CaseActionType::Timeout].contains(&case_type) {
@@ -92,26 +92,43 @@ pub async fn run(
             discord_http
                 .update_guild_member(guild_id, target_id)
                 .communication_disabled_until(timestamp)
-                .await.map_err(Error::from)?
-                .model().await.map_err(Error::from)?;
+                .await
+                .map_err(Error::from)?
+                .model()
+                .await
+                .map_err(Error::from)?;
         } else {
             if !verify_mute_duration(duration) {
-                return Err(Error::from("Mutes in the role mode must be for min `1m` and max `90d`"))
+                return Err(Error::from(
+                    "Mutes in the role mode must be for min `1m` and max `90d`",
+                ));
             }
 
             let mut roles = target_member
-                .ok_or("You can mute only user server members (User left or didn't join this server)")?
+                .ok_or(
+                    "You can mute only user server members (User left or didn't join this server)",
+                )?
                 .roles;
-            roles.push(moderation_config.mute_role.ok_or("There is no role for muted users set")?);
+            roles.push(
+                moderation_config
+                    .mute_role
+                    .ok_or("There is no role for muted users set")?,
+            );
 
-            discord_http.update_guild_member(config.guild_id, target_id)
-                .roles(&roles).await.map_err(Error::from)?;
+            discord_http
+                .update_guild_member(config.guild_id, target_id)
+                .roles(&roles)
+                .await
+                .map_err(Error::from)?;
 
-            context.mongodb.create_task(Task {
-                execute_at: DateTime::from_millis(end_at * 1000),
-                guild_id,
-                action: TaskAction::RemoveMuteRole(target_id)
-            }).await?;
+            context
+                .mongodb
+                .create_task(Task {
+                    execute_at: DateTime::from_millis(end_at * 1000),
+                    guild_id,
+                    action: TaskAction::RemoveMuteRole(target_id),
+                })
+                .await?;
         }
     };
 
@@ -126,50 +143,71 @@ pub async fn run(
         reason,
         removed: false,
         duration: duration.map(|(d, _)| d.as_secs() as i64),
-        index
+        index,
     };
 
     let result_action = match interaction.command_text.as_str() {
-        "kick" => {
-            discord_http.remove_guild_member(guild_id, target_id).await.err()
-        },
+        "kick" => discord_http
+            .remove_guild_member(guild_id, target_id)
+            .await
+            .err(),
         "ban" => {
             if let Some((_, end_at)) = duration {
-                context.mongodb.create_task(Task {
-                    execute_at: DateTime::from_millis(end_at * 1000),
-                    guild_id,
-                    action: TaskAction::RemoveBan(target_id)
-                }).await?;
+                context
+                    .mongodb
+                    .create_task(Task {
+                        execute_at: DateTime::from_millis(end_at * 1000),
+                        guild_id,
+                        action: TaskAction::RemoveBan(target_id),
+                    })
+                    .await?;
             };
             discord_http.create_ban(guild_id, target_id).await.err()
-        },
-        _ => None
+        }
+        _ => None,
     };
 
     let case_embed = case.to_embed(discord_http.to_owned()).await?;
 
-    let result_case = context.mongodb.create_case(
-        discord_http.to_owned(), &context.redis, case,
-        case_embed.to_owned(),
-        if moderation_config.dm_case { Some(target_id) } else { None },
-        moderation_config.logs_channel
-    ).await.err();
+    let result_case = context
+        .mongodb
+        .create_case(
+            discord_http.to_owned(),
+            &context.redis,
+            case,
+            case_embed.to_owned(),
+            if moderation_config.dm_case {
+                Some(target_id)
+            } else {
+                None
+            },
+            moderation_config.logs_channel,
+        )
+        .await
+        .err();
 
-    Ok((InteractionResponseData {
-        allowed_mentions: None,
-        attachments: None,
-        choices: None,
-        components: None,
-        content: if result_action.is_some() || result_case.is_some() {
-            Some(format!("Action status: {result_action:?}\nCase status: {result_case:?}"))
-        } else { None },
-        custom_id: None,
-        embeds: Some(vec![case_embed]),
-        flags: Some(MessageFlags::EPHEMERAL),
-        title: None,
-        tts: None,
-        poll: None,
-    }, None))
+    Ok((
+        InteractionResponseData {
+            allowed_mentions: None,
+            attachments: None,
+            choices: None,
+            components: None,
+            content: if result_action.is_some() || result_case.is_some() {
+                Some(format!(
+                    "Action status: {result_action:?}\nCase status: {result_case:?}"
+                ))
+            } else {
+                None
+            },
+            custom_id: None,
+            embeds: Some(vec![case_embed]),
+            flags: Some(MessageFlags::EPHEMERAL),
+            title: None,
+            tts: None,
+            poll: None,
+        },
+        None,
+    ))
 }
 
 /// Return true when the duration is correct
@@ -181,19 +219,20 @@ fn verify_mute_duration(duration: Duration) -> bool {
 fn command_to_action_type(command_name: &str, config: &GuildConfig) -> Option<CaseActionType> {
     let action_type = match command_name {
         "warn" => CaseActionType::Warn,
-        "timeout" | "mute" => {
-            match config.moderation.as_ref()?.mute_mode {
-                MuteMode::Timeout => CaseActionType::Timeout,
-                MuteMode::Role => CaseActionType::Mute,
-                MuteMode::DependOnCommand => {
-                    if command_name == "mute" { CaseActionType::Mute }
-                    else { CaseActionType::Timeout }
+        "timeout" | "mute" => match config.moderation.as_ref()?.mute_mode {
+            MuteMode::Timeout => CaseActionType::Timeout,
+            MuteMode::Role => CaseActionType::Mute,
+            MuteMode::DependOnCommand => {
+                if command_name == "mute" {
+                    CaseActionType::Mute
+                } else {
+                    CaseActionType::Timeout
                 }
             }
         },
         "kick" => CaseActionType::Kick,
         "ban" => CaseActionType::Ban,
-        _ => return None
+        _ => return None,
     };
 
     Some(action_type)
@@ -202,14 +241,16 @@ fn command_to_action_type(command_name: &str, config: &GuildConfig) -> Option<Ca
 fn create_modal(command_name: String, target_id: Id<GenericMarker>) -> ModalBuilder {
     let modal = ModalBuilder::new(
         format!("a:{}:{target_id}", command_name),
-        command_name.to_owned().first_to_uppercase()
+        command_name.to_owned().first_to_uppercase(),
     );
 
     let modal = if ["mute", "timeout"].contains(&&*command_name) {
         modal.add_repetitive_component(RepetitiveTextInput::Duration(true))
     } else if "ban" == &*command_name {
         modal.add_repetitive_component(RepetitiveTextInput::Duration(false))
-    } else { modal };
+    } else {
+        modal
+    };
 
     modal.add_repetitive_component(RepetitiveTextInput::Reason)
 }
@@ -218,36 +259,34 @@ fn create_modal(command_name: String, target_id: Id<GenericMarker>) -> ModalBuil
 async fn get_target_member(
     discord_http: &Arc<Client>,
     guild_id: Id<GuildMarker>,
-    member_id: Id<UserMarker>
+    member_id: Id<UserMarker>,
 ) -> Result<Option<Member>, Error> {
     match discord_http.guild_member(guild_id, member_id).await {
-        Ok(value) => {
-            Ok(Some(
-                value.model().await.map_err(Error::from)?
-            ))
-        }
-        Err(err) => {
-            match err.kind() {
-                ErrorType::Response { status, .. } => {
-                    if status == &404 { Ok(None) } else { Err(Error::from(err)) }
-                },
-                _ => Err(Error::from(err))
+        Ok(value) => Ok(Some(value.model().await.map_err(Error::from)?)),
+        Err(err) => match err.kind() {
+            ErrorType::Response { status, .. } => {
+                if status == &404 {
+                    Ok(None)
+                } else {
+                    Err(Error::from(err))
+                }
             }
-        }
+            _ => Err(Error::from(err)),
+        },
     }
 }
 
 /// Get the highest role from array by checking positions in the sorted array of guild roles
-fn get_highest_role_pos(
-    sorted_roles: &[Id<RoleMarker>],
-    target_roles: &[Id<RoleMarker>]
-) -> usize {
+fn get_highest_role_pos(sorted_roles: &[Id<RoleMarker>], target_roles: &[Id<RoleMarker>]) -> usize {
     let mut target_role_index = 0;
     for role in target_roles {
-        let position = sorted_roles.iter()
+        let position = sorted_roles
+            .iter()
             .position(|pos_role| pos_role == role)
             .unwrap_or(0);
-        if target_role_index < position { target_role_index = position }
+        if target_role_index < position {
+            target_role_index = position
+        }
     }
     target_role_index
 }
@@ -257,19 +296,13 @@ async fn check_position(
     redis: &RedisConnection,
     guild_id: Id<GuildMarker>,
     target_member: &Member,
-    member: PartialMember
+    member: PartialMember,
 ) -> Result<bool, Error> {
     let guild = redis.get_guild(guild_id).await.map_err(Error::from)?;
 
-    let target_role_index = get_highest_role_pos(
-        &guild.roles,
-        &target_member.roles
-    );
+    let target_role_index = get_highest_role_pos(&guild.roles, &target_member.roles);
 
-    let moderator_role_index = get_highest_role_pos(
-        &guild.roles,
-        &member.roles
-    );
+    let moderator_role_index = get_highest_role_pos(&guild.roles, &member.roles);
 
     Ok(target_role_index < moderator_role_index)
 }

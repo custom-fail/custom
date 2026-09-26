@@ -19,5 +19,5 @@ pub struct Commands {
     pub top_day_all: bool,
     pub top_day_me: bool,
     pub top_week_all: bool,
-    pub top_week_me: bool
+    pub top_week_me: bool,
 }

@@ -1,16 +1,16 @@
-use serde::{Serialize, Deserialize};
-use twilight_model::id::Id;
-use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 use crate::models::config::activity::{Levels, Top};
 use crate::models::config::commands::Commands;
 use crate::models::config::moderation::Moderation;
+use serde::{Deserialize, Serialize};
+use twilight_model::id::Id;
+use twilight_model::id::marker::{ApplicationMarker, GuildMarker};
 
 use self::automod::actions::BucketAction;
 
-pub mod moderation;
 pub mod activity;
 pub mod automod;
 pub mod commands;
+pub mod moderation;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GuildConfig {
@@ -20,7 +20,7 @@ pub struct GuildConfig {
     pub moderation: Option<Moderation>,
     pub premium: bool,
     pub levels: Option<Levels>,
-    pub top: Option<Top>
+    pub top: Option<Top>,
 }
 
 impl GuildConfig {
@@ -32,11 +32,15 @@ impl GuildConfig {
             moderation: None,
             premium: false,
             levels: None,
-            top: None
+            top: None,
         }
     }
 
     pub fn get_bucket_action(&self, key: &str) -> Option<BucketAction> {
-        self.moderation.as_ref()?.automod.as_ref().map(|a| a.bucket_actions.get(key).cloned())?
+        self.moderation
+            .as_ref()?
+            .automod
+            .as_ref()
+            .map(|a| a.bucket_actions.get(key).cloned())?
     }
 }

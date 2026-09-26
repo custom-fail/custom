@@ -1,65 +1,78 @@
-use std::sync::Arc;
+use crate::commands::ResponseData;
+use crate::commands::context::InteractionContext;
+use crate::context::Context;
+use crate::models::config::GuildConfig;
+use crate::utils::errors::Error;
+use crate::{extract, get_option, get_required_option};
 use mongodb::bson::doc;
+use std::sync::Arc;
 use twilight_http::Client;
 use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::channel::message::MessageFlags;
 use twilight_model::http::interaction::InteractionResponseData;
-use crate::commands::context::InteractionContext;
-use crate::commands::ResponseData;
-use crate::context::Context;
-use crate::{extract, get_required_option, get_option};
-use crate::models::config::GuildConfig;
-use crate::utils::errors::Error;
 
 pub async fn run(
     interaction: InteractionContext,
     context: Arc<Context>,
     discord_http: Arc<Client>,
-    _: GuildConfig
+    _: GuildConfig,
 ) -> ResponseData {
-
     extract!(interaction.orginal, member, guild_id);
     extract!(member, user);
 
     let case_index = get_required_option!(
-            interaction.options.get("number"), CommandOptionValue::Integer
+        interaction.options.get("number"),
+        CommandOptionValue::Integer
     );
 
     let reason = get_required_option!(
-            interaction.options.get("reason"), CommandOptionValue::String
-    ).to_owned();
+        interaction.options.get("reason"),
+        CommandOptionValue::String
+    )
+    .to_owned();
 
     if reason.len() > 512 {
-        return Err(Error::from("Reason is too long"))
+        return Err(Error::from("Reason is too long"));
     }
 
-    let mut case = context.mongodb.cases.find_one(
-        doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false }
-    ).await.map_err(Error::from)?.ok_or("There is no case with selected id")?;
+    let mut case = context
+        .mongodb
+        .cases
+        .find_one(doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false })
+        .await
+        .map_err(Error::from)?
+        .ok_or("There is no case with selected id")?;
 
     if case.moderator_id != user.id {
-        return Err(Error::from("You can't edit cases created by someone else"))
+        return Err(Error::from("You can't edit cases created by someone else"));
     }
 
-    context.mongodb.cases.update_one(
-        doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false },
-        doc! { "$set": {"reason": reason.to_owned() } }
-    ).await.map_err(Error::from)?;
+    context
+        .mongodb
+        .cases
+        .update_one(
+            doc! { "guild_id": guild_id.to_string(), "index": case_index, "removed": false },
+            doc! { "$set": {"reason": reason.to_owned() } },
+        )
+        .await
+        .map_err(Error::from)?;
 
     case.reason = Some(reason);
 
-    Ok((InteractionResponseData {
-        allowed_mentions: None,
-        attachments: None,
-        choices: None,
-        components: None,
-        content: Some("**Case updated**".to_string()),
-        custom_id: None,
-        embeds: Some(vec![case.to_embed(discord_http).await?]),
-        flags: Some(MessageFlags::EPHEMERAL),
-        title: None,
-        tts: None,
-        poll: None,
-    }, None))
-
+    Ok((
+        InteractionResponseData {
+            allowed_mentions: None,
+            attachments: None,
+            choices: None,
+            components: None,
+            content: Some("**Case updated**".to_string()),
+            custom_id: None,
+            embeds: Some(vec![case.to_embed(discord_http).await?]),
+            flags: Some(MessageFlags::EPHEMERAL),
+            title: None,
+            tts: None,
+            poll: None,
+        },
+        None,
+    ))
 }

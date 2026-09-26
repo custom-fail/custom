@@ -9,9 +9,12 @@ pub fn get_avatar_url(avatar: Option<ImageHash>, user_id: Id<UserMarker>) -> Str
     match avatar {
         Some(avatar) => {
             let file_format = if avatar.is_animated() { "gif" } else { "png" };
-            format!("https://cdn.discordapp.com/avatars/{}/{}.{}", user_id, avatar, file_format)
+            format!(
+                "https://cdn.discordapp.com/avatars/{}/{}.{}",
+                user_id, avatar, file_format
+            )
         }
-        None =>  DEFAULT_AVATAR.to_string()
+        None => DEFAULT_AVATAR.to_string(),
     }
 }
 
@@ -19,8 +22,11 @@ pub fn get_guild_icon_url(icon: Option<ImageHash>, guild_id: Id<GuildMarker>) ->
     match icon {
         Some(icon) => {
             let file_format = if icon.is_animated() { "gif" } else { "png" };
-            format!("https://cdn.discordapp.com/icons/{}/{}.{}", guild_id, icon, file_format)
+            format!(
+                "https://cdn.discordapp.com/icons/{}/{}.{}",
+                guild_id, icon, file_format
+            )
         }
-        None =>  DEFAULT_ICON.to_string()
+        None => DEFAULT_ICON.to_string(),
     }
 }
