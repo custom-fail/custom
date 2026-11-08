@@ -8,7 +8,7 @@ twilight-gateway = { version = "0.17.1", optional = true }
 twilight-model = "0.17.1"
 twilight-http = "0.17.1"
 twilight-util = { version = "0.17.0", features = ["full"] }
-twilight-validate = "0.17.0"
+twilight-validate = "0.18.0"
 
 serde_urlencoded = { version = "0.7.1", optional = true }
 serde_json = "1.0.151"
